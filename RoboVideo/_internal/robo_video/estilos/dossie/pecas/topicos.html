@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: topicos (listas). Ficha pautada presa com fita; cada item e datilografado quando
+     e dito e ganha o numero circulado a caneta vermelha. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #ficha { left: 176px; top: 150px; width: fit-content; min-width: 600px; max-width: 900px; padding: 40px 60px 44px 132px; opacity: 0; transform-origin: 20% 0; }
+  #ficha::before { content: ''; position: absolute; top: 0; bottom: 0; left: 96px; width: 2px; background: rgba(179, 33, 27, .45); }
+  #tit { font-size: 64px; margin-bottom: 18px; color: var(--tinta); }
+  #lista { position: relative; }
+  .item { position: relative; display: flex; align-items: baseline; gap: 22px; padding: 14px 0 12px; font-size: 44px; line-height: 1.12; }
+  .num { position: absolute; left: -92px; width: 60px; text-align: center; font-family: var(--f-titulo); font-weight: 700;
+         font-stretch: 75%; color: var(--vermelho); font-size: 1.05em; }
+  .txt { flex: 1; }
+  #fita { right: 70px; top: -22px; transform: rotate(4deg); }
+  svg.caneta { left: 0; top: 0; }
+  svg.caneta path { stroke-width: 5; }
+</style>
+</head>
+<body>
+<div id="ficha" class="papel">
+  <div id="fita" class="fita"></div>
+  <div id="tit" class="titulo"></div>
+  <div id="lista"></div>
+  <svg class="caneta" id="svg" width="10" height="10"></svg>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const ficha = document.getElementById('ficha'), lista = document.getElementById('lista'), svg = document.getElementById('svg');
+  let DUR = 4500, itens = [], ems = [], cis = [], nums = [], rotF = -1.5;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 4500;
+    const titulo = Z.txt(d.titulo);
+    const tit = document.getElementById('tit');
+    if (titulo) { tit.textContent = titulo; tit.style.width = 'max-content'; if (tit.getBoundingClientRect().width > 708) { tit.style.width = '708px'; Z.caber(tit, 64, 40, 140); } } else tit.style.display = 'none';
+    const lst = (Array.isArray(d.itens) ? d.itens : []).map(Z.txt).filter(Boolean).slice(0, 5);
+    lista.innerHTML = '';
+    itens = lst.map((txt, i) => {
+      const it = document.createElement('div'); it.className = 'item maquina';
+      const n = document.createElement('div'); n.className = 'num'; n.textContent = String(i + 1);
+      const x = document.createElement('div'); x.className = 'txt'; x.textContent = txt;
+      it.append(n, x); lista.appendChild(it);
+      return { it, n, x, txt };
+    });
+    // cabe tudo em ~760 px de altura
+    let fs = lst.length > 3 ? 40 : 46;
+    const alturaMax = 800 - (titulo ? tit.getBoundingClientRect().height + 18 : 0) - 84;
+    for (; fs > 26; fs -= 2) {
+      itens.forEach((o) => { o.it.style.fontSize = fs + 'px'; });
+      if (lista.scrollHeight <= alturaMax && itens.every((o) => o.x.scrollWidth <= o.x.clientWidth + 1)) break;
+    }
+    itens.forEach((o) => Z.prepararDatilo(o.x, o.txt));
+    // quando cada item entra: itens_ms (fala) ou escalonado
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    const passo = Math.min(700, (DUR * 0.6) / Math.max(1, itens.length));
+    ems = itens.map((_, i) => 300 + (ms[i] != null ? Math.max(0, Math.min(Number(ms[i]), DUR * 0.7)) : i * passo));
+    for (let i = 1; i < ems.length; i++) ems[i] = Math.max(ems[i], ems[i - 1] + 260);
+    // circulos de caneta em volta dos numeros
+    const fb = ficha.getBoundingClientRect();
+    svg.setAttribute('width', fb.width); svg.setAttribute('height', fb.height);
+    svg.innerHTML = '';
+    cis = itens.map((o, i) => {
+      const b = o.n.getBoundingClientRect();
+      const p = document.createElementNS(NS, 'path');
+      const r = Math.max(b.height, 40) * 0.55;
+      p.setAttribute('d', Z.circuloMao(b.left - fb.left + b.width / 2, b.top - fb.top + b.height / 2, r + 4, r, (d.titulo || '') + i));
+      svg.appendChild(p);
+      return p;
+    });
+    nums = itens.map((o) => o.n);
+    rotF = -1 - Z.rnd(lst.join('|'), 1) * 1.5;
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }].concat(ems.map((m) => ({ evento: 'lista.item', ms: Math.round(m) })));
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 420), sai = Z.seg(t, DUR - 330, 330);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    ficha.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    ficha.style.transform = `translate(${s * -120}px, ${(1 - e) * 120 + s * 10}px) rotate(${rotF + (1 - e) * -3}deg)`;
+    itens.forEach((o, i) => {
+      const k = Z.seg(t, ems[i], 90);
+      nums[i].style.opacity = String(k);
+      Z.datilo(o.x, Z.seg(t, ems[i] + 60, Math.min(520, o.txt.length * 26)));
+      Z.tracar(cis[i], Z.eio(Z.seg(t, ems[i] + 40, 300)));
+    });
+  };
+})();
+</script>
+</body>
+</html>

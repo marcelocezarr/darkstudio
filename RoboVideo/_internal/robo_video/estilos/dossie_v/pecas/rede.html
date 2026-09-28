@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: rede de evidencias. Sobre o footage levemente escurecido: etiqueta escura
+     datilografada no canto superior esquerdo, polaroide central e ate 5 polaroides pequenas ligadas
+     a ela por fio vermelho, entrando uma a uma (cima, direita, baixo, esquerda...).
+     listas/lista: centro = titulo, nos = itens (cartoes so com texto quando nao ha fotos).
+     foto_destaque/fotos: centro = 1a foto + texto, nos = demais fotos + trechos da legenda. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  .no { opacity: 0; transform-origin: 50% 50%; }
+  .no .num { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-family: var(--f-maquina);
+             font-weight: 700; color: var(--vermelho); font-size: 30px; letter-spacing: .1em; }
+  #tag { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<svg class="fios" id="fios"></svg>
+<div id="nos"></div>
+<div id="tag" class="tag"><span id="tagt"></span></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), fios = document.getElementById('fios'), nosEl = document.getElementById('nos');
+  const tagt = document.getElementById('tagt'), tag = document.getElementById('tag');
+  // centros (1920x1080) medidos na referencia: centro, cima, direita, baixo, esquerda, extra
+  const POS = [[958, 526], [958, 156], [1332, 512], [958, 902], [588, 526], [1340, 176]];
+  const ORDEM = { 1: [2], 2: [4, 2], 3: [1, 2, 4], 4: [1, 2, 3, 4], 5: [1, 2, 3, 4, 5] };
+  let DUR = 5000, nos = [], linhas = [], T_TAG = 0, passo = 500;
+
+  function cartao(foto, texto, central, idx, comFoto) {
+    const el = document.createElement('div');
+    el.className = 'pola no';
+    const W = central ? 308 : 212, pad = central ? 16 : 13, fh = central ? 212 : 144;
+    el.style.width = W + 'px';
+    let h;
+    const leg = document.createElement('div');
+    leg.className = 'leg';
+    leg.textContent = texto;
+    leg.style.fontSize = (central ? 32 : 31) + 'px';
+    if (comFoto) {
+      const f = document.createElement('div');
+      f.className = 'foto';
+      Object.assign(f.style, { left: pad + 'px', top: pad + 'px', width: (W - 2 * pad) + 'px', height: fh + 'px' });
+      if (foto) f.innerHTML = `<img src="${V.esc(foto)}">`;
+      el.appendChild(f);
+      leg.style.top = (pad + fh + 6) + 'px';
+      el.appendChild(leg);
+      nosEl.appendChild(el);
+      leg.style.height = 'auto';
+      const lh = Math.max(central ? 76 : 60, leg.scrollHeight + 18);
+      h = pad + fh + 6 + lh;
+      leg.style.height = lh + 'px';
+    } else {
+      const n = document.createElement('div');
+      n.className = 'num';
+      n.textContent = central ? '' : String(idx).padStart(2, '0');
+      el.appendChild(n);
+      leg.style.top = (central ? 20 : 58) + 'px';
+      leg.style.fontSize = (central ? 32 : 27) + 'px';
+      el.appendChild(leg);
+      nosEl.appendChild(el);
+      leg.style.height = 'auto';
+      h = Math.max(central ? 180 : 170, leg.scrollHeight + (central ? 40 : 84));
+      leg.style.height = (h - (central ? 40 : 78)) + 'px';
+    }
+    el.style.height = h + 'px';
+    return { el, W, h };
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 5000;
+    const fotos = V.midias(d);
+    const comFoto = fotos.length > 0;
+    let centro, itens;
+    if (Array.isArray(d.itens) && d.itens.length && d.familia !== 'foto_destaque') {
+      itens = d.itens.map(V.semPonto).filter(Boolean).slice(0, 5);
+      centro = V.semPonto(d.titulo) || V.rot(d, 'evidencia');
+    } else {
+      centro = V.semPonto(d.texto);
+      const n = Math.max(1, Math.min(4, fotos.length - 1 || 1));
+      itens = V.rotulosCurtos(d.legenda || d.texto, n, 4);
+      if (!itens.length) itens = [centro];
+    }
+    tagt.textContent = V.rot(d, 'arquivo') || V.rot(d, 'evidencia');
+    const ordem = ORDEM[itens.length] || ORDEM[4];
+    const sem = V.txt(centro) + itens.join('|');
+    const c = cartao(fotos[0] || '', centro, true, 0, comFoto);
+    nos = [{ ...c, x: POS[0][0], y: POS[0][1], rot: -0.6 + V.rnd(sem, 0) * 1.2 }];
+    itens.forEach((it, i) => {
+      const p = POS[ordem[i]];
+      const k = cartao(comFoto ? (fotos[(i + 1) % fotos.length] || '') : '', it, false, i + 1, comFoto);
+      nos.push({ ...k, x: p[0], y: p[1], rot: -2.2 + V.rnd(sem, i + 1) * 4.4 });
+    });
+    // fontes que nao cabem: reduz
+    nos.forEach((n) => { const l = n.el.querySelector('.leg'); if (l.scrollHeight > l.clientHeight + 2) V.caber(l, parseFloat(l.style.fontSize), 18, l.clientHeight); });
+    nos.forEach((n) => { n.el.style.left = (n.x - n.W / 2) + 'px'; n.el.style.top = (n.y - n.h / 2) + 'px'; });
+    // cartao de cima/baixo: nao sai da tela (altura variavel)
+    nos.forEach((n) => {
+      const top = n.y - n.h / 2;
+      if (top < 20) n.el.style.top = '20px';
+      if (top + n.h > 1060) n.el.style.top = (1060 - n.h) + 'px';
+    });
+    fios.innerHTML = nos.slice(1).map((n) => `<line x1="${POS[0][0]}" y1="${POS[0][1]}" x2="${n.x}" y2="${n.y}"/>`).join('');
+    linhas = Array.from(fios.querySelectorAll('line')).map((l) => { const L = Math.hypot(l.x2.baseVal.value - l.x1.baseVal.value, l.y2.baseVal.value - l.y1.baseVal.value); l.style.strokeDasharray = L + ' ' + L; return { l, L }; });
+    V.prepararDatilo(tagt, tagt.textContent);
+    passo = Math.max(260, Math.min(520, (DUR * 0.55) / Math.max(1, itens.length)));
+    window.eventos = [{ evento: 'maquina.digita', ms: 0 }, { evento: 'rede.no', ms: 150 }];
+    for (let i = 1; i < nos.length; i++) window.eventos.push({ evento: 'rede.no', ms: Math.round(inicioNo(i) + 150) });
+  };
+  const inicioNo = (i) => (i === 0 ? 150 : 150 + 350 + (i - 1) * passo);
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 300);
+    esc.style.opacity = String(0.32 * V.eo(V.seg(t, 0, 250)) * s);
+    tag.style.opacity = String(s * (t > 0 ? 1 : 0));
+    V.datilo(tagt, V.seg(t, 0, V.tempoDatilo(tagt._dv.texto.join(''), 500)));
+    nos.forEach((n, i) => {
+      const t0 = inicioNo(i);
+      if (i > 0) {
+        const kl = V.seg(t, t0, 170), ln = linhas[i - 1];
+        ln.l.style.strokeDashoffset = String(ln.L * (1 - V.eo(kl)));
+        ln.l.style.opacity = String(kl > 0 ? 0.9 * s : 0);
+      }
+      const kn = V.seg(t, t0 + (i > 0 ? 110 : 0), 230);
+      n.el.style.opacity = String(Math.min(1, kn * 1.8) * s);
+      const esc_ = 0.86 + 0.14 * V.eo(kn);
+      n.el.style.transform = `rotate(${n.rot.toFixed(2)}deg) scale(${esc_.toFixed(3)})`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

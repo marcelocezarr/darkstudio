@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / secao-titulo (secoes: capitulo). Footage escurecido com grade;
+     rotulo espacado "CAPITULO 02 / 06" com barra vermelha e titulo grande bold condensado,
+     tres tracos de progresso embaixo (o do capitulo atual em vermelho). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #bl { position: absolute; left: 192px; top: 380px; width: 1540px; }
+  #rw { display: flex; align-items: center; gap: 22px; }
+  #rw .barra { width: 8px; height: 44px; background: var(--acento); }
+  #rot { font-size: 30px; color: #fff; }
+  #tit { margin-top: 26px; font-size: 138px; line-height: .98; white-space: normal; }
+  #tr { margin-top: 38px; }
+</style>
+</head>
+<body>
+<div id="bg"><div class="escurece"></div><div class="grade"></div></div>
+<div id="bl">
+  <div id="rw"><div class="barra"></div><div id="rot" class="esp forte"></div></div>
+  <div id="tit" class="cond"></div>
+  <div id="tr" class="tracos"></div>
+</div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000, n = 1, tot = 3;
+  const dois = (v) => String(v).padStart(2, '0');
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    n = Math.max(1, parseInt(d.numero, 10) || 1);
+    tot = Math.max(n, parseInt(d.total, 10) || 0);
+    $('rot').textContent = BC.rot(d, 'capitulo') + ' ' + dois(n) + (tot ? ' / ' + dois(tot) : '');
+    BC.caberTexto($('tit'), BC.txt(d.texto), 138, 70, 1540, 290);
+    const m = Math.min(8, Math.max(3, tot || 3));
+    for (let i = 0; i < m; i++) { const e = document.createElement('i'); if (i === Math.min(n, m) - 1) e.className = 'on'; $('tr').appendChild(e); }
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const ks = BC.ei(BC.lin(-S, -420, -40));
+    $('bg').style.opacity = (BC.eo(BC.lin(t, 0, 350)) * (1 - ks)).toFixed(3);
+    const kr = BC.eo(BC.lin(t, 150, 600));
+    $('rw').style.opacity = (kr * (1 - ks)).toFixed(3);
+    $('rot').style.clipPath = `inset(0 ${((1 - kr) * 100).toFixed(3)}% 0 0)`;
+    const kt = BC.expo(BC.lin(t, 300, 850));
+    $('tit').style.clipPath = `inset(0 ${((1 - kt) * 100).toFixed(3)}% 0 0)`;
+    $('tit').style.transform = `translateX(${((1 - kt) * -40).toFixed(2)}px)`;
+    $('tit').style.opacity = (1 - ks).toFixed(3);
+    $('tr').style.opacity = (BC.lin(t, 700, 1000) * (1 - ks)).toFixed(3);
+  };
+})();
+</script>
+</body>
+</html>

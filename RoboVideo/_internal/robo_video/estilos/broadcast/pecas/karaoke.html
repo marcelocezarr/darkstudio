@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / karaoke (karaoke: frase). Faixa de legenda jornalistica no terco inferior:
+     a palavra falada ganha marcador ciano; a palavra de destaque fica ciano depois de dita. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #wrap { position: absolute; left: 192px; right: 192px; bottom: 196px; display: flex; justify-content: center; }
+  #caixa { position: relative; display: flex; align-items: stretch; max-width: 1480px; }
+  #lado { width: 12px; background: var(--acento); flex: none; }
+  #pw { flex: 1 1 auto; }
+  #painel { padding: 20px 64px 22px 30px; }
+  #frase { display: flex; flex-wrap: wrap; gap: 4px 0; font-weight: 600; font-size: 64px; line-height: 1.18;
+           max-width: 1340px; }
+  .w { display: inline-block; padding: 0 .16em; margin-right: .04em; color: rgba(255,255,255,.34); position: relative; }
+  .w .bg { position: absolute; left: 0; right: 0; top: 6%; bottom: 2%; background: var(--acento); transform-origin: left;
+           transform: scaleX(0); }
+  .w .tx { position: relative; }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="caixa">
+  <div id="lado"></div>
+  <div id="pw"><div id="painel" class="painel-a corte-d sombra"><div id="frase"></div></div></div>
+</div></div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000, ws = [], ini = [], fim = [], dest = -1;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    const palavras = BC.txt(d.texto).split(' ').filter(Boolean);
+    const falas = Array.isArray(d.palavras) ? d.palavras : [];
+    const fr = $('frase');
+    fr.innerHTML = '';
+    ws = palavras.map((w) => {
+      const e = document.createElement('span'); e.className = 'w';
+      const bg = document.createElement('span'); bg.className = 'bg';
+      const tx = document.createElement('span'); tx.className = 'tx'; tx.textContent = w;
+      e.appendChild(bg); e.appendChild(tx); fr.appendChild(e); return e;
+    });
+    for (let px = 64; px >= 40; px -= 2) {
+      fr.style.fontSize = px + 'px';
+      if (fr.getBoundingClientRect().height <= 2 * px * 1.18 + 10) break;
+    }
+    const passo = Math.min(320, (DUR * 0.7) / Math.max(1, ws.length));
+    ini = ws.map((_, i) => {
+      const f = falas[i];
+      return (f && f.ms != null) ? Math.max(0, Number(f.ms)) : 250 + i * passo;
+    });
+    for (let i = 1; i < ini.length; i++) ini[i] = Math.max(ini[i], ini[i - 1] + 60);
+    fim = ini.map((v, i) => (i + 1 < ini.length ? ini[i + 1] : Math.min(DUR - 350, v + 450)));
+    dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipeV($('lado'), BC.eo(BC.lin(t, 0, 220)), BC.ei(BC.lin(-S, -160, 0)));
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 60, 420)), BC.ei(BC.lin(-S, -360, -40)));
+    ws.forEach((e, i) => {
+      const dita = t >= ini[i];
+      const ativa = dita && t < fim[i];
+      const bg = e.firstChild;
+      const kIn = BC.eo(BC.lin(t, ini[i], ini[i] + 110));
+      const kOut = BC.lin(t, fim[i], fim[i] + 140);
+      bg.style.transform = `scaleX(${(kIn * (1 - kOut)).toFixed(3)})`;
+      bg.style.opacity = String(1 - kOut);
+      let cor = 'rgba(255,255,255,.34)';
+      if (ativa) cor = 'var(--navy)';
+      else if (dita) cor = i === dest ? 'var(--acento)' : '#ffffff';
+      e.style.color = cor;
+    });
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: secao-titulo (capitulo). Deduzida da linguagem da referencia: footage bem escurecido,
+     etiqueta escura datilografada "CAPITULO 02" no canto, titulo em sans condensada creme com numero
+     vermelho grande e fio vermelho que corre embaixo. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #bloco { position: absolute; left: 192px; right: 192px; top: 0; height: 1080px; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; padding-bottom: 20px; }
+  #num { color: var(--vermelho); font-size: 150px; line-height: .85; opacity: 0; }
+  #tit { color: var(--creme); text-align: center; font-size: 132px; line-height: 1; max-width: 1480px; margin-top: 28px;
+         text-wrap: balance; opacity: 0; text-shadow: 0 4px 20px rgba(0, 0, 0, .3); }
+  #fio { width: 0; height: 5px; background: var(--vermelho); margin-top: 36px; }
+  #tag { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="tag" class="tag"><span id="tagt"></span></div>
+<div id="bloco"><div id="num" class="condensada"></div><div id="tit" class="condensada"></div><div id="fio"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), num = document.getElementById('num'), tit = document.getElementById('tit');
+  const fio = document.getElementById('fio'), tag = document.getElementById('tag'), tagt = document.getElementById('tagt');
+  let DUR = 3400, larg = 600;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 3400;
+    const n = Number(d.numero) || 0;
+    num.textContent = n ? String(n).padStart(2, '0') : '';
+    if (!n) num.style.display = 'none';
+    tit.textContent = V.semPonto(d.texto);
+    V.caber(tit, 132, 64, 290);
+    V.prepararDatilo(tagt, [V.rot(d, 'capitulo'), n ? String(n).padStart(2, '0') + (d.total ? ' / ' + String(d.total).padStart(2, '0') : '') : ''].filter(Boolean).join(' '));
+    larg = Math.min(1100, Math.max(300, tit.getBoundingClientRect().width * 0.6));
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }, { evento: 'maquina.digita', ms: 120 }, { evento: 'numero.impacto', ms: 260 }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 360);
+    esc.style.opacity = String(0.62 * V.eo(V.seg(t, 0, 260)) * s);
+    tag.style.opacity = String((t > 60 ? 1 : 0) * s);
+    V.datilo(tagt, V.seg(t, 120, V.tempoDatilo(tagt._dv.texto.join(''), 600)));
+    const kn = V.seg(t, 260, 260);
+    num.style.opacity = String(V.eo(kn) * s);
+    num.style.transform = `scale(${(1.08 - 0.08 * V.eo(kn)).toFixed(3)})`;
+    const kt = V.seg(t, 480, 380);
+    tit.style.opacity = String(V.eo(kt) * s);
+    tit.style.transform = `translateY(${(20 * (1 - V.eo(kt))).toFixed(1)}px)`;
+    fio.style.width = (larg * V.eio(V.seg(t, 700, 900))).toFixed(1) + 'px';
+    fio.style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

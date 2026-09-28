@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / topicos (listas: lista). Titulo em tag + 2..5 linhas numeradas que entram
+     com wipe diagonal no instante em que cada item e falado (dados.itens_ms). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #lista { position: absolute; left: 192px; top: 0; bottom: 0; display: flex; flex-direction: column;
+           justify-content: center; gap: 12px; padding-bottom: 40px; }
+  #titw { margin-bottom: 8px; }
+  #tit { font-size: 34px; padding: 11px 38px 10px 20px; }
+  .row { display: flex; align-items: stretch; }
+  .n { width: 92px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--acento);
+       color: var(--navy); font-weight: 700; font-size: 50px; }
+  .c { padding: 14px 70px 14px 28px; min-width: 520px; max-width: 1040px; font-weight: 600; font-size: 60px;
+       line-height: 1.08; text-transform: uppercase; letter-spacing: .01em; }
+  .row.ant .c { color: var(--texto2); }
+</style>
+</head>
+<body>
+<div id="lista"><div id="titw"><div id="tit" class="tag"></div></div></div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 6000, rows = [], ini = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 6000;
+    const titulo = BC.txt(d.titulo);
+    $('tit').textContent = titulo ? BC.encurtar(titulo, 48) : BC.rot(d, 'destaque');
+    const itens = (Array.isArray(d.itens) ? d.itens : []).map(BC.txt).filter(Boolean).slice(0, 5);
+    const lista = $('lista');
+    rows.forEach((r) => r.remove());
+    const n = itens.length;
+    const fonte = n >= 5 ? 50 : n === 4 ? 56 : 60;
+    rows = itens.map((it, i) => {
+      const r = document.createElement('div'); r.className = 'row';
+      const nb = document.createElement('div'); nb.className = 'n num-tab'; nb.textContent = String(i + 1).padStart(2, '0');
+      const cw = document.createElement('div'); cw.className = 'cw';
+      const c = document.createElement('div'); c.className = 'c painel-a corte-d sombra';
+      cw.appendChild(c); r.appendChild(nb); r.appendChild(cw); lista.appendChild(r);
+      BC.caberTexto(c, it, fonte, 36, 1040, 2 * fonte * 1.08 + 30);
+      nb.style.fontSize = Math.round(fonte * 0.84) + 'px';
+      return r;
+    });
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    const passo = Math.min(700, (DUR * 0.55) / Math.max(1, n));
+    ini = rows.map((_, i) => 260 + (ms[i] != null ? Math.max(0, Number(ms[i])) : i * passo));
+    for (let i = 1; i < ini.length; i++) ini[i] = Math.max(ini[i], ini[i - 1] + 160);
+    const lim = Math.max(400, DUR - 900);
+    ini = ini.map((v) => Math.min(v, lim));
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(ini.map((v) => ({ evento: 'lista.item', ms: Math.round(v) })));
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('titw'), BC.eo(BC.lin(t, 0, 320)), BC.ei(BC.lin(-S, -420, -200)), 20);
+    const ult = rows.length - 1;
+    rows.forEach((r, i) => {
+      const k = BC.eo(BC.lin(t, ini[i], ini[i] + 380));
+      const s = BC.ei(BC.lin(-S, -380 + (ult - i) * 0 - i * 30, -60 - i * 30 + 30));
+      BC.wipe(r.children[0], k, s, 20);
+      BC.wipe(r.children[1], BC.eo(BC.lin(t, ini[i] + 70, ini[i] + 470)), s);
+      // item anterior perde um pouco de brilho quando o proximo entra
+      const prox = i < ult ? t >= ini[i + 1] + 200 : false;
+      r.classList.toggle('ant', prox);
+    });
+  };
+})();
+</script>
+</body>
+</html>

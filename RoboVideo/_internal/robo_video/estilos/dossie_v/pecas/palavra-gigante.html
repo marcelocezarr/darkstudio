@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: palavra-gigante (impactos). Mesma linguagem do nome do mapa ("BRITAIN"): sans condensada
+     creme enorme sobre footage escurecido, palavra por palavra no ritmo da fala, com um fio vermelho curto. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #bloco { position: absolute; left: 192px; right: 192px; top: 0; height: 1080px; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; }
+  #frase { color: var(--creme); text-align: center; font-size: 200px; line-height: .98; max-width: 1536px;
+           text-shadow: 0 4px 22px rgba(0, 0, 0, .35); text-wrap: balance; }
+  #frase span { display: inline-block; opacity: 0; }
+  #fio { width: 0; height: 6px; background: var(--vermelho); margin-top: 34px; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="bloco"><div id="frase" class="condensada"></div><div id="fio"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), frase = document.getElementById('frase'), fio = document.getElementById('fio');
+  let DUR = 2400, sp = [], tempos = [];
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 2400;
+    const pal = V.txt(d.texto).split(' ').filter(Boolean);
+    frase.innerHTML = pal.map((p) => `<span>${V.esc(p)}</span>`).join(' ');
+    V.caber(frase, 200, 90, 640);
+    sp = Array.from(frase.querySelectorAll('span'));
+    const ms = Array.isArray(d.palavras) ? d.palavras.map((p) => Number(p.ms) || 0) : [];
+    tempos = sp.map((_, i) => Math.min(DUR * 0.5, ms[i] != null ? ms[i] : i * 260));
+    window.eventos = [{ evento: 'palavra.slam', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 300);
+    esc.style.opacity = String(0.5 * V.eo(V.seg(t, 0, 200)) * s);
+    sp.forEach((el, i) => {
+      const k = V.seg(t, tempos[i], 220);
+      el.style.opacity = String(V.eo(k) * s);
+      el.style.transform = `translateY(${(18 * (1 - V.eo(k))).toFixed(1)}px) scale(${(1.08 - 0.08 * V.eo(k)).toFixed(3)})`;
+    });
+    fio.style.width = (140 * V.eo(V.seg(t, 200, 500))).toFixed(1) + 'px';
+    fio.style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

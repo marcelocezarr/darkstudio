@@ -1,0 +1,37 @@
+/* Broadcast -- base visual compartilhada pelas pecas (pecas/*.html).
+   Identidade: azul-marinho profundo + branco + acento ciano; sans condensada;
+   paineis com borda diagonal; tags de rotulo em caixa alta. */
+:root {
+  --navy: #07152b;
+  --navy2: #0e2a52;
+  --navy-a: rgba(7, 21, 43, .90);
+  --branco: #ffffff;
+  --texto2: #b8c6dc;
+  --acento: #22c4ee;
+  --ft: Bahnschrift, 'Arial Narrow', 'Segoe UI Semibold', 'Segoe UI', sans-serif;
+  --fx: 'Segoe UI', Bahnschrift, Arial, sans-serif;
+  --inclina: 26px;
+}
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+body { font-family: var(--ft); font-stretch: condensed; color: var(--branco);
+       -webkit-font-smoothing: antialiased; }
+.ft { font-family: var(--ft); font-stretch: condensed; }
+
+/* painel base: marinho com leve gradiente vertical */
+.painel { background: linear-gradient(180deg, var(--navy2) 0%, var(--navy) 100%); color: var(--branco); }
+.painel-a { background: linear-gradient(180deg, rgba(14, 42, 82, .94) 0%, rgba(7, 21, 43, .94) 100%); }
+.sombra { box-shadow: 0 18px 50px rgba(0, 0, 0, .38); }
+/* borda direita inclinada (motivo do estilo) */
+.corte-d { clip-path: polygon(0 0, 100% 0, calc(100% - var(--inclina)) 100%, 0 100%); }
+.corte-e { clip-path: polygon(var(--inclina) 0, 100% 0, 100% 100%, 0 100%); }
+
+/* tag de rotulo: ciano com texto marinho, caixa alta */
+.tag { display: inline-flex; align-items: center; gap: 12px; background: var(--acento); color: var(--navy);
+       font-family: var(--ft); font-stretch: condensed; font-weight: 700; font-size: 30px; line-height: 1;
+       letter-spacing: .06em; text-transform: uppercase; padding: 9px 30px 8px 18px; white-space: nowrap;
+       clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.tag.branca { background: var(--branco); color: var(--navy); }
+.tag.escura { background: var(--navy); color: var(--branco); }
+.tag .ponto { width: 14px; height: 14px; border-radius: 50%; background: currentColor; flex: none; }
+.num-tab { font-variant-numeric: tabular-nums; }

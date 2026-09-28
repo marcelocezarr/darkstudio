@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-frente-fundo-vertical (camada FUNDO): recorte vertical (9:16) nítido no centro
+     sobre a MESMA mídia desfocada ocupando a tela. O recorte abre do centro para as bordas e
+     percorre a foto (pan dentro do quadro vertical); o fundo deriva no sentido oposto.
+     Título opcional à esquerda e frase à direita, simétricos. Usa a 1a mídia (tolera 1..N). -->
+<link rel="stylesheet" href="../comum/takes-b.css">
+<style>
+  #veu { background:
+           radial-gradient(ellipse 34% 62% at 50% 50%, var(--veu-centro) 0%, rgba(0,0,0,0) 100%),
+           radial-gradient(ellipse 85% 85% at 50% 50%, rgba(0,0,0,0) 35%, var(--veu-borda) 100%); }
+  #sombra { position: absolute; left: 610px; top: 110px; width: 700px; height: 930px; border-radius: 80px;
+            background: radial-gradient(closest-side, rgba(0,0,0,.6), rgba(0,0,0,0)); }
+  #quadro { position: absolute; left: 707px; top: 90px; width: 506px; height: 900px; border-radius: 20px; overflow: hidden;
+            background: #111; transform-origin: 50% 50%; }
+  #quadro img { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform; }
+  #aresta { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.26); }
+  #reflexo { position: absolute; inset: 0; border-radius: inherit;
+             background: linear-gradient(160deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 26%); }
+  .guia { position: absolute; top: 540px; height: 1.5px; background: var(--acento); }
+  #gE { left: 660px; width: 34px; transform-origin: 100% 50%; }
+  #gD { left: 1226px; width: 34px; transform-origin: 0 50%; }
+  #ladoE { position: absolute; left: 172px; top: 0; width: 470px; height: 1080px; display: flex; flex-direction: column;
+           justify-content: center; align-items: flex-end; text-align: right; }
+  #ladoD { position: absolute; left: 1278px; top: 0; width: 460px; height: 1080px; display: flex; flex-direction: column;
+           justify-content: center; align-items: flex-start; }
+  #rot { margin-bottom: 18px; }
+  #tit { font-weight: 600; }
+  #frase { font-style: normal; }
+  #barra { position: absolute; left: 707px; top: 76px; width: 506px; height: 3px; background: rgba(255,255,255,.14); border-radius: 2px; overflow: hidden; }
+  #barra i { display: block; width: 100%; height: 100%; background: var(--acento); transform-origin: 0 50%; }
+</style>
+</head>
+<body>
+<div id="fundo" class="cheio"></div>
+<div id="veu" class="cheio"></div>
+<div id="sombra"></div>
+<div id="quadro"><img id="img" alt=""><div id="reflexo"></div><div id="aresta"></div></div>
+<div id="barra"><i id="prog"></i></div>
+<div class="guia" id="gE"></div><div class="guia" id="gD"></div>
+<div id="ladoE"><div id="rot" class="rotulo"></div><div id="tit" class="titulo"></div></div>
+<div id="ladoD"><div id="frase" class="frase"></div></div>
+<script src="../comum/takes-b.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const QW = 506, QH = 900;
+  let DUR = 4500, fundoCv = null, img = null, iw = QW, ih = QH, modo = 0, linE = [], linD = [], temE = false, temD = false;
+  let panX = 0, panY = 0, foco = 0.5, dir = 1;
+
+  window.montar = async function (d) {
+    d = d || {};
+    const tm = TB.tema(d);
+    DUR = d.dur_ms || 4500;
+    const r = document.documentElement.style;
+    r.setProperty('--veu-borda', TB.rgba(tm.fundo, 0.7));
+    r.setProperty('--veu-centro', TB.rgba(tm.fundo, 0.38));
+    const ims = await TB.carregar(TB.urls(d));
+    const a = ims[0] || null;
+    const h = TB.hash((d.texto || '') + (d.titulo || ''));
+    dir = h % 2 ? 1 : -1;
+    const cor = `rgb(${tm.fundo.join(',')})`;
+    fundoCv = TB.borrao(a, 480, 270, 7, { mf: 0.05, cor, sat: 1.25, brilho: 0.92, tinta: TB.rgba(tm.fundo, 0.16) });
+    $('fundo').innerHTML = ''; $('fundo').appendChild(fundoCv);
+    img = $('img');
+    if (a) {
+      img.src = a.src;
+      // a imagem é dimensionada para cobrir o quadro com folga; o movimento é um pan pela foto
+      const nw = a.naturalWidth, nh = a.naturalHeight;
+      const s = Math.max((QW * 1.12) / nw, (QH * 1.08) / nh);
+      iw = nw * s; ih = nh * s;
+      img.style.width = iw + 'px'; img.style.height = ih + 'px';
+      panX = Math.max(0, iw - QW) / 2; panY = Math.max(0, ih - QH) / 2;
+      modo = panX > 120 ? 2 : 0;       // paisagem: percorre na horizontal; retrato: aproxima
+      // paisagem: prefere um terço (onde costuma estar o assunto), variando pelo texto
+      foco = panX > 120 ? (h % 3 === 0 ? 0.5 : (h % 3 === 1 ? 0.36 : 0.64)) : 0.5;
+    } else img.style.display = 'none';
+    // textos: título à esquerda, frase à direita (opcionais; se só houver frase, ela vira o título)
+    const tit = TB.txt(d.titulo), fr = TB.txt(d.texto);
+    const esquerda = tit || TB.resumir(fr, 12);
+    const direita = tit ? TB.resumir(fr, 22) : '';
+    temE = !!esquerda; temD = !!direita;
+    $('rot').textContent = TB.rot(d, 'destaque');
+    $('ladoE').style.display = temE ? '' : 'none';
+    $('ladoD').style.display = temD ? '' : 'none';
+    $('tit').textContent = esquerda;
+    $('frase').textContent = direita;
+    linE = []; linD = [];
+    if (temE) { TB.caber($('tit'), 470, 520, tm.caixaAlta ? 76 : 70, 34); linE = TB.linhas($('tit')); }
+    if (temD) { TB.caber($('frase'), 440, 560, 36, 22, 1); linD = TB.linhas($('frase')); }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const k = TB.fase(t, 0, DUR);
+    const e = TB.saiExpo(TB.fase(t, 80, 1000));
+    const out = TB.io(TB.fase(t, DUR - 440, 400));
+    // fundo: aproxima e desliza no sentido oposto ao pan da frente
+    const kl = TB.lerp(k, TB.suave(k), 0.3);
+    fundoCv.style.transform = `translate(${TB.f(-dir * TB.lerp(-30, 30, kl), 2)}px, 0) scale(${TB.f(1.1 + 0.07 * kl + 0.06 * (1 - e), 5)})`;
+    // quadro: abre do centro (vertical), sobe devagar; fecha no fim
+    const ab = Math.min(e, 1 - out);
+    const ins = (1 - ab) * 50;
+    const q = $('quadro');
+    q.style.clipPath = `inset(${TB.f(ins, 3)}% 0 ${TB.f(ins, 3)}% 0 round 20px)`;
+    const y = (1 - e) * 26 - 14 * kl;
+    q.style.transform = `translateY(${TB.f(y, 2)}px) scale(${TB.f(1.05 - 0.05 * e + 0.018 * kl, 5)})`;
+    $('sombra').style.opacity = TB.f(ab);
+    $('sombra').style.transform = `translateY(${TB.f(y, 2)}px)`;
+    // mídia dentro do quadro
+    if (img) {
+      let tx = 0, s = 1;
+      if (modo === 2) {
+        // pan entre dois pontos em torno do foco (sem sair da foto)
+        const c = (foco - 0.5) * 2 * panX;
+        const amp = Math.min(panX - Math.abs(c), 150);
+        tx = -(c + dir * TB.lerp(-amp, amp, kl));
+        s = 1.0 + 0.03 * kl;
+      } else s = 1.0 + 0.08 * kl;
+      img.style.transform = `translate(${TB.f((QW - iw) / 2 + tx, 2)}px, ${TB.f((QH - ih) / 2 - 10 * kl, 2)}px) scale(${TB.f(s + 0.06 * (1 - e), 5)})`;
+    }
+    $('prog').style.transform = `scaleX(${TB.f(TB.fase(t, 300, DUR - 800), 4)})`;
+    $('barra').style.opacity = TB.f(Math.min(TB.suave(TB.fase(t, 300, 400)), 1 - out));
+    const kg = TB.io(TB.fase(t, 500, 700)) * (1 - out);
+    $('gE').style.transform = `scaleX(${TB.f(kg, 4)})`;
+    $('gD').style.transform = `scaleX(${TB.f(kg, 4)})`;
+    const sai = TB.suave(TB.fase(t, DUR - 440, 360));
+    const rev = (lst, t0, lado) => lst.forEach((l, j) => {
+      const ee = TB.saiExpo(TB.fase(t, t0 + j * 100, 800));
+      l.style.transform = `translateY(${TB.f((1 - ee) * 105 - sai * 30 + 0 * lado, 2)}%)`;
+      l.style.opacity = TB.f(Math.min(ee, 1 - sai));
+    });
+    if (temE) {
+      const kr = TB.sai(TB.fase(t, 560, 600));
+      $('rot').style.opacity = TB.f(Math.min(kr, 1 - sai));
+      rev(linE, 640, 1);
+    }
+    if (temD) rev(linD, 900, -1);
+  };
+})();
+</script>
+</body>
+</html>

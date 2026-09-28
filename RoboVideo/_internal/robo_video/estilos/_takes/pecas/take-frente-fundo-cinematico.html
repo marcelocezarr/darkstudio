@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-frente-fundo-cinematico (camada FUNDO): a mídia em primeiro plano, emoldurada por
+     cantoneiras que se fecham sobre ela, sobre a própria mídia muito desfocada e escurecida.
+     Câmera lenta: a frente avança (push-in) enquanto a foto dentro recua e o fundo deriva;
+     uma faixa de luz atravessa o quadro devagar. Título opcional centralizado abaixo. 1..N mídias (usa a 1a). -->
+<link rel="stylesheet" href="../comum/takes-b.css">
+<style>
+  #veu { background:
+           radial-gradient(ellipse 62% 58% at 50% 46%, var(--veu-meio) 0%, var(--veu-borda) 100%),
+           linear-gradient(180deg, var(--veu-borda) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 70%, var(--veu-borda) 100%); }
+  #palco { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 960px 480px; }
+  #sombra { position: absolute; left: 200px; top: 120px; width: 1520px; height: 860px; border-radius: 120px;
+            background: radial-gradient(closest-side, rgba(0,0,0,.7), rgba(0,0,0,0)); }
+  #quadro { position: absolute; left: 304px; top: 111px; width: 1312px; height: 738px; overflow: hidden; background: #0c0c0c; }
+  #quadro img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; will-change: transform; }
+  #luz { position: absolute; top: -30%; left: 0; width: 520px; height: 160%;
+         background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,250,235,.10) 45%, rgba(255,250,235,.13) 50%, rgba(255,250,235,.10) 55%, rgba(255,255,255,0));
+         transform-origin: 50% 50%; }
+  #fio { position: absolute; left: 304px; top: 111px; width: 1312px; height: 738px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+  .canto { position: absolute; width: 64px; height: 64px; border: 0 solid var(--acento); }
+  #c0 { left: 282px; top: 89px; border-left-width: 2px; border-top-width: 2px; }
+  #c1 { left: 1574px; top: 89px; border-right-width: 2px; border-top-width: 2px; }
+  #c2 { left: 282px; top: 807px; border-left-width: 2px; border-bottom-width: 2px; }
+  #c3 { left: 1574px; top: 807px; border-right-width: 2px; border-bottom-width: 2px; }
+  #rot { position: absolute; left: 304px; top: 48px; font-size: 19px; }
+  #txt { position: absolute; left: 360px; top: 884px; width: 1200px; height: 142px; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; text-align: center; }
+  #tit { font-weight: 600; }
+  #tit.frase-mode { font-style: italic; font-weight: 400; }
+</style>
+</head>
+<body>
+<div id="fundo" class="cheio"></div>
+<div id="veu" class="cheio"></div>
+<div id="palco">
+  <div id="sombra"></div>
+  <div id="quadro"><img id="img" alt=""><div id="luz"></div></div>
+  <div id="fio"></div>
+  <div class="canto" id="c0"></div><div class="canto" id="c1"></div><div class="canto" id="c2"></div><div class="canto" id="c3"></div>
+  <div id="rot" class="rotulo"></div>
+</div>
+<div id="txt"><div id="tit" class="titulo"></div></div>
+<script src="../comum/takes-b.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4500, fundoCv = null, modo = 0, linhasT = [], temTexto = false, dy = 0;
+  const CANTOS = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+
+  window.montar = async function (d) {
+    d = d || {};
+    const tm = TB.tema(d);
+    DUR = d.dur_ms || 4500;
+    const r = document.documentElement.style;
+    r.setProperty('--veu-borda', TB.rgba(tm.fundo, 0.8));
+    r.setProperty('--veu-meio', TB.rgba(tm.fundo, 0.22));
+    const ims = await TB.carregar(TB.urls(d));
+    const a = ims[0] || null;
+    const h = TB.hash((d.texto || '') + (d.titulo || ''));
+    modo = h % 2 ? 1 : 3;   // zoom-out ou pan: contraste com o push-in da frente
+    const cor = `rgb(${tm.fundo.join(',')})`;
+    fundoCv = TB.borrao(a, 384, 216, 10, { mf: 0.07, cor, sat: 1.0, brilho: 0.95, tinta: TB.rgba(tm.fundo, 0.15) });
+    $('fundo').innerHTML = ''; $('fundo').appendChild(fundoCv);
+    if (a) $('img').src = a.src; else $('img').style.display = 'none';
+    $('rot').textContent = TB.rot(d, 'destaque');
+    // texto: título curto centralizado; sem título, a frase (resumida) em itálico
+    const tit = TB.txt(d.titulo), fr = TB.txt(d.texto);
+    const principal = tit || TB.resumir(fr, 16);
+    temTexto = !!principal;
+    $('tit').textContent = principal;
+    $('tit').classList.toggle('frase-mode', !tit);
+    $('txt').style.display = temTexto ? '' : 'none';
+    linhasT = [];
+    if (temTexto) {
+      if (tit) TB.caber($('tit'), 1200, 132, tm.caixaAlta ? 60 : 58, 30);
+      else { $('tit').className = 'frase frase-mode'; $('tit').style.color = 'var(--texto)'; TB.caber($('tit'), 1150, 132, 38, 24, 1); }
+      linhasT = TB.linhas($('tit'));
+    }
+    // sem texto, o quadro desce para o centro exato da tela
+    dy = temTexto ? 0 : 60;
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const k = TB.fase(t, 0, DUR);
+    const kl = TB.lerp(k, TB.suave(k), 0.3);
+    const e = TB.sai(TB.fase(t, 0, 1400));
+    const out = TB.suave(TB.fase(t, DUR - 520, 480));
+    // fundo: deriva muito lenta
+    fundoCv.style.transform = `translate(${TB.f(TB.lerp(-18, 18, kl), 2)}px, ${TB.f(TB.lerp(6, -6, kl), 2)}px) scale(${TB.f(1.14 + 0.05 * kl, 5)})`;
+    fundoCv.style.opacity = TB.f(0.6 + 0.4 * e);
+    // palco: aproxima devagar do começo ao fim (push-in); na saída continua e escurece
+    const esc = 0.935 + 0.05 * kl + 0.03 * (1 - e) + 0.015 * out;
+    $('palco').style.transform = `translateY(${TB.f(dy + (1 - e) * 14, 2)}px) scale(${TB.f(esc, 5)})`;
+    $('quadro').style.opacity = TB.f(TB.suave(TB.fase(t, 60, 800)) * (1 - 0.35 * out));
+    $('sombra').style.opacity = TB.f(TB.suave(TB.fase(t, 0, 900)));
+    // foto dentro: movimento contrário, bem lento
+    const m = TB.kb(t, DUR, modo, 0.75);
+    $('img').style.transform = TB.kbCss({ s: m.s + 0.05 * (1 - e), x: m.x, y: m.y });
+    // faixa de luz cruza o quadro uma vez, devagar
+    const kLuz = TB.fase(t, 500, DUR - 900);
+    $('luz').style.transform = `translateX(${TB.f(-600 + kLuz * 2500, 1)}px) rotate(14deg)`;
+    $('luz').style.opacity = TB.f(Math.sin(kLuz * Math.PI));
+    // cantoneiras: chegam de fora e se fecham sobre os cantos
+    const kc = TB.saiExpo(TB.fase(t, 280, 1100));
+    CANTOS.forEach(([sx, sy], i) => {
+      const el = $('c' + i);
+      const off = (1 - kc) * 70 + out * 18;
+      el.style.transform = `translate(${TB.f(sx * off, 2)}px, ${TB.f(sy * off, 2)}px)`;
+      el.style.opacity = TB.f(Math.min(TB.suave(TB.fase(t, 280, 500)), 1 - out));
+    });
+    $('fio').style.opacity = TB.f(TB.suave(TB.fase(t, 700, 600)) * (1 - out));
+    const kr = TB.sai(TB.fase(t, 800, 700));
+    $('rot').style.opacity = TB.f(Math.min(kr, 1 - out));
+    $('rot').style.transform = `translateY(${TB.f((1 - kr) * 10, 2)}px)`;
+    if (temTexto) {
+      linhasT.forEach((l, j) => {
+        const ee = TB.saiExpo(TB.fase(t, 900 + j * 130, 900));
+        l.style.transform = `translateY(${TB.f((1 - ee) * 90, 2)}%)`;
+        l.style.opacity = TB.f(Math.min(ee, 1 - out));
+      });
+    }
+  };
+})();
+</script>
+</body>
+</html>

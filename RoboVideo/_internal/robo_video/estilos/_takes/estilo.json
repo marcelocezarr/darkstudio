@@ -1,0 +1,249 @@
+{
+  "nome": "Takes",
+  "descricao": "Composições de mídia (takes) aplicadas a cada ~25 s em todos os estilos, inclusive o Clássico. Recebem paleta e fontes do estilo do vídeo em dados.estilo.",
+  "paleta": {
+    "fundo": "#0b0b0f",
+    "texto": "#f2f2f2",
+    "acento": "#d9b36c"
+  },
+  "fontes": {
+    "titulo": "Georgia, 'Palatino Linotype', serif",
+    "texto": "'Segoe UI', Arial, sans-serif"
+  },
+  "trilha_mood": "",
+  "transicao_fundo_ms": 400,
+  "sfx_volume_db": -22,
+  "sfx": {
+    "take.entra": {
+      "arquivo": "sfx/entrada.wav",
+      "volume_db": -22
+    }
+  },
+  "pecas": {
+    "take-encaixe-quadros": {
+      "nome": "Take – Encaixe de Quadros",
+      "arquivo": "pecas/take-encaixe-quadros.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 3,
+      "midias_max": 6,
+      "sfx_entrada": "take.entra"
+    },
+    "take-arquivo-fotogramas": {
+      "nome": "Take – Arquivo de Fotogramas",
+      "arquivo": "pecas/take-arquivo-fotogramas.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 3,
+      "midias_max": 5,
+      "sfx_entrada": "take.entra"
+    },
+    "cena-ensaio-papel": {
+      "nome": "Cena – Ensaio de Papel",
+      "arquivo": "pecas/cena-ensaio-papel.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 2,
+      "sfx_entrada": "take.entra"
+    },
+    "take-sequencia-alternada": {
+      "nome": "Take – Sequência Alternada",
+      "arquivo": "pecas/take-sequencia-alternada.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 2,
+      "midias_max": 4,
+      "sfx_entrada": "take.entra"
+    },
+    "take-painel-direita": {
+      "nome": "Take – Painel Direita",
+      "arquivo": "pecas/take-painel-direita.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 1,
+      "sfx_entrada": "take.entra"
+    },
+    "take-painel-esquerda": {
+      "nome": "Take – Painel Esquerda",
+      "arquivo": "pecas/take-painel-esquerda.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 1,
+      "sfx_entrada": "take.entra"
+    },
+    "take-evidencias-foco": {
+      "nome": "Take – Evidências Foco",
+      "arquivo": "pecas/take-evidencias-foco.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 3,
+      "midias_max": 4,
+      "sfx_entrada": "take.entra"
+    },
+    "take-par-vidro": {
+      "nome": "Take – Par de Vidro",
+      "arquivo": "pecas/take-par-vidro.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 2,
+      "midias_max": 2,
+      "sfx_entrada": "take.entra"
+    },
+    "take-planos-vidro": {
+      "nome": "Take – Planos de Vidro",
+      "arquivo": "pecas/take-planos-vidro.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 3,
+      "midias_max": 3,
+      "sfx_entrada": "take.entra"
+    },
+    "take-frente-fundo-vertical": {
+      "nome": "Take – Frente e Fundo Vertical Fixa",
+      "arquivo": "pecas/take-frente-fundo-vertical.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 1,
+      "sfx_entrada": "take.entra"
+    },
+    "take-frente-fundo-cinematico": {
+      "nome": "Take – Frente e Fundo Cinemático",
+      "arquivo": "pecas/take-frente-fundo-cinematico.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 1,
+      "sfx_entrada": "take.entra"
+    },
+    "cena-retrato-direita": {
+      "nome": "Cena – Retrato Direita",
+      "arquivo": "pecas/cena-retrato-direita.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 1,
+      "midias_max": 1,
+      "sfx_entrada": "take.entra"
+    },
+    "take-ed-comparacao": {
+      "nome": "Take – ED Comparação",
+      "arquivo": "pecas/take-ed-comparacao.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 2,
+      "midias_max": 2,
+      "sfx_entrada": "take.entra"
+    },
+    "take-triade-editorial": {
+      "nome": "Take – Tríade Editorial",
+      "arquivo": "pecas/take-triade-editorial.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 3,
+      "midias_max": 3,
+      "sfx_entrada": "take.entra"
+    },
+    "take-dossie-duplo": {
+      "nome": "Take – Dossiê Duplo",
+      "arquivo": "pecas/take-dossie-duplo.html",
+      "familia": "take",
+      "camada": "fundo",
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 3000,
+      "variaveis_exigidas": [
+        "midias"
+      ],
+      "usa_midia": true,
+      "midias_min": 2,
+      "midias_max": 2,
+      "sfx_entrada": "take.entra"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / foto-destaque (camada fundo). Tela azul-marinho com grade sutil,
+     foto larga no alto, titulo branco bold condensado sobre faixa escura com barra vermelha
+     vertical a esquerda e tres tracos de progresso embaixo (o ativo em vermelho). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  body { background: var(--navy); }
+  #fw { position: absolute; left: 184px; top: 150px; width: 1628px; height: 596px; overflow: hidden; background: #0a1524; }
+  .foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
+  #tb { position: absolute; left: 184px; top: 744px; height: 146px; display: flex; align-items: center; }
+  #barra { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--acento); transform-origin: 50% 0; }
+  #faixa { position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
+           background: linear-gradient(90deg, rgba(27,45,73,.95) 0%, rgba(24,41,67,.85) 70%, rgba(24,41,67,0) 100%); }
+  #tit { position: relative; margin-left: 38px; top: 10px; font-size: 70px; line-height: 1; padding-right: 120px; }
+  #tr { position: absolute; left: 184px; top: 904px; }
+</style>
+</head>
+<body>
+<div class="grade"></div>
+<div id="fw"></div>
+<div id="tb"><div id="faixa"></div><div id="barra"></div><div id="tit" class="cond"></div></div>
+<div id="tr" class="tracos"><i></i><i></i><i></i></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 5000, N = 1, fotos = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms_real || d.dur_ms || 5000;
+    let urls = (Array.isArray(d.midias) ? d.midias : []).filter(Boolean);
+    if (d.midia_url && urls[0] !== d.midia_url) urls.unshift(d.midia_url);
+    urls = [...new Set(urls)].slice(0, 3);
+    N = Math.max(1, urls.length);
+    fotos = urls.map((u) => { const im = document.createElement('img'); im.className = 'foto'; im.src = u; $('fw').appendChild(im); return im; });
+    if (!fotos.length) $('fw').style.display = 'none';
+    BC.caberTexto($('tit'), BC.txt(d.texto || d.legenda), 70, 44, 1400, 0);
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    // foto: entra ja visivel (crossfade do motor) com leve zoom lento
+    // com varias midias (subtipo fotos) troca a foto em N partes iguais (tracos = qual foto)
+    const seg = DUR / N, k = Math.min(N - 1, Math.floor(t / seg)), tl = t - k * seg;
+    fotos.forEach((im, i) => {
+      im.style.display = i === k || (i === k - 1 && tl < 420) ? '' : 'none';
+      im.style.zIndex = i === k ? 2 : 1;
+      const kf = BC.eo(BC.lin(i === k ? tl : 999, i === 0 ? 0 : 0, i === 0 ? 520 : 420));
+      im.style.clipPath = i === k ? `inset(0 ${((1 - kf) * 100).toFixed(3)}% 0 0)` : 'none';
+      im.style.transform = `scale(${(1.06 - 0.06 * BC.lin(i === k ? tl : seg, 0, seg)).toFixed(4)})`;
+    });
+    // barra vermelha cresce, depois a faixa e o titulo varrem da esquerda
+    const kb = BC.eo(BC.lin(t, 150, 450));
+    $('barra').style.transform = `scaleY(${kb.toFixed(4)})`;
+    const kt = BC.expo(BC.lin(t, 420, 900));
+    $('faixa').style.clipPath = `inset(0 ${((1 - kt) * 100).toFixed(3)}% 0 0)`;
+    $('tit').style.clipPath = `inset(0 ${((1 - kt) * 100).toFixed(3)}% 0 0)`;
+    $('tit').style.transform = `translateX(${((1 - kt) * -30).toFixed(2)}px)`;
+    // tracos: aparecem com a barra; o ativo avanca ao longo da peca
+    const tr = $('tr').children;
+    const ativo = N > 1 ? k : Math.min(2, Math.floor(BC.lin(t, 400, DUR) * 3));
+    $('tr').style.opacity = BC.lin(t, 300, 600).toFixed(3);
+    for (let i = 0; i < 3; i++) tr[i].className = i === ativo ? 'on' : '';
+  };
+})();
+</script>
+</body>
+</html>

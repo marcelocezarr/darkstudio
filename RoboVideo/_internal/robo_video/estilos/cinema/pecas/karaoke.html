@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / karaoke (frase): legenda discreta no terco inferior. Palavras acendem no tempo da fala;
+     a palavra de destaque fica em italico dourado. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; left: 0; right: 0; bottom: 0; height: 460px; opacity: 0;
+         background: linear-gradient(to top, rgba(0,0,0,.66) 0%, rgba(0,0,0,.42) 38%, rgba(0,0,0,0) 100%); }
+  #caixa { position: absolute; left: 0; right: 0; bottom: 176px; display: flex; justify-content: center; }
+  #frase { font-family: var(--fonte-titulo); color: var(--texto); text-align: center; line-height: 1.28;
+           font-weight: normal; letter-spacing: .012em; }
+  #frase .w { opacity: .34; }
+  #frase .w.dest { font-style: italic; color: var(--acento-claro); }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="caixa"><div id="frase" class="sombra"></div></div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), frase = $('#frase'), caixa = $('#caixa');
+  let DUR = 3500, spans = [], ent = [], dest = -1;
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3500;
+    spans = C.palavrasEm(frase, C.txt(d.texto));
+    dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    if (dest >= 0 && dest < spans.length) spans[dest].classList.add('dest');
+    C.caber(frase, 1360, 150, 60, 38);   // ate 2 linhas
+    ent = C.temposFala(spans.map((s) => s.textContent), d.palavras, 260, DUR * 0.75);
+    window.eventos = [];
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 450, 500);
+    veu.style.opacity = String(env);
+    caixa.style.opacity = String(env);
+    caixa.style.transform = `translateY(${((1 - C.sai(C.fase(t, 0, 600))) * 10).toFixed(2)}px)`;
+    spans.forEach((s, i) => {
+      const k = C.suave(C.fase(t, ent[i] - 60, 260));
+      s.style.opacity = (0.34 + 0.66 * k).toFixed(3);
+    });
+  };
+})();
+</script>
+</body>
+</html>

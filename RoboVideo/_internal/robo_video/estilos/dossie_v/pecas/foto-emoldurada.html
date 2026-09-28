@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: foto emoldurada (foto_destaque/foto). Footage levemente escurecido; etiqueta escura
+     datilografada no canto superior esquerdo (nome do item, ref.: "FORECOURT") e polaroide grande em P&B
+     com legenda datilografada na margem de baixo (ref.: "NOT A CRITICISM"). -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #pola { left: 400px; top: 184px; width: 1220px; height: 756px; opacity: 0; transform-origin: 50% 50%; }
+  #pola .foto { left: 24px; top: 22px; width: 1172px; height: 666px; }
+  #pola .foto img { transform-origin: 50% 55%; }
+  #pola .leg { top: 688px; height: 68px; font-size: 36px; letter-spacing: -.06em; white-space: nowrap; }
+  #tag { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="pola" class="pola"><div class="foto"><img id="img"></div><div id="leg" class="leg"></div></div>
+<div id="tag" class="tag"><span id="tagt"></span></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), pola = document.getElementById('pola'), img = document.getElementById('img');
+  const leg = document.getElementById('leg'), tag = document.getElementById('tag'), tagt = document.getElementById('tagt');
+  let DUR = 4000, T_POLA = 380, rotF = -0.5, temTag = true;
+
+  // legenda curta: a 1a oracao da fala (ate 6 palavras, sem cortar palavra)
+  function curta(s) {
+    const o = V.txt(s).split(/[.,;:!?—–]\s/)[0] || '';
+    return V.semPonto(o.split(' ').slice(0, 6).join(' '));
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 4000;
+    const fotos = V.midias(d);
+    if (fotos[0]) img.src = fotos[0]; else img.style.display = 'none';
+    const t = V.semPonto(d.texto);
+    temTag = !!t;
+    V.prepararDatilo(tagt, t);
+    const l = curta(d.legenda) || t;
+    leg.textContent = l;
+    V.caberLinha(leg, 36, 22, 1140);
+    rotF = -0.9 + V.rnd(t + l, 1) * 0.8;
+    T_POLA = Math.min(420, DUR * 0.1);
+    window.eventos = [{ evento: 'maquina.digita', ms: 0 }, { evento: 'foto.entra', ms: Math.round(T_POLA - 60) }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 320);
+    esc.style.opacity = String(0.22 * V.eo(V.seg(t, 0, 250)) * s);
+    tag.style.opacity = String((temTag && t > 0 ? 1 : 0) * s);
+    V.datilo(tagt, V.seg(t, 0, V.tempoDatilo(tagt._dv.texto.join(''), 480)));
+    const kp = V.seg(t, T_POLA, 300);
+    pola.style.opacity = String(Math.min(1, kp * 2) * s);
+    const dx = 18 - 36 * V.seg(t, T_POLA, DUR - T_POLA);   // deriva lenta (como na referencia)
+    pola.style.transform = `translate(${dx.toFixed(2)}px, ${(10 * (1 - V.eo(kp))).toFixed(2)}px) rotate(${rotF.toFixed(2)}deg) scale(${(1.035 - 0.035 * V.eo(kp)).toFixed(4)})`;
+    img.style.transform = `scale(${(1 + 0.03 * V.seg(t, T_POLA, DUR - T_POLA)).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / lower-third (fatos: pessoa, item, lugar): mesma linguagem do rank — fio limão
+     vertical + caixa escura com o nome em Impact branco, aba escura com o tipo (PESSOA, PRODUTO...) em cima. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #grupo { position: absolute; left: 96px; top: 790px; height: 150px; will-change: transform; }
+  #fio { position: absolute; left: 0; top: 0; width: 11px; height: 162px; background: var(--acento); }
+  #cx { position: absolute; left: 20px; top: 0; height: 150px; padding-left: 36px; white-space: nowrap;
+        font-family: var(--f-titulo); font-size: 96px; line-height: 150px; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+  #cx span { display: inline-block; transform-origin: 0 50%; }
+  #aba { position: absolute; left: 0; top: -44px; height: 56px; padding: 0 18px; font-size: 34px; line-height: 58px; }
+  #aba:empty { display: none; }
+</style>
+</head>
+<body>
+<div id="grupo">
+  <div id="fio"></div>
+  <div id="cx" class="cx"><span id="nome"></span></div>
+  <div id="aba" class="aba"></div>
+</div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ESTREITO = 0.86;
+  let d = {}, DUR = 3500;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3500;
+    const sp = $('nome'), cx = $('cx');
+    sp.textContent = K.maiusc(d.nome || d.texto || '', d.idioma);
+    let fs = 96;
+    while (fs > 48 && sp.offsetWidth * ESTREITO > 1250) { fs -= 4; cx.style.fontSize = fs + 'px'; }
+    sp.style.transform = `scaleX(${ESTREITO})`;
+    cx.style.width = Math.round(36 + sp.offsetWidth * ESTREITO + 44) + 'px';
+    const tipo = d.rotulo || K.rot(d, d.tipo_item || '', '');
+    $('aba').textContent = K.maiusc(tipo, d.idioma);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'etiqueta.entra', ms: 320 }];
+  };
+
+  window.quadro = function (t) {
+    const ke = K.outExpo(K.prog(t, 0, 220));
+    const ks = K.inCubic(K.prog(t, DUR - 220, 220));
+    const g = $('grupo');
+    g.style.transform = `translateX(${((1 - ke) * -50 - ks * 60).toFixed(1)}px)`;
+    g.style.opacity = String(Math.min(K.prog(t, 0, 90), 1 - ks));
+    $('fio').style.clipPath = K.cortina(K.outExpo(K.prog(t, 0, 200)), 'baixo');
+    $('cx').style.clipPath = K.cortina(K.outExpo(K.prog(t, 60, 280)));
+    $('aba').style.clipPath = K.cortina(K.outExpo(K.prog(t, 320, 100)));
+  };
+})();
+</script>
+</body>
+</html>

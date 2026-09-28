@@ -1,0 +1,37 @@
+{
+  "nome": "Exemplo (motor)",
+  "descricao": "Estilo mínimo de referência do contrato de templates. Não aparece na tela.",
+  "paleta": {"fundo": "#0b0b10", "texto": "#ffffff", "acento": "#e5252a", "sombra": "rgba(0,0,0,0.55)"},
+  "fontes": {"titulo": "'Arial Black', 'Segoe UI Black', Impact, sans-serif", "texto": "'Segoe UI', Arial, sans-serif"},
+  "trilha_mood": "neutra",
+  "ritmo": {"distancia_min_ms": 5000, "teto_por_min": 6, "leitura_min_ms": 1600},
+  "sfx_volume_db": -14,
+  "sfx": {
+    "palavra.slam": "sfx/whoosh.wav",
+    "numero.impacto": {"arquivo": "sfx/impacto.wav", "volume_db": -12}
+  },
+  "pecas": {
+    "palavra-gigante": {
+      "arquivo": "pecas/palavra-gigante.html",
+      "familia": "impactos",
+      "camada": "principal",
+      "dur_ms_padrao": 2200,
+      "minimo_ms": 1600,
+      "variaveis_exigidas": ["texto"],
+      "usa_midia": false,
+      "exemplo": {"texto": "Ninguém acreditou!"}
+    },
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html",
+      "familia": "fatos",
+      "camada": "principal",
+      "subtipos": ["numero", "percentual", "moeda", "ano"],
+      "dur_ms_padrao": 3000,
+      "minimo_ms": 1800,
+      "variaveis_exigidas": ["numero"],
+      "usa_midia": false,
+      "exemplo": {"texto": "€70.000", "numero": 70000, "numero_texto": "€70.000", "prefixo": "€", "sufixo": "",
+                  "decimais": 0, "separador_milhar": ".", "separador_decimal": ",", "legenda": "pelo carro antigo"}
+    }
+  }
+}

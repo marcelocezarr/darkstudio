@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / karaoke (frase). Deduzido: faixa escura suave no terco inferior, frase em
+     serifa centralizada; cada palavra acende (apagada -> branca) quando e falada e a palavra de
+     destaque fica dourada. Sem caixas, sem cores fortes. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #faixa { position: absolute; left: 0; right: 0; bottom: 0; height: 520px; opacity: 0;
+           background: linear-gradient(0deg, rgba(8,10,14,.82) 0%, rgba(8,10,14,.6) 45%, rgba(8,10,14,0) 100%); }
+  #frase { position: absolute; left: 260px; width: 1400px; text-align: center; top: 0; font-family: var(--fonte-titulo);
+           font-weight: 500; color: var(--texto); font-size: 76px; line-height: 1.15; }
+  #frase .w { display: inline-block; opacity: 0; }
+  #frase .w.dest { color: var(--acento-claro); font-style: italic; }
+</style>
+</head>
+<body>
+<div id="faixa"></div>
+<div id="frase"></div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const faixa = $('#faixa'), frase = $('#frase');
+  let DUR = 3600, ws = [], ts = [];
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3600;
+    ws = C.palavrasEm(frase, d.texto);
+    const k = Number(d.destaque);
+    if (Number.isInteger(k) && ws[k]) ws[k].classList.add('dest');
+    C.caber(frase, 1400, 76 * 1.15 * 2 + 4, 76, 44);
+    const r = frase.getBoundingClientRect();
+    frase.style.top = (880 - r.height) + 'px';
+    ts = C.temposFala(ws.map((w) => w.textContent), d.palavras, 280, Math.max(0, DUR - 900));
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(600, DUR * 0.2)));
+    faixa.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 450)), sai));
+    ws.forEach((w, i) => {
+      const k = C.sai(C.fase(t, ts[i], 380));
+      w.style.opacity = String(Math.min(0.28 + 0.72 * k, sai) * C.suave(C.fase(t, 0, 350)));
+      w.style.transform = `translateY(${((1 - k) * 6).toFixed(2)}px)`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

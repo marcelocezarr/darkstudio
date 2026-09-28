@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / citacao (citacoes): frase em branco-creme semibold com sombra, aspas pessego,
+     autor minusculo embaixo; centralizada no terco inferior, sem caixa e sem escurecer. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #bloco { position: absolute; left: 0; right: 0; bottom: 200px; display: flex; flex-direction: column;
+           align-items: center; opacity: 0; }
+  #frase { font-family: var(--fonte-titulo); font-weight: 600; color: var(--texto); text-align: center;
+           line-height: 1.16; font-size: 58px; }
+  #frase .q { color: var(--acento); font-weight: 700; }
+  #autor { margin-top: 16px; font-family: var(--fonte-texto); font-weight: 600; font-size: 26px; letter-spacing: .06em;
+           text-transform: uppercase; color: var(--acento); }
+</style>
+</head>
+<body>
+<div id="bloco"><div id="frase" class="sombra"></div><div id="autor" class="sombra"></div></div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, $ = (s) => document.querySelector(s);
+  const bloco = $('#bloco'), frase = $('#frase'), autor = $('#autor');
+  let DUR = 5000;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 5000;
+    const t = C.txt(d.texto).replace(/^["“”«»„']+|["“”«»„']+$/g, '');
+    frase.innerHTML = `<span class="q">“</span>${C.esc(t)}<span class="q">”</span>`;
+    C.caber(frase, 1300, 220, 58, 36);
+    const a = C.txt(d.autor);
+    autor.textContent = a ? '— ' + a : '';
+    autor.style.display = a ? '' : 'none';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    bloco.style.opacity = String(C.envelope(t, DUR, 400, 400));
+    autor.style.opacity = String(C.sai(C.fase(t, 500, 500)));
+  };
+})();
+</script>
+</body>
+</html>

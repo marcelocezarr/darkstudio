@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / citacao (citacoes): aspas grandes douradas, texto em italico serifado que se revela
+     palavra a palavra, autor em versalete precedido de fio. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: linear-gradient(90deg, rgba(0,0,0,.74) 0%, rgba(0,0,0,.6) 45%, rgba(0,0,0,.28) 78%, rgba(0,0,0,.12) 100%); }
+  #bloco { position: absolute; left: 290px; top: 50%; transform: translateY(-50%); width: 1300px; }
+  #aspas { position: absolute; left: -128px; top: -64px; font-family: Georgia, 'Times New Roman', serif;
+           font-size: 300px; line-height: 1; color: var(--acento); opacity: 0; }
+  #texto { font-family: var(--fonte-titulo); font-style: italic; color: var(--texto); line-height: 1.3;
+           font-weight: normal; }
+  #texto .w { opacity: 0; }
+  #autor { display: flex; align-items: center; gap: 22px; margin-top: 42px; opacity: 0; }
+  #autor .fio { width: 70px; }
+  #autor .versal { font-size: 27px; color: var(--acento-claro); letter-spacing: .3em; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="bloco">
+  <div id="aspas" class="sombra">&#8220;</div>
+  <div id="texto" class="sombra"></div>
+  <div id="autor"><div class="fio"></div><div class="versal sombra" id="nome"></div></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), aspas = $('#aspas'), texto = $('#texto'), autor = $('#autor'), fioA = $('#autor .fio');
+  let DUR = 5000, spans = [], ent = [], tAutor = 0, temAutor = false;
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 5000;
+    const t = C.txt(d.texto).replace(/^["“”„«»']+|["“”„«»']+$/g, '');
+    spans = C.palavrasEm(texto, t);
+    C.caber(texto, 1300, 470, 66, 34);
+    // revela na fala quando possivel; no maximo ate 55% da peca
+    const passo = Math.max(35, Math.min(140, (DUR * 0.4) / Math.max(1, spans.length)));
+    ent = C.temposFala(spans.map((s) => s.textContent), d.palavras, passo, DUR * 0.55).map((m) => m + 250);
+    const nome = C.txt(d.autor);
+    temAutor = !!nome;
+    $('#nome').textContent = nome;
+    autor.style.display = temAutor ? '' : 'none';
+    tAutor = Math.min(ent[ent.length - 1] + 400, DUR * 0.65);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 700, 650);
+    veu.style.opacity = String(env);
+    const ka = C.sai(C.fase(t, 100, 900));
+    aspas.style.opacity = String(0.9 * Math.min(ka, env));
+    aspas.style.transform = `translateY(${((1 - ka) * 20).toFixed(2)}px)`;
+    spans.forEach((s, i) => {
+      s.style.opacity = String(Math.min(C.suave(C.fase(t, ent[i], 520)), env));
+    });
+    if (temAutor) {
+      const k = C.sai(C.fase(t, tAutor, 700));
+      autor.style.opacity = String(Math.min(k, env));
+      fioA.style.transform = `scaleX(${C.io(C.fase(t, tAutor, 800)).toFixed(4)})`;
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: carimbo (impactos). Um recorte de papel entra e o carimbo vermelho bate com a
+     frase de impacto; a faixa de cima traz o rotulo CONFIDENCIAL (i18n). -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #grupo { position: absolute; left: 50%; top: 46%; opacity: 0; }
+  #recorte { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+             clip-path: polygon(0% 3%, 6% 0%, 14% 2%, 23% 0%, 35% 3%, 48% 0%, 60% 2%, 72% 0%, 84% 3%, 94% 0%, 100% 4%,
+                                99% 22%, 100% 45%, 98% 70%, 100% 96%, 90% 100%, 78% 97%, 63% 100%, 50% 97%, 36% 100%,
+                                22% 97%, 10% 100%, 0% 97%, 2% 74%, 0% 50%, 1% 26%); }
+  #carimbo { left: 0; top: 0; text-align: center; white-space: normal; padding: 16px 40px 18px; border-width: 9px;
+             box-shadow: inset 0 0 0 6px rgba(0,0,0,0), inset 0 0 0 9px var(--vermelho); border-radius: 14px; }
+  #topo { font-size: 38px; letter-spacing: .32em; padding: 0 0 10px; margin: 0 6px 12px; border-bottom: 5px solid var(--vermelho); }
+  #txt { font-size: 130px; line-height: .98; max-width: 1150px; }
+</style>
+</head>
+<body>
+<div id="grupo">
+  <div id="recorte" class="papel"></div>
+  <div id="carimbo" class="carimbo"><div id="topo"></div><div id="txt"></div></div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const grupo = document.getElementById('grupo'), rec = document.getElementById('recorte'), car = document.getElementById('carimbo');
+  let DUR = 2000, BATE = 330, rotC = -7, rotP = -2;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 2000;
+    const topo = Z.rot(d, 'confidencial');
+    document.getElementById('topo').textContent = topo;
+    if (!topo) document.getElementById('topo').style.display = 'none';
+    const txt = document.getElementById('txt');
+    txt.textContent = Z.txt(d.texto);
+    txt.style.width = 'max-content';
+    Z.caberLinha(txt, 130, 84, 1150);        // 1 linha se couber ...
+    if (txt.scrollWidth > 1151) {             // ... senao ate 3 linhas
+      txt.style.width = '1150px'; txt.style.whiteSpace = 'normal';
+      Z.caber(txt, 110, 56, 360);
+    }
+    const b = car.getBoundingClientRect();
+    rec.style.width = (b.width + 110) + 'px';
+    rec.style.height = (b.height + 90) + 'px';
+    car.style.transformOrigin = '50% 50%';
+    rotC = -4.5 - Z.rnd(d.texto, 1) * 2.5;
+    rotP = rotC + 1.5 + Z.rnd(d.texto, 2) * 1.5;
+    BATE = Math.min(330, DUR * 0.2);
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'carimbo.bate', ms: Math.round(BATE) }];
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 260), sai = 1 - Z.seg(t, DUR - 300, 300);
+    grupo.style.opacity = String(Math.min(1, ent * 2) * sai);
+    grupo.style.transform = `translateY(${(1 - Z.eo(ent)) * 40 + (1 - sai) * 20}px)`;
+    rec.style.transform = `translate(-50%, -50%) rotate(${rotP}deg)`;
+    // carimbo: desce grande e bate (escala 1.9 -> 1), leve tremida depois
+    const k = Z.seg(t, BATE - 150, 150);
+    const tremor = t > BATE ? Math.sin((t - BATE) / 18) * 4 * Math.exp(-(t - BATE) / 70) : 0;
+    const esc = 1 + (1 - Z.eio(k)) * 0.9;
+    car.style.opacity = String(k <= 0 ? 0 : Math.min(1, 0.35 + k));
+    car.style.transform = `translate(-50%, -50%) translate(${tremor}px, ${tremor * .5}px) rotate(${rotC}deg) scale(${esc.toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

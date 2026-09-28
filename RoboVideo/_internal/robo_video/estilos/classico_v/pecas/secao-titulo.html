@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / secao-titulo (secoes: capitulo): discreto, no terco inferior centralizado.
+     Selo escuro pequeno com o numero pessego + rotulo ("2 / CAPITULO") a esquerda do titulo branco bold. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #linha { position: absolute; left: 0; right: 0; bottom: 290px; display: flex; justify-content: center;
+           align-items: center; gap: 30px; opacity: 0; }
+  #selo { position: relative; min-width: 104px; height: 128px; padding: 0 14px 18px; }
+  #num { font-family: var(--fonte-titulo); font-weight: 700; color: var(--acento); font-size: 78px; line-height: 1;
+         margin-bottom: 10px; font-variant-numeric: lining-nums; }
+  #rot { font-family: var(--fonte-texto); font-weight: 600; color: #f4f4f2; font-size: 19px; line-height: 1;
+         text-transform: uppercase; white-space: nowrap; }
+  #tit { font-size: 80px; line-height: 1.08; }
+</style>
+</head>
+<body>
+<div id="linha">
+  <div id="selo" class="selo"><div id="num"></div><div id="rot"></div></div>
+  <div id="tit" class="bold sombra"></div>
+</div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, $ = (s) => document.querySelector(s);
+  const linha = $('#linha'), selo = $('#selo'), num = $('#num'), rot = $('#rot'), tit = $('#tit');
+  let DUR = 3800;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3800;
+    const n = Math.round(Number(d.numero) || 0);
+    num.textContent = n > 0 ? String(n) : '';
+    rot.textContent = C.rot(d, 'capitulo', 'CHAPTER');
+    selo.style.display = n > 0 ? '' : 'none';
+    let r = 19;
+    while (r > 12 && rot.getBoundingClientRect().width > 150) { r -= 1; rot.style.fontSize = r + 'px'; }
+    tit.textContent = C.txt(d.texto);
+    C.caber(tit, n > 0 ? 1250 : 1450, 180, 80, 48);
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    linha.style.opacity = String(C.envelope(t, DUR, 450, 400));
+    tit.style.opacity = String(C.sai(C.fase(t, 150, 450)));
+  };
+})();
+</script>
+</body>
+</html>

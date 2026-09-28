@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-triade-editorial (camada FUNDO). Triptico de revista: tres paineis verticais sobem
+     em cascata (o do meio mais alto, deslocado), numerados I-II-III com fio fino; cada midia com um
+     Ken Burns diferente. Legenda em duas colunas embaixo: titulo a esquerda, frase a direita,
+     separadas por um fio vertical na cor de acento. Menos de 3 midias -> recortes diferentes. -->
+<link rel="stylesheet" href="../comum/takes-c.css">
+<style>
+  .pn { position: absolute; overflow: hidden; }
+  .pn .tc-mid { position: absolute; inset: 0; }
+  .num { position: absolute; font-family: var(--tc-ft); font-size: 30px; color: var(--tc-tx); letter-spacing: .08em;
+         display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+  .num i { display: block; height: 1px; width: 80px; background: var(--tc-tx3); transform-origin: 0 50%; }
+  #leg { position: absolute; left: 150px; right: 150px; display: flex; align-items: flex-start; gap: 44px; }
+  #ltit { font-family: var(--tc-ft); color: var(--tc-tx); line-height: 1.06; flex: none; }
+  #lfio { flex: none; width: 3px; background: var(--tc-ac); align-self: stretch; transform-origin: 50% 0; }
+  #ltxt { font-family: var(--tc-fx); color: var(--tc-tx2); line-height: 1.34; }
+  #kick { position: absolute; left: 150px; top: 62px; display: flex; align-items: center; gap: 16px; }
+  #kick i { width: 12px; height: 12px; background: var(--tc-ac); display: block; transform: rotate(45deg); }
+</style>
+</head>
+<body>
+<div class="tc-fundo"></div>
+<div id="kick"><i></i><span id="rot" class="tc-rot"></span></div>
+<div id="leg"><div id="ltit"></div><div id="lfio"></div><div id="ltxt"></div></div>
+<script src="../comum/takes-c.js"></script>
+<script>
+(() => {
+  const Z = window.TC, $ = (s) => document.querySelector(s);
+  const leg = $('#leg'), ltit = $('#ltit'), lfio = $('#lfio'), ltxt = $('#ltxt'), kick = $('#kick');
+  let DUR = 4500, P = [], temTit = false, temTxt = false;
+  const ROM = ['I', 'II', 'III'];
+
+  window.montar = function (d) {
+    d = d || {};
+    Z.tema(d);
+    DUR = d.dur_ms || 4500;
+    const sem = Z.midias(d).join('|') + Z.txt(d.texto);
+    const s = Z.slots(d, 3);
+    let titulo = Z.txt(d.titulo || d.nome), texto = Z.txt(d.texto);
+    if (texto.toLowerCase() === titulo.toLowerCase()) texto = '';
+    if (!titulo && texto && texto.split(' ').length <= 6) { titulo = texto; texto = ''; }
+    temTit = !!titulo; temTxt = !!texto;
+    const temLeg = temTit || temTxt;
+    // geometria do triptico (altura depende de haver legenda)
+    const topo = 130, baseY = temLeg ? 770 : 950;
+    const gap = 36, X0 = 150, X1 = 1770, w = (X1 - X0 - 2 * gap) / 3;
+    const k0 = Math.floor(Z.rnd(sem, 1) * 4);
+    for (let i = 0; i < 3; i++) {
+      const el = document.createElement('div'); el.className = 'pn';
+      // painel do meio: mais alto (sobe acima do topo), laterais mais baixos
+      const y = i === 1 ? topo - 40 : topo + 30, h = baseY - y + (i === 1 ? 0 : -30);
+      Object.assign(el.style, { left: (X0 + i * (w + gap)) + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+      const box = Z.criarMidia(el, s[i]);
+      document.body.insertBefore(el, leg);
+      const nm = document.createElement('div'); nm.className = 'num';
+      nm.innerHTML = `<span>${ROM[i]}</span><i></i>`;
+      Object.assign(nm.style, { left: (X0 + i * (w + gap)) + 'px', top: (y + h + 14) + 'px' });
+      if (i === 1 || !temLeg) document.body.appendChild(nm); else nm.style.display = 'none';
+      P.push({ el, box, nm, mov: Z.MOVS[(k0 + i) % 4], y, h });
+    }
+    // os numerais I e III ficam sob os paineis laterais tambem (eles terminam mais acima)
+    P.forEach((p, i) => { if (i !== 1 && temLeg) { p.nm.style.display = ''; document.body.appendChild(p.nm); } });
+    $('#rot').textContent = Z.rot(d, 'destaque');
+    kick.style.display = Z.rot(d, 'destaque') ? '' : 'none';
+    // legenda
+    leg.style.display = temLeg ? '' : 'none';
+    if (temLeg) {
+      leg.style.top = (baseY + 70) + 'px';
+      const hMax = 1030 - baseY - 70;
+      lfio.style.display = temTit && temTxt ? '' : 'none';
+      ltit.style.display = temTit ? '' : 'none'; ltxt.style.display = temTxt ? '' : 'none';
+      const wT = temTxt ? 700 : 1620;
+      if (temTit) { ltit.style.width = wT + 'px'; Z.caberTexto(ltit, titulo, temTxt ? 62 : 80, 34, hMax); }
+      if (temTit && temTxt) {
+        // titulo curto: coluna do titulo encolhe ao tamanho real
+        const sp = document.createElement('span'); sp.textContent = ltit.textContent; ltit.textContent = ''; ltit.appendChild(sp);
+        const ws = [...sp.getClientRects()].map((q) => q.width);
+        ltit.style.width = Math.ceil(Math.min(wT, Math.max(...ws, 200)) + 4) + 'px';
+      }
+      if (temTxt) {
+        const wX = 1620 - (temTit ? ltit.getBoundingClientRect().width + 91 : 0);
+        ltxt.style.width = wX + 'px';
+        Z.caberTexto(ltxt, texto, 38, 22, hMax); Z.palavras(ltxt);
+      }
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }, { evento: 'foto.entra', ms: 60 }, { evento: 'foto.entra', ms: 240 },
+                      { evento: 'foto.entra', ms: 420 }];
+  };
+
+  window.quadro = function (t) {
+    const k = t / DUR;
+    const sai = Z.eio(Z.seg(t, DUR - 420, 420));
+    const ordem = [1, 0, 2];   // o do meio abre primeiro
+    P.forEach((p, i) => {
+      const j = ordem.indexOf(i);
+      const a = Z.eo5(Z.seg(t, 60 + j * 180, 900));
+      // revelacao por cortina vertical + leve subida; saida: cortina fecha para cima
+      const cima = (1 - a) * 100, fecha = Z.eio(Z.seg(t, DUR - 420 + j * 40, 360)) * 100;
+      p.el.style.clipPath = `inset(${Z.f(cima, 2)}% 0 ${Z.f(fecha, 2)}% 0)`;
+      p.el.style.transform = `translateY(${Z.f((1 - a) * 90 - Z.sine(k) * (i === 1 ? 14 : -10), 2)}px)`;
+      Z.kb(p.box, k, p.mov, 1);
+      const kn = Z.eo(Z.seg(t, 600 + j * 160, 500));
+      p.nm.style.opacity = Z.f(kn * (1 - sai), 3);
+      p.nm.lastElementChild.style.transform = `scaleX(${Z.f(kn, 4)})`;
+    });
+    const kk = Z.eo(Z.seg(t, 200, 600));
+    kick.style.opacity = Z.f(kk * (1 - sai), 3);
+    kick.style.transform = `translateX(${Z.f((1 - kk) * -24, 2)}px)`;
+    const kl = Z.eo(Z.seg(t, 800, 650));
+    leg.style.opacity = Z.f(1 - sai, 3);
+    ltit.style.opacity = Z.f(kl, 3);
+    ltit.style.transform = `translateY(${Z.f((1 - kl) * 30, 2)}px)`;
+    lfio.style.transform = `scaleY(${Z.f(Z.eio(Z.seg(t, 1000, 500)), 4)})`;
+    if (temTxt) Z.revelar(ltxt, t, 1150, Math.min(1600, DUR - 1900), 280);
+  };
+})();
+</script>
+</body>
+</html>

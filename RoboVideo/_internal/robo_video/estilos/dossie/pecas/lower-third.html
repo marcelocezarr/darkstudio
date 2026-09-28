@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: lower-third (fatos: pessoa/item/lugar). Etiqueta kraft de evidencia, pendurada
+     por um barbante, balanca e assenta no terco inferior esquerdo. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #etq { position: absolute; left: 170px; bottom: 150px; opacity: 0; transform-origin: 0 50%; filter: drop-shadow(0 12px 16px rgba(0,0,0,.45)); }
+  #tag { position: relative; padding: 26px 56px 26px 118px; min-width: 520px; max-width: 1180px;
+         clip-path: polygon(46px 0, 100% 0, 100% 100%, 46px 100%, 0 calc(100% - 46px), 0 46px); }
+  #furo { position: absolute; left: 44px; top: 50%; width: 40px; height: 40px; margin-top: -20px; border-radius: 50%;
+          background: rgba(20, 16, 12, .9); box-shadow: 0 0 0 9px #e2d6bb, 0 0 0 11px rgba(90, 60, 25, .5); }
+  #rot { font-size: 30px; margin-bottom: 6px; white-space: nowrap; }
+  #nome { font-size: 96px; color: #1d150c; }
+  #fio { position: absolute; left: -170px; top: 0; width: 240px; height: 200px; overflow: visible; }
+  #fio path { fill: none; stroke: #efe6cf; stroke-width: 4; opacity: .9; }
+  #linha { height: 3px; background: var(--vermelho); margin-top: 10px; transform-origin: 0 50%; opacity: .85; }
+</style>
+</head>
+<body>
+<div id="etq">
+  <div id="tag" class="papel kraft">
+    <div id="furo"></div>
+    <div id="rot" class="rotulo"></div>
+    <div id="nome" class="titulo"></div>
+    <div id="linha"></div>
+  </div>
+  <svg id="fio"><path id="fiop"/></svg>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const etq = document.getElementById('etq'), linha = document.getElementById('linha'), rotEl = document.getElementById('rot');
+  let DUR = 3000;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3000;
+    const rotulo = Z.txt(d.rotulo) || Z.rot(d, d.tipo_item || '') || Z.rot(d, 'evidencia');
+    rotEl.textContent = rotulo.toUpperCase();
+    Z.prepararDatilo(rotEl, rotulo.toUpperCase());
+    const nome = document.getElementById('nome');
+    nome.textContent = Z.txt(d.nome || d.texto);
+    nome.style.maxWidth = '1000px';
+    Z.caberLinha(nome, 96, 64, 1000);
+    if (nome.scrollWidth > 1001) { nome.style.width = '1000px'; Z.caber(nome, 72, 44, 170); }
+    const h = document.getElementById('tag').getBoundingClientRect().height;
+    // barbante do furo ate fora da tela (esquerda)
+    document.getElementById('fiop').setAttribute('d', `M234 ${h / 2} C170 ${h / 2 + 40}, 90 ${h / 2 - 50}, -20 ${h / 2 - 10}`);
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'maquina.tecla', ms: 380 }];
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 420), sai = Z.seg(t, DUR - 320, 320);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    // balanco amortecido em volta do furo
+    const bal = t < 1400 ? 7 * Math.exp(-t / 330) * Math.cos(t / 95) : 0;
+    etq.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    etq.style.transform = `translate(${(1 - e) * -700 - s * 260}px, ${s * 16}px) rotate(${(-1.2 + bal).toFixed(3)}deg)`;
+    Z.datilo(rotEl, Z.seg(t, 380, 360), false);
+    linha.style.transform = `scaleX(${Z.eio(Z.seg(t, 520, 420)).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

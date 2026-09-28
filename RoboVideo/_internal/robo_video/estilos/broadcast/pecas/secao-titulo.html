@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / secao-titulo (secoes: capitulo). Abertura de bloco de telejornal:
+     numero do capitulo, tag, segmentos de progresso e titulo grande sobre uma
+     cortina marinho a esquerda (a imagem continua visivel a direita). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  /* cortina: area solida (comprime bem no PNG) + borda em degrade curta */
+  #cortina { position: absolute; left: -192px; top: -46px; bottom: -52px; width: 1300px; background: rgba(5,15,32,.72); }
+  #cortina::after { content: ''; position: absolute; left: 100%; top: 0; bottom: 0; width: 360px;
+                    background: linear-gradient(90deg, rgba(5,15,32,.74), rgba(5,15,32,0)); }
+  #bloco { position: absolute; left: 192px; top: 330px; width: 1360px; }
+  #topo, #titw, #regra { position: relative; }
+  #topo { display: flex; align-items: center; gap: 22px; height: 104px; }
+  #numw { flex: none; }
+  #num { width: 104px; height: 104px; display: flex; align-items: center; justify-content: center;
+         background: var(--acento); color: var(--navy); font-weight: 700; font-size: 72px; line-height: 1; }
+  #meta { display: flex; flex-direction: column; gap: 14px; }
+  #rot { font-weight: 600; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; color: var(--branco);
+         white-space: nowrap; }
+  #rot span { color: var(--acento); }
+  #segs { display: flex; gap: 8px; }
+  .seg { width: 46px; height: 8px; background: rgba(255,255,255,.28); }
+  .seg.feito { background: rgba(255,255,255,.85); }
+  .seg.atual { background: var(--acento); }
+  #titw { margin-top: 30px; overflow: hidden; padding-bottom: 6px; }
+  #tit { font-weight: 700; font-size: 124px; line-height: 1.0; text-transform: uppercase; width: 1360px;
+         letter-spacing: .005em; }
+  #regra { margin-top: 26px; height: 6px; width: 420px; background: var(--acento); transform-origin: left center; }
+</style>
+</head>
+<body>
+<div id="bloco">
+  <div id="cortina"></div>
+  <div id="topo">
+    <div id="numw"><div id="num" class="num-tab"></div></div>
+    <div id="metaw"><div id="meta"><div id="rot"></div><div id="segs"></div></div></div>
+  </div>
+  <div id="titw"><div id="tit"></div></div>
+  <div id="regra"></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000, segs = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    const n = Math.max(1, parseInt(d.numero, 10) || 1);
+    const total = Math.max(n, parseInt(d.total, 10) || 0);
+    $('num').textContent = String(n).padStart(2, '0');
+    const rot = BC.rot(d, 'capitulo');
+    $('rot').innerHTML = '';
+    $('rot').appendChild(document.createTextNode(rot));
+    if (total > 1) {
+      const s = document.createElement('span');
+      s.textContent = `  ${n}/${total}`;
+      $('rot').appendChild(s);
+    }
+    $('segs').innerHTML = '';
+    segs = [];
+    const nseg = Math.min(total || 1, 12);
+    for (let i = 1; i <= nseg; i++) {
+      const e = document.createElement('div');
+      e.className = 'seg' + (i < n ? ' feito' : i === n ? ' atual' : '');
+      $('segs').appendChild(e); segs.push(e);
+    }
+    if (total <= 1) $('segs').style.display = 'none';
+    // titulo: ate 2 linhas; reduz a fonte e, no limite, encurta por palavras
+    BC.caberTexto($('tit'), d.texto || '', 124, 64, 1360, 2 * 124 * 1.0 + 4);
+    const px = parseFloat($('tit').style.fontSize) || 124;
+    if ($('tit').getBoundingClientRect().height > 2 * px * 1.02 + 2) BC.caberTexto($('tit'), d.texto || '', px, 64, 1360, 2 * px + 4);
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }, { evento: 'cena.abre', ms: 180 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const kc = BC.eo(BC.lin(t, 0, 450)), sc = BC.lin(-S, -420, 0);
+    BC.wipe($('cortina'), kc, sc, 200);
+    BC.wipe($('numw'), BC.eo(BC.lin(t, 80, 400)), BC.ei(BC.lin(-S, -260, -60)), 30);
+    BC.wipe($('metaw'), BC.eo(BC.lin(t, 200, 620)), BC.ei(BC.lin(-S, -330, -110)), 40);
+    const kt = BC.expo(BC.lin(t, 300, 900));
+    const st = BC.ei(BC.lin(-S, -400, -150));
+    $('tit').style.transform = `translateY(${((1 - kt) * 110 - st * 0).toFixed(2)}px)`;
+    BC.wipe($('titw'), 1, st, 80);
+    const kr = BC.eo(BC.lin(t, 520, 1100));
+    $('regra').style.transform = `scaleX(${(kr * (1 - BC.ei(BC.lin(-S, -380, -120)))).toFixed(4)})`;
+    // segmento atual "acende" depois da entrada
+    segs.forEach((e, i) => {
+      const k = BC.eo(BC.lin(t, 450 + i * 45, 650 + i * 45));
+      e.style.transform = `scaleY(${k.toFixed(3)})`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

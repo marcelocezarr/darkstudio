@@ -1,0 +1,21 @@
+/* Estilo Cinema (validado) -- base comum das pecas (1920x1080, fundo transparente).
+   Recriado a partir dos quadros de referencia: serifa elegante de alto contraste (Sitka Banner ~ Cormorant),
+   rotulos em sans espacado (Segoe UI), dourado quente, footage bem escurecido, fades lentos. */
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+body { color: var(--texto); font-family: var(--fonte-texto); -webkit-font-smoothing: antialiased;
+       text-rendering: geometricPrecision; font-kerning: normal; text-wrap: balance;
+       font-variant-numeric: lining-nums; }
+.abs { position: absolute; }
+/* rotulo sans espacado em caixa alta ("YEARS OF BATTERY WARRANTY", "THE PLACE") */
+.rotulo { font-family: var(--fonte-rotulo); text-transform: uppercase; letter-spacing: .3em; line-height: 1;
+          white-space: nowrap; font-weight: 400; }
+.dourado { color: var(--acento); }
+.serif { font-family: var(--fonte-titulo); font-weight: 500; line-height: 1.05; font-variant-numeric: lining-nums; }
+.fio { height: 2px; background: linear-gradient(90deg, var(--acento) 0%, var(--acento) 70%, rgba(201,162,78,.55) 100%);
+       transform-origin: left center; }
+.fio.centro { transform-origin: center center;
+              background: linear-gradient(90deg, rgba(201,162,78,0) 0%, var(--acento) 18%, var(--acento) 82%, rgba(201,162,78,0) 100%); }
+.sombra { text-shadow: 0 2px 16px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.5); }
+/* veu que escurece o footage (a referencia escurece ~78% (medido: 249 -> 62)) */
+.veu { position: absolute; inset: 0; opacity: 0; background: rgba(11,12,15,.78); }

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / secao-titulo (secoes): cartela de capitulo. "CAPITULO II" em versalete dourado,
+     fio que se desenha do centro, titulo serifado grande. Escurece a imagem sem apaga-la. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: radial-gradient(ellipse 70% 62% at 50% 50%, rgba(4,4,6,.58) 0%, rgba(4,4,6,.74) 60%, rgba(0,0,0,.86) 100%); }
+  #bloco { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+           display: flex; flex-direction: column; align-items: center; text-align: center; }
+  #cap { font-size: 28px; letter-spacing: .5em; text-indent: .5em; opacity: 0; }
+  #cap b { font-weight: normal; color: var(--acento-claro); }
+  #fios { display: flex; align-items: center; gap: 18px; margin: 34px 0 38px; }
+  #fios .fio { width: 260px; opacity: .9; }
+  #fios .fio.e { transform-origin: right center; }
+  #losango { width: 7px; height: 7px; background: var(--acento); transform: rotate(45deg); opacity: 0; }
+  #titulo { font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.12; font-weight: normal;
+            letter-spacing: .01em; opacity: 0; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="bloco">
+  <div id="cap" class="versal sombra"></div>
+  <div id="fios"><div class="fio e"></div><div id="losango"></div><div class="fio d"></div></div>
+  <div id="titulo" class="sombra"></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), cap = $('#cap'), titulo = $('#titulo'), los = $('#losango');
+  const fe = document.querySelector('.fio.e'), fd = document.querySelector('.fio.d');
+  let DUR = 4000;
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4000;
+    const rotulo = C.rot(d, 'capitulo');
+    const n = Number(d.numero) || 0;
+    cap.innerHTML = '';
+    cap.appendChild(document.createTextNode(rotulo ? rotulo + (n ? ' ' : '') : ''));
+    if (n) { const b = document.createElement('b'); b.textContent = C.romano(n); cap.appendChild(b); }
+    titulo.textContent = C.txt(d.texto);
+    C.caber(titulo, 1440, 290, 112, 58);       // ate 2 linhas grandes; longos reduzem
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const saida = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.2)));
+    veu.style.opacity = String(C.suave(C.fase(t, 0, 900)) * saida);
+    // rotulo: entra abrindo o tracking bem devagar
+    const kc = C.sai(C.fase(t, 250, 1100));
+    cap.style.opacity = String(kc * saida);
+    cap.style.letterSpacing = (0.62 - 0.12 * kc).toFixed(4) + 'em';
+    cap.style.textIndent = cap.style.letterSpacing;
+    // fios: desenham do centro para fora
+    const kf = C.io(C.fase(t, 500, 1100));
+    fe.style.transform = fd.style.transform = `scaleX(${kf.toFixed(4)})`;
+    fe.style.opacity = fd.style.opacity = String(0.9 * saida);
+    los.style.opacity = String(C.fase(t, 450, 300) * saida);
+    // titulo: fade lento + sobe 16 px; deriva sutil de escala durante a peca
+    const kt = C.sai(C.fase(t, 750, 1100));
+    titulo.style.opacity = String(kt * saida);
+    const esc = 1.035 - 0.035 * C.fase(t, 750, DUR - 750);
+    titulo.style.transform = `translateY(${((1 - kt) * 16).toFixed(2)}px) scale(${esc.toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

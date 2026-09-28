@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / rank: "5 | MAXUS" no canto superior esquerdo — caixa escura com o número
+     (odômetro), fio limão vertical e caixa escura com o nome em Impact branco; aba opcional em cima. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #grupo { position: absolute; left: 96px; top: 88px; height: 248px; will-change: transform; }
+  #cxn { position: absolute; left: 0; top: 0; width: 170px; height: 248px; }
+  #num { position: absolute; left: 0; width: 100%; top: 0; font-family: var(--f-titulo); color: var(--texto);
+         font-size: 160px; text-align: center; white-space: nowrap; }
+  #num .odo-m { transform: scaleX(.94); }
+  #fio { position: absolute; left: 184px; top: 0; width: 11px; height: 262px; background: var(--acento); }
+  #cxt { position: absolute; left: 204px; top: 0; height: 248px; padding: 0 0 0 44px; white-space: nowrap;
+         font-family: var(--f-titulo); color: var(--texto); font-size: 134px; line-height: 248px; }
+  #nome { display: inline-block; transform-origin: 0 50%; }
+  .cx { box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+  #aba { position: absolute; left: -20px; top: -30px; height: 62px; padding: 0 20px; font-size: 36px; line-height: 64px;
+         letter-spacing: .01em; }
+  #aba:empty { display: none; }
+</style>
+</head>
+<body>
+<div id="grupo">
+  <div id="cxn" class="cx"><div id="num"></div></div>
+  <div id="fio"></div>
+  <div id="cxt" class="cx"><span id="nome"></span></div>
+  <div id="aba" class="aba"></div>
+</div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ESTREITO = 0.86;   // Impact estreitado: a referência usa uma grotesca mais condensada
+  let d = {}, DUR = 4000, odo = null, T_ABA = 450;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4000;
+    const pos = String(d.posicao != null ? d.posicao : (d.numero != null ? d.numero : ''));
+    const num = $('num');
+    const fs = 184;
+    num.style.fontSize = fs + 'px';
+    // largura da caixa do número (2+ dígitos: mais larga)
+    const med = document.createElement('span');
+    med.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-family:inherit';
+    med.textContent = pos; num.appendChild(med);
+    const largura = Math.max(170, Math.round(med.offsetWidth * 0.94 + 70));
+    med.remove();
+    $('cxn').style.width = largura + 'px';
+    $('fio').style.left = (largura + 14) + 'px';
+    $('cxt').style.left = (largura + 34) + 'px';
+    num.style.top = Math.round(115 - 0.504 * fs) + 'px';
+    odo = K.odometro(num, pos, 60, 420);
+    const nome = K.maiusc(d.texto || '', d.idioma);
+    const sp = $('nome'), cx = $('cxt');
+    sp.textContent = nome;
+    if (!nome) cx.style.display = 'none';
+    let fn = 134;
+    const larg = () => sp.offsetWidth * ESTREITO;
+    while (fn > 60 && larg() > 1560 - largura) { fn -= 4; cx.style.fontSize = fn + 'px'; }
+    sp.style.transform = `scaleX(${ESTREITO})`;
+    cx.style.width = Math.round(44 + larg() + 50) + 'px';
+    $('aba').textContent = K.maiusc(d.kicker || d.titulo || '', d.idioma);
+    window.eventos = [{ evento: 'rank.entra', ms: 0 }, { evento: 'rank.revela', ms: 480 }];
+    if ($('aba').textContent) window.eventos.push({ evento: 'etiqueta.entra', ms: T_ABA });
+  };
+
+  window.quadro = function (t) {
+    const ke = K.outExpo(K.prog(t, 0, 200));
+    const ks = K.inCubic(K.prog(t, DUR - 220, 220));
+    const g = $('grupo');
+    g.style.transform = `translateX(${((1 - ke) * -50 - ks * 60).toFixed(1)}px)`;
+    g.style.opacity = String(Math.min(K.prog(t, 0, 90), 1 - ks));
+    odo.quadro(t);
+    $('cxt').style.clipPath = K.cortina(K.outExpo(K.prog(t, 70, 260)));
+    $('fio').style.clipPath = K.cortina(K.outExpo(K.prog(t, 40, 200)), 'baixo');
+    $('aba').style.clipPath = K.cortina(K.outExpo(K.prog(t, T_ABA, 100)));
+  };
+})();
+</script>
+</body>
+</html>

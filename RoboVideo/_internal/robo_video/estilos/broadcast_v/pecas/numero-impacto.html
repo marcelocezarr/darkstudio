@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / numero-impacto. Cartao azul-marinho translucido a direita do centro,
+     barra vermelha vertical a esquerda, numero branco grande condensado contando ate o valor e
+     rotulo pequeno espacado embaixo ("YEARS OF BATTERY WARRANTY"). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 1010px; top: 300px; height: 276px; padding: 0 56px 0 76px; overflow: hidden; }
+  #num { position: absolute; left: 76px; top: 18px; font-size: 190px; line-height: 1; font-variant-numeric: tabular-nums; }
+  #rot { position: absolute; left: 76px; bottom: 36px; font-size: 31px; letter-spacing: .27em; color: var(--texto2); }
+</style>
+</head>
+<body>
+<div id="c" class="cartao"><div id="num" class="cond"></div><div id="rot" class="esp"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let D = {}, DUR = 3600, alvo = 0, pre = '', suf = '', W = 700, T_C = 1000;
+
+  window.montar = function (d) {
+    D = d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 3600;
+    alvo = Number(d.numero);
+    if (!isFinite(alvo)) alvo = 0;
+    pre = BC.txt(d.prefixo);
+    let s = d.sufixo == null ? '' : String(d.sufixo);
+    // sufixo curto/simbolo fica colado no numero; palavras ("anos", " years") vao para o rotulo
+    let pal = '';
+    if (/[A-Za-zÀ-ÿ]{3,}/.test(s)) { pal = BC.txt(s); s = ''; }
+    suf = s.trim() === '%' || /^\s?[%°]/.test(s) ? s.trim() : s;
+    suf = suf.replace(/\s+$/, '');
+    let rot = [pal, BC.txt(d.legenda)].filter(Boolean).join(' ');
+    if (!rot) rot = BC.rot(d, 'numero');
+    rot = BC.encurtar(rot, 44);
+    $('rot').textContent = rot;
+    // numero final (para medir)
+    $('num').textContent = pre + BC.fmt(d, alvo) + suf;
+    const px = BC.caber($('num'), 190, 110, 1100, 0);
+    $('num').style.fontSize = px + 'px';
+    BC.caber($('rot'), 30, 22, 1100, 0);
+    W = Math.max(540, Math.max($('num').getBoundingClientRect().width, $('rot').getBoundingClientRect().width) + 76 + 60);
+    const left = Math.min(1010, 1920 - 110 - W);
+    $('c').style.left = left + 'px';
+    $('c').style.width = W + 'px';
+    T_C = Math.min(1100, DUR * 0.32);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'numero.impacto', ms: Math.round(T_C + 140) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    // entrada: barra vermelha e cartao abrem da esquerda; saida: fecha para a esquerda
+    const kin = BC.expo(BC.lin(t, 0, 420)), kout = BC.ei(BC.lin(-S, -360, -40));
+    const k = kin * (1 - kout);
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 120).toFixed(3);
+    // contador
+    const kc = BC.eo(BC.lin(t, 120, T_C + 140));
+    let v = alvo * kc;
+    const dec = D.decimais || 0;
+    if (!dec) v = Math.round(v);
+    $('num').textContent = pre + BC.fmt(D, D.ano ? Math.round(alvo - (1 - kc) * Math.min(60, Math.abs(alvo))) : v, dec) + suf;
+    const kn = BC.eo(BC.lin(t, 100, 420));
+    $('num').style.transform = `translateY(${((1 - kn) * 26).toFixed(2)}px)`;
+    $('num').style.opacity = kn.toFixed(3);
+    const kr = BC.eo(BC.lin(t, 260, 640));
+    $('rot').style.opacity = kr.toFixed(3);
+    $('rot').style.transform = `translateX(${((1 - kr) * -18).toFixed(2)}px)`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / numero-impacto (fatos: numero, percentual, moeda, ano; rankings: rank).
+     Selo pequeno escuro arredondado a direita, numero grande pessego + rotulo minusculo branco
+     ("8 / YEARS"). So fade de entrada/saida, sem escurecer o footage. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #selo { right: 153px; top: 430px; min-width: 137px; height: 194px; padding: 0 18px 25px; opacity: 0; }
+  #num { font-family: var(--fonte-titulo); font-weight: 700; color: var(--acento); font-size: 122px;
+         line-height: 1; white-space: nowrap; font-variant-numeric: lining-nums; margin-bottom: 14px; }
+  #num .af { font-size: .5em; vertical-align: .72em; margin: 0 .03em; }
+  #rot { font-family: var(--fonte-texto); font-weight: 600; color: #f4f4f2; font-size: 28px; line-height: 1;
+         white-space: nowrap; text-transform: uppercase; letter-spacing: .01em; }
+</style>
+</head>
+<body>
+<div id="selo" class="selo"><div id="num"></div><div id="rot"></div></div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, $ = (s) => document.querySelector(s);
+  const selo = $('#selo'), num = $('#num'), rot = $('#rot');
+  let DUR = 4500;
+
+  function formatar(d, v) {
+    const dec = Math.max(0, Math.min(3, Number(d.decimais) || 0));
+    if (d.ano) return String(Math.round(v));
+    let [int, fr] = Math.abs(v).toFixed(dec).split('.');
+    int = int.replace(/\B(?=(\d{3})+(?!\d))/g, d.separador_milhar == null ? '.' : d.separador_milhar);
+    return (v < 0 ? '-' : '') + (fr ? int + (d.separador_decimal || ',') + fr : int);
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4500;
+    const rank = d.subtipo === 'rank' || (d.familia === 'rankings');
+    let valor, rotulo = '';
+    if (rank) {
+      valor = String(Math.round(Number(d.posicao || d.numero) || 1));
+      rotulo = C.rot(d, 'posicao', 'POSITION');
+    } else {
+      const pre = C.txt(d.prefixo), suf = String(d.sufixo || '');
+      const sufCurto = suf.trim().length <= 3 ? suf.trim() : '';
+      const n = Number(d.numero);
+      const corpo = Number.isFinite(n) && d.numero !== '' && d.numero != null ? formatar(d, n) : C.txt(d.numero_texto || d.texto);
+      valor = (pre ? `<span class="af">${C.esc(pre)}</span>` : '') + C.esc(corpo) +
+              (sufCurto ? `<span class="af">${C.esc(sufCurto)}</span>` : '');
+      rotulo = C.txt(d.unidade) || (sufCurto ? '' : C.txt(suf));
+      if (!rotulo) {                                    // sem unidade: legenda muito curta vira rotulo
+        const leg = C.txt(d.legenda);
+        if (leg && leg.split(' ').length <= 2 && leg.length <= 16) rotulo = leg;
+      }
+    }
+    num.innerHTML = rank ? C.esc(valor) : valor;
+    rot.textContent = rotulo;
+    rot.style.display = rotulo ? '' : 'none';
+    if (!rotulo) { selo.style.paddingBottom = '34px'; num.style.marginBottom = '0'; }
+    // numeros longos (moeda, milhares): reduz o numero para o selo continuar pequeno
+    let s = 122;
+    num.style.fontSize = s + 'px';
+    while (s > 56 && num.getBoundingClientRect().width > 330) { s -= 4; num.style.fontSize = s + 'px'; }
+    if (s < 122) num.style.marginBottom = (rotulo ? 14 + (122 - s) * 0.35 : 18) + 'px';
+    let r = 28;
+    while (r > 16 && rot.getBoundingClientRect().width > 330) { r -= 1; rot.style.fontSize = r + 'px'; }
+    window.eventos = [{ evento: 'numero.impacto', ms: 60 }];
+  };
+
+  window.quadro = function (t) {
+    selo.style.opacity = String(C.linear(t, DUR, 400, 400));
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: palavra-gigante (impactos). Cada palavra e uma tira de papel recortada,
+     colada na tela no instante em que e dita; a ultima leva tinta vermelha. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #palco { position: absolute; left: 192px; right: 192px; top: 108px; bottom: 170px; display: flex; align-items: center; justify-content: center; }
+  #frase { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 26px 30px; max-width: 1480px; }
+  .tira { position: relative; padding: 16px 34px 8px; font-size: 140px; opacity: 0; box-shadow: inset 0 0 26px rgba(112, 78, 34, .28), 0 2px 3px rgba(0,0,0,.4), 0 14px 30px rgba(0,0,0,.45); }
+  .tira.papel { position: relative; }
+  .tira.acento { color: var(--vermelho); }
+  .tira .fita { width: 110px; height: 34px; top: -16px; left: 50%; margin-left: -55px; }
+</style>
+</head>
+<body>
+<div id="palco"><div id="frase"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const frase = document.getElementById('frase');
+  let d = {}, DUR = 2200, tiras = [], ent = [], rots = [];
+
+  window.montar = function (dados) {
+    d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 2200;
+    const palavras = Z.txt(d.texto).split(' ').filter(Boolean);
+    const n = palavras.join(' ').length;
+    const fs = n > 34 ? 92 : n > 24 ? 108 : n > 14 ? 126 : 150;
+    frase.innerHTML = '';
+    tiras = palavras.map((w, i) => {
+      const s = document.createElement('div');
+      s.className = 'papel tira titulo' + (i === palavras.length - 1 && palavras.length > 1 ? ' acento' : '');
+      s.style.fontSize = fs + 'px';
+      s.textContent = w;
+      if (i === 0) { const f = document.createElement('div'); f.className = 'fita'; s.appendChild(f); }
+      frase.appendChild(s);
+      return s;
+    });
+    // palavra maior que a area: reduz tudo
+    let f = fs;
+    while (f > 60 && (frase.scrollWidth > 1480 || frase.scrollHeight > 760 || tiras.some((s) => s.scrollWidth > s.clientWidth + 1))) {
+      f -= 6; tiras.forEach((s) => { s.style.fontSize = f + 'px'; });
+    }
+    rots = tiras.map((_, i) => (Z.rnd(d.texto, i) - .5) * 5);
+    const falas = Array.isArray(d.palavras) ? d.palavras : [];
+    ent = tiras.map((_, i) => (falas[i] && falas[i].ms != null) ? Math.max(0, Math.min(falas[i].ms, DUR * 0.55)) : i * 140);
+    // entradas nunca fora de ordem nem coladas demais
+    for (let i = 1; i < ent.length; i++) ent[i] = Math.max(ent[i], ent[i - 1] + 90);
+    window.eventos = ent.map((ms) => ({ evento: 'papel.cola', ms: Math.round(ms) }));
+  };
+
+  window.quadro = function (t) {
+    const sai = 1 - Z.seg(t, DUR - 300, 300);
+    tiras.forEach((s, i) => {
+      const k = Z.seg(t, ent[i], 230);
+      const e = Z.back(k);
+      s.style.opacity = String(Math.min(1, k * 2.5) * sai);
+      const esc = 1.35 - 0.35 * e;
+      s.style.transform = `translateY(${(1 - k) * -26 + (1 - sai) * 24}px) rotate(${rots[i] + (1 - k) * 6}deg) scale(${esc.toFixed(4)})`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

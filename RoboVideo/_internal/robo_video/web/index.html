@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robô de Vídeo</title>
+  <link rel="stylesheet" href="estilo.css" />
+  <link rel="stylesheet" href="custos.css" />
+  <link rel="stylesheet" href="acompanhar.css" />
+  <link rel="stylesheet" href="avatares.css" />
+</head>
+<body>
+  <div class="layout">
+    <nav class="menu-lateral" id="menu-lateral">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="m19 10 4-2.5v9L19 14" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        Robô de Vídeo
+      </div>
+      <ul>
+        <li><a href="#produzir" data-rota="produzir">Produzir</a></li>
+        <li><a href="#acompanhar" data-rota="acompanhar">Acompanhar</a></li>
+        <li><a href="#producoes" data-rota="producoes">Produções</a></li>
+        <li><a href="#canais" data-rota="canais">Canais</a></li>
+        <li><a href="#avatares" data-rota="avatares">Avatares</a></li>
+        <li><a href="#integracoes" data-rota="integracoes">Integrações</a></li>
+        <li><a href="#custos" data-rota="custos">Custos</a></li>
+      </ul>
+    </nav>
+    <main id="conteudo" class="conteudo"></main>
+  </div>
+  <div id="raiz-modal"></div>
+  <script src="api.js"></script>
+  <script src="componentes.js"></script>
+  <script src="legenda_previa.js"></script>
+  <script src="tela_produzir.js"></script>
+  <script src="tela_acompanhar.js"></script>
+  <script src="tela_producoes.js"></script>
+  <script src="tela_canais.js"></script>
+  <script src="tela_avatares.js"></script>
+  <script src="tela_integracoes.js"></script>
+  <script src="tela_custos.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

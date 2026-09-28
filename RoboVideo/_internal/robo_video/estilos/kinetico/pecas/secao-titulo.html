@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / secao-titulo (secoes, camada FUNDO): tela cheia. Painel de acento varre a tela,
+     o preto varre por cima deixando uma faixa, o número do capítulo gigante vazado desliza e o
+     título sobe linha a linha por máscara. Sai com nova varredura de acento. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--fundo, #0a0a0a); }
+  .painel { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
+  #lima1 { background: var(--acento); }
+  #preto { background: var(--fundo); }
+  #lima2 { background: var(--acento); }
+  #gigante { position: absolute; right: 60px; bottom: -150px; font-family: var(--f-titulo); font-size: 900px;
+             line-height: 1; color: transparent; -webkit-text-stroke: 7px var(--acento); opacity: .9;
+             white-space: nowrap; will-change: transform; }
+  #faixa { position: absolute; left: 0; top: 0; bottom: 0; width: 40px; background: var(--acento); transform-origin: top; }
+  #conteudo { position: absolute; left: 192px; top: 108px; width: 1400px; height: 864px;
+              display: flex; flex-direction: column; justify-content: center; }
+  #rot { display: flex; align-items: center; gap: 22px; font-family: var(--f-rotulo); font-weight: 700;
+         font-size: 38px; letter-spacing: .18em; color: var(--acento); margin-bottom: 26px; white-space: nowrap; }
+  #rot .n { background: var(--acento); color: var(--tinta); padding: 4px 16px 2px; letter-spacing: .06em; }
+  #titulo { font-family: var(--f-titulo); color: var(--texto); line-height: 1.0; width: 1400px; }
+  #titulo .ln { overflow: hidden; padding: .02em 0 .04em; }
+  #titulo .li { display: inline-block; white-space: nowrap; will-change: transform; }
+</style>
+</head>
+<body>
+<div class="painel" id="lima1"></div>
+<div class="painel" id="preto">
+  <div id="gigante"></div>
+  <div id="faixa"></div>
+  <div id="conteudo"><div id="rot"></div><div id="titulo"></div></div>
+</div>
+<div class="painel" id="lima2"></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 3500, linhas = [];
+  const pad2 = (n) => String(n).padStart(2, '0');
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3500;
+    const num = Number(d.numero) || 0;
+    $('gigante').textContent = num ? pad2(num) : '';
+    const rot = K.rot(d, 'capitulo', '');
+    const rotEl = $('rot');
+    rotEl.innerHTML = '';
+    if (rot) { const s = document.createElement('span'); s.textContent = rot; rotEl.appendChild(s); }
+    if (num) {
+      const s = document.createElement('span'); s.className = 'n';
+      s.textContent = pad2(num) + (d.total ? ' / ' + pad2(d.total) : '');
+      rotEl.appendChild(s);
+    }
+    const tit = $('titulo');
+    const texto = K.maiusc(d.texto || '', d.idioma);
+    tit.textContent = texto;
+    // ate 3 linhas em 1400 x 620
+    let fs = K.ajustar(tit, 1400, 620, 190, 70);
+    linhas = K.linhas(tit, texto);
+    while (fs > 70 && (tit.scrollHeight > 640 || linhas.some((l) => l.scrollWidth > 1400))) {
+      fs -= 6; tit.style.fontSize = fs + 'px'; linhas = K.linhas(tit, texto);
+    }
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }, { evento: 'palavra.slam', ms: 520 },
+                      { evento: 'cena.fecha', ms: Math.max(0, DUR - 380) }];
+  };
+
+  window.quadro = function (t) {
+    // entrada: acento varre (0-300), preto varre por cima (180-520)
+    const k1 = K.outExpo(K.prog(t, 0, 300));
+    $('lima1').style.transform = `translateX(${((k1 - 1) * 100).toFixed(2)}%)`;
+    const k2 = K.outExpo(K.prog(t, 180, 360));
+    $('preto').style.transform = `translateX(${((k2 - 1) * 100).toFixed(2)}%)`;
+    // faixa lateral
+    $('faixa').style.transform = `scaleY(${K.outExpo(K.prog(t, 420, 400)).toFixed(4)})`;
+    // numero gigante: entra da direita e deriva devagar
+    const kg = K.outExpo(K.prog(t, 300, 700));
+    const deriva = -60 * (t / DUR);
+    $('gigante').style.transform = `translateX(${((1 - kg) * 500 + deriva).toFixed(1)}px)`;
+    // rotulo
+    $('rot').style.clipPath = K.cortina(K.outExpo(K.prog(t, 400, 380)));
+    // titulo: linhas sobem pela mascara
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, 480 + i * 90, 520));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    // pequeno tremor na batida do titulo
+    const [tx, ty] = K.tremor(t, 520, 5, 2);
+    $('conteudo').style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
+    // saida: acento varre tudo (a montagem corta de volta para a imagem)
+    const k3 = K.inOutQuint(K.prog(t, DUR - 380, 300));
+    $('lima2').style.transform = `translateX(${((k3 - 1) * 100).toFixed(2)}%)`;
+  };
+})();
+</script>
+</body>
+</html>

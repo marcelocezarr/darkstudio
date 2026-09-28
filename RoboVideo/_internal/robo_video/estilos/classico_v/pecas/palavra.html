@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / palavra (impactos): a palavra/nome em branco-creme bold com sombra suave,
+     no terco inferior ("Maxus."). Fade rapido de entrada, fade de saida; footage intacto. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #caixa { position: absolute; left: 0; right: 0; bottom: 300px; display: flex; justify-content: center; }
+  #pal { text-align: center; line-height: 1.08; font-size: 100px; font-weight: 900; letter-spacing: -.01em; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="caixa"><div id="pal" class="bold sombra"></div></div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, pal = document.querySelector('#pal');
+  let DUR = 2800;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 2800;
+    pal.textContent = C.txt(d.texto);
+    C.caber(pal, 1400, 230, 100, 56);
+    window.eventos = [{ evento: 'palavra.slam', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    pal.style.opacity = String(C.linear(t, DUR, 230, 330));
+  };
+})();
+</script>
+</body>
+</html>

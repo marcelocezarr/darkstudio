@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: foto-destaque (foto | fotos). Papel creme quadriculado desce do topo cobrindo o clipe
+     com a foto em P&B e sombra; etiqueta datilografada no canto inferior esquerdo com fio vermelho de
+     progresso. Com varias fotos, a faixa desliza para a esquerda (carrossel), uma etiqueta por foto. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #folha { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; will-change: transform; }
+  #faixa { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .slot { position: absolute; left: 184px; top: 112px; width: 1628px; height: 800px; }
+  .slot .foto-pb { position: absolute; inset: 0; overflow: hidden; background: #5a5a5a;
+                   box-shadow: 4px 7px 14px rgba(40, 30, 15, .30), 0 1px 3px rgba(40, 30, 15, .25); }
+  .slot .foto-pb { border-radius: 5px; }
+  .slot .foto-pb img { transform-origin: 50% 50%; filter: grayscale(1) contrast(.96) brightness(1.0); }
+  .slot .foto-pb::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 50px rgba(0, 0, 0, .22); }
+  .slot .prog { position: absolute; left: 0; top: 790px; height: 6px; width: 0; background: var(--vermelho); }
+  .slot .etq { position: absolute; left: 0; top: 822px; min-width: 468px; height: 70px; background: var(--etiqueta);
+               box-shadow: 0 1px 2px rgba(60, 45, 20, .25), 2px 4px 10px rgba(60, 45, 20, .16);
+               padding: 0 24px; display: flex; align-items: center; opacity: 0; transform-origin: 0 50%; }
+  .slot .etq span.t { font-size: 45px; letter-spacing: -.07em; -webkit-text-stroke: .5px currentColor; color: var(--tinta); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="folha" class="papel-grade"><div id="faixa"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const folha = document.getElementById('folha'), faixa = document.getElementById('faixa');
+  const PASSO = 1628 + 150;           // deslocamento do carrossel (largura da foto + vao)
+  const T_ENTRA = 950, T_DESLIZA = 480;
+  let DUR = 4500, slots = [], N = 1, fatias = [];
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 4500;
+    const fotos = V.midias(d).slice(0, 4);
+    if (!fotos.length) fotos.push('');
+    N = fotos.length;
+    const texto = V.semPonto(d.texto), leg = V.txt(d.legenda);
+    let rots;
+    if (N === 1) rots = [texto || V.rotulosCurtos(leg, 1, 5)[0] || ''];
+    else rots = [texto || '', ...V.rotulosCurtos(leg, N - 1, 4)];
+    while (rots.length < N) rots.push(texto);
+    // fatias de tempo: a 1a inclui a descida do papel
+    const util = DUR - T_ENTRA - (N - 1) * T_DESLIZA;
+    const PESO1 = 1.45, cada = util / (N - 1 + PESO1);   // a 1a foto fica mais tempo (ref.: 3,4 s x 2,3 s)
+    fatias = [];
+    let t0 = 0;
+    for (let i = 0; i < N; i++) {
+      const ini = i === 0 ? T_ENTRA : t0 + T_DESLIZA;   // foto parada a partir daqui
+      const fim = ini + cada * (i === 0 && N > 1 ? PESO1 : (N === 1 ? PESO1 : 1));  // comeca a deslizar aqui
+      fatias.push({ ini, fim });
+      t0 = fim;
+    }
+    faixa.innerHTML = fotos.map((u, i) => `<div class="slot" style="left:${184 + i * PASSO}px">
+        <div class="foto-pb">${u ? `<img src="${V.esc(u)}">` : ''}</div><div class="prog"></div>
+        <div class="etq maquina"><span class="t"></span></div></div>`).join('');
+    slots = Array.from(faixa.querySelectorAll('.slot')).map((el, i) => {
+      const t = el.querySelector('.t'), etq = el.querySelector('.etq');
+      V.prepararDatilo(t, rots[i] || '');
+      V.caberLinha(t, 45, 26, 1100);
+      return { el, img: el.querySelector('img'), prog: el.querySelector('.prog'), etq, t, vazio: !(rots[i] || '') };
+    });
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }];
+    fatias.forEach((f, i) => {
+      if (i > 0) window.eventos.push({ evento: 'foto.desliza', ms: Math.round(f.ini - T_DESLIZA) });
+      if (!slots[i].vazio) window.eventos.push({ evento: 'maquina.digita', ms: Math.round(f.ini + Math.min(1500, (f.fim - f.ini) * 0.3) + 120) });
+    });
+  };
+
+  window.quadro = function (t) {
+    // papel desce do topo (ease-out) cobrindo o clipe
+    const ke = V.eo(V.seg(t, 0, T_ENTRA));
+    folha.style.transform = `translateY(${(-1080 * (1 - ke)).toFixed(1)}px)`;
+    // carrossel
+    let x = 0;
+    for (let i = 1; i < N; i++) x += V.eio(V.seg(t, fatias[i - 1].fim, T_DESLIZA));
+    faixa.style.transform = `translateX(${(-x * PASSO).toFixed(1)}px)`;
+    slots.forEach((s, i) => {
+      const f = fatias[i], vis = f.fim - f.ini;
+      const tIni = i === 0 ? 0 : f.ini - T_DESLIZA;
+      if (s.img) s.img.style.transform = `scale(${(1.0 + 0.045 * V.seg(t, tIni, f.fim + T_DESLIZA - tIni)).toFixed(4)})`;
+      const tEtq = f.ini + Math.min(1500, vis * 0.3);
+      const dig = V.tempoDatilo(s.t._dv ? s.t._dv.texto.join('') : '', Math.max(300, vis * 0.3));
+      const fimEtq = i < N - 1 ? f.fim - 60 : DUR + 1000;
+      const ka = V.seg(t, tEtq, 160), kz = 1 - V.seg(t, fimEtq - 260, 260);
+      s.etq.style.opacity = s.vazio ? '0' : String(V.eo(ka) * kz);
+      s.etq.style.transform = `scaleX(${(0.92 + 0.08 * V.eo(ka)).toFixed(3)})`;
+      V.datilo(s.t, V.seg(t, tEtq + 120, dig));
+      s.prog.style.width = (130 * V.seg(t, tEtq, Math.max(400, f.fim - tEtq))).toFixed(1) + 'px';
+      s.prog.style.opacity = String(kz);
+    });
+    document.body.style.opacity = String(V.saida(t, DUR, 320));
+  };
+})();
+</script>
+</body>
+</html>

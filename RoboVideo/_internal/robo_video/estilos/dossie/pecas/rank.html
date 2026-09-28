@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: rank (rankings). Ficha "EVIDENCIA #3": o numero grande e circulado a caneta e o
+     item e datilografado ao lado. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #ficha { left: 186px; top: 300px; display: flex; align-items: center; gap: 46px; padding: 40px 64px 44px 56px;
+           max-width: 1300px; opacity: 0; transform-origin: 0 100%; }
+  #esq { position: relative; flex: none; width: 230px; height: 250px; display: flex; align-items: center; justify-content: center; }
+  #num { font-size: 250px; color: var(--tinta); line-height: .8; padding-top: 18px; }
+  #dir { flex: 1; min-width: 0; }
+  #rot { font-size: 30px; margin-bottom: 12px; white-space: nowrap; }
+  #txt { font-size: 96px; max-width: 820px; color: var(--tinta); }
+  svg.caneta { left: 0; top: 0; }
+  svg.caneta path { stroke-width: 8; }
+  #fita1 { left: -40px; top: 18px; transform: rotate(-38deg); width: 150px; }
+  #fita2 { right: -40px; bottom: 22px; transform: rotate(-36deg); width: 150px; }
+</style>
+</head>
+<body>
+<div id="ficha" class="papel">
+  <div id="fita1" class="fita"></div><div id="fita2" class="fita"></div>
+  <div id="esq"><div id="num" class="titulo"></div>
+    <svg class="caneta" width="230" height="250"><path id="circ"/></svg></div>
+  <div id="dir"><div id="rot" class="rotulo"></div><div id="txt" class="titulo"></div></div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const ficha = document.getElementById('ficha'), num = document.getElementById('num'), txt = document.getElementById('txt');
+  const circ = document.getElementById('circ'), rot = document.getElementById('rot');
+  let DUR = 3000, temTxt = true, T_NUM = 260, rotF = -2;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3000;
+    const pos = Number(d.posicao || d.numero) || 0;
+    num.textContent = String(pos || '');
+    if (String(pos).length > 1) num.style.fontSize = '190px';
+    const cab = [Z.rot(d, 'evidencia'), pos ? '#' + pos : ''].filter(Boolean).join(' ');
+    rot.textContent = cab;
+    Z.prepararDatilo(rot, cab);
+    const t = Z.txt(d.texto);
+    temTxt = !!t;
+    if (temTxt) {
+      txt.textContent = t;
+      txt.style.width = 'max-content';
+      if (Z.caberLinha(txt, 96, 72, 820) && txt.scrollWidth > 821) { txt.style.width = '820px'; Z.caber(txt, 88, 44, 300); }
+      Z.prepararDatilo(txt, t);
+    } else {
+      txt.style.display = 'none';
+      document.getElementById('dir').style.flex = 'none';
+    }
+    circ.setAttribute('d', Z.circuloMao(115, 128, 104, 112, 'rank' + pos));
+    rotF = -1.5 - Z.rnd(t + pos, 1) * 1.5;
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'rank.revela', ms: T_NUM + 120 }];
+    if (temTxt) window.eventos.push({ evento: 'maquina.digita', ms: 700 });
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 400), sai = Z.seg(t, DUR - 320, 320);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    ficha.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    ficha.style.transform = `translate(${s * -160}px, ${(1 - e) * 160}px) rotate(${rotF + (1 - e) * 5}deg)`;
+    const kn = Z.seg(t, T_NUM, 220);
+    num.style.opacity = String(kn);
+    num.style.transform = `scale(${(1.5 - 0.5 * Z.back(kn)).toFixed(4)})`;
+    Z.tracar(circ, Z.eio(Z.seg(t, T_NUM + 180, 420)));
+    Z.datilo(rot, Z.seg(t, 360, 360), false);
+    if (temTxt) Z.datilo(txt, Z.seg(t, 700, Math.min(800, DUR * 0.28)));
+  };
+})();
+</script>
+</body>
+</html>

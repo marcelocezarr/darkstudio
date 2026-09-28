@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-planos-vidro (camada FUNDO): 3–4 lâminas de vidro com mídias em profundidade.
+     A câmera faz um travelling lateral lento: lâminas próximas andam mais que as distantes
+     (parallax); as distantes ficam mais escuras e suaves (profundidade de campo pré-calculada).
+     Entram vindo do fundo e saem passando pela câmera. 1..N mídias (recortes diferentes se faltar). -->
+<link rel="stylesheet" href="../comum/takes-b.css">
+<style>
+  #veu { background:
+           radial-gradient(ellipse 80% 75% at 55% 50%, rgba(0,0,0,0) 30%, var(--veu-borda) 100%),
+           linear-gradient(90deg, var(--veu-lado) 0%, rgba(0,0,0,0) 45%); }
+  .plano { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; }
+  .plano .vidro { left: 0; top: 0; width: 100%; height: 100%; border-radius: 22px; }
+  .plano .midia { left: 16px; top: 16px; right: 16px; bottom: 16px; border-radius: 12px; }
+  .plano .midia canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 50% 50%; }
+  .plano .escuro { position: absolute; inset: 0; background: var(--fundo); }
+  .plano .sombra { left: 4%; top: 12%; width: 100%; height: 100%; }
+  .plano .marca { position: absolute; left: 34px; top: -2px; width: 120px; height: 5px; background: var(--acento);
+                  transform-origin: 0 50%; border-radius: 0 0 3px 3px; }
+  #txt { position: absolute; left: 192px; top: 826px; width: 560px; z-index: 50; }
+  #rot { margin-bottom: 16px; }
+  #tit { font-weight: 600; }
+  #frase { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="fundo" class="cheio"></div>
+<div id="veu" class="cheio"></div>
+<div id="planos" class="cheio"></div>
+<div id="txt"><div id="rot" class="rotulo"></div><div id="tit" class="titulo"></div><div id="frase" class="frase"></div></div>
+<script src="../comum/takes-b.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4500, fundoCv = null, planos = [], semente = 0, linhasT = [], temTexto = false;
+  // p = profundidade (0 longe .. 1 perto); ordem de desenho = do mais longe ao mais perto
+  const LAYOUT = {
+    3: [{ x: 1030, y: 96, w: 740, h: 430, p: 0.28 }, { x: 150, y: 214, w: 820, h: 500, p: 0.58 },
+        { x: 806, y: 452, w: 930, h: 540, p: 1.0 }],
+    4: [{ x: 1180, y: 80, w: 580, h: 340, p: 0.16 }, { x: 150, y: 150, w: 760, h: 450, p: 0.4 },
+        { x: 1000, y: 330, w: 720, h: 420, p: 0.64 }, { x: 560, y: 540, w: 820, h: 470, p: 1.0 }],
+  };
+  const FOCO = { 3: [0.62, 0, 0], 4: [0.7, 0.42, 0, 0] };
+
+  window.montar = async function (d) {
+    d = d || {};
+    const tm = TB.tema(d);
+    DUR = d.dur_ms || 4500;
+    const r = document.documentElement.style;
+    r.setProperty('--veu-borda', TB.rgba(tm.fundo, 0.72));
+    r.setProperty('--veu-lado', TB.rgba(tm.fundo, 0.55));
+    const ims = await TB.carregar(TB.urls(d));
+    semente = TB.hash((d.texto || '') + (d.titulo || '') + ims.length);
+    const n = ims.length >= 4 ? 4 : 3;
+    const lay = LAYOUT[n], foco = FOCO[n];
+    const cor = `rgb(${tm.fundo.join(',')})`;
+    const base = ims[0] || null;
+    fundoCv = TB.borrao(base, 480, 270, 9, { mf: 0.06, cor, sat: 1.2, brilho: 0.95, tinta: TB.rgba(tm.fundo, 0.2) });
+    $('fundo').innerHTML = ''; $('fundo').appendChild(fundoCv);
+    const cont = $('planos'); cont.innerHTML = '';
+    // com menos mídias que planos: repete com focos (recortes) diferentes
+    const focos = [[0.78, 0.3], [0.22, 0.62], [0.6, 0.45], [0.35, 0.25]];
+    planos = lay.map((L, i) => {
+      // o plano mais próximo recebe a 1a mídia (a principal)
+      const idx = ims.length ? (lay.length - 1 - i) % ims.length : -1;
+      const img = idx >= 0 ? ims[idx] : null;
+      const rep = ims.length && (lay.length - 1 - i) >= ims.length;
+      const [fx, fy] = rep ? focos[i % focos.length] : [0.5, 0.5];
+      const zoom = rep ? 1.45 + 0.2 * (i % 2) : 1;
+      const el = document.createElement('div'); el.className = 'plano';
+      el.style.width = L.w + 'px'; el.style.height = L.h + 'px';
+      const sombra = document.createElement('div'); sombra.className = 'sombra';
+      const vidro = document.createElement('div'); vidro.className = 'vidro';
+      const fosco = TB.borrao(base, 480, 270, 9, { mf: 0.06, cor, sat: 1.25, brilho: 1.45, tinta: 'rgba(255,255,255,.09)', classe: 'fosco' });
+      vidro.appendChild(fosco);
+      for (const c of ['tinta', 'brilho', 'aresta']) { const q = document.createElement('div'); q.className = c; vidro.appendChild(q); }
+      const mid = document.createElement('div'); mid.className = 'midia';
+      // mídia nítida e versão suave (profundidade de campo), desenhadas uma vez em canvas
+      const mw = L.w - 32, mh = L.h - 32;
+      const nit = TB.borrao(img, Math.round(mw * 1.25), Math.round(mh * 1.25), 0, { mf: 0.05, cor, fx, fy, zoom, sat: 1.04, classe: 'nit' });
+      const mole = TB.borrao(img, Math.round(mw / 4), Math.round(mh / 4), 2.2, { mf: 0.05, cor, fx, fy, zoom, sat: 1.0, classe: 'mole' });
+      const esc = document.createElement('div'); esc.className = 'escuro';
+      mid.append(nit, mole, esc);
+      const marca = document.createElement('div'); marca.className = 'marca';
+      el.append(sombra, vidro, mid);
+      if (i === lay.length - 1) el.appendChild(marca);
+      cont.appendChild(el);
+      return { el, fosco, nit, mole, esc, marca, brilho: vidro.querySelector('.brilho'), L, i,
+               suave: foco[i], escuro: (1 - L.p) * 0.62, modo: (semente + i) % 4 };
+    });
+    // texto opcional
+    const tit = TB.txt(d.titulo), fr = TB.txt(d.texto);
+    const principal = tit || TB.resumir(fr, 12);
+    const apoio = tit ? TB.resumir(fr, 16) : '';
+    temTexto = !!principal;
+    $('txt').style.display = temTexto ? '' : 'none';
+    $('rot').textContent = TB.rot(d, 'destaque');
+    $('tit').textContent = principal;
+    $('frase').textContent = apoio;
+    $('frase').style.display = apoio ? '' : 'none';
+    linhasT = [];
+    if (temTexto) {
+      // com 4 planos o plano da frente ocupa o centro-baixo: o texto sobe para a esquerda
+      if (n === 4) { $('txt').style.top = '640px'; $('txt').style.width = '340px'; }
+      const W = n === 4 ? 340 : 560;
+      TB.caber($('tit'), W, apoio ? 100 : 150, tm.caixaAlta ? 52 : 48, 26);
+      if (apoio) TB.caber($('frase'), W, 150 - $('tit').getBoundingClientRect().height + 50, 26, 18, 1);
+      linhasT = TB.linhas($('tit')).concat(apoio ? TB.linhas($('frase')) : []);
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const k = TB.fase(t, 0, DUR);
+    const out = TB.fim(t, DUR, 520);
+    // câmera: travelling lateral + leve subida; parallax proporcional à profundidade
+    const cam = TB.lerp(1, -1, TB.lerp(k, TB.suave(k), 0.35));
+    const camX = cam * 70, camY = -cam * 16;
+    const sBg = 1.12 - 0.04 * k;
+    const txBg = camX * 0.18, tyBg = camY * 0.18;
+    fundoCv.style.transform = `translate(${TB.f(txBg, 2)}px, ${TB.f(tyBg, 2)}px) scale(${TB.f(sBg, 5)})`;
+    const nP = planos.length;
+    planos.forEach((P) => {
+      const L = P.L, st = 120 + P.i * 170;
+      const e = TB.saiExpo(TB.fase(t, st, 1150));
+      // entrada: vem do fundo (menor, mais baixo); saída: passa pela câmera (mais perto sai antes)
+      const so = TB.entra(TB.fase(t, DUR - 520 + (nP - 1 - P.i) * 50, 470));
+      const esc = (0.72 + 0.28 * e) * (1 + 0.035 * k * L.p) * (1 + so * (0.35 + 0.5 * L.p));
+      const x = L.x + camX * (0.35 + 1.3 * L.p) + (1 - e) * (L.x + L.w / 2 - 960) * -0.25 + so * (L.x + L.w / 2 - 960) * 0.5;
+      const y = L.y + camY * (0.4 + L.p) + (1 - e) * 60 + so * (L.y + L.h / 2 - 540) * 0.5;
+      P.el.style.transform = `translate(${TB.f(x, 2)}px, ${TB.f(y, 2)}px) scale(${TB.f(esc, 5)})`;
+      P.el.style.zIndex = String(10 + P.i);
+      P.el.style.opacity = TB.f(Math.min(TB.suave(TB.fase(t, st, 480)), 1 - so));
+      // vidro alinhado ao fundo (compensa a escala do plano em torno do centro)
+      const cx = x + L.w / 2, cy = y + L.h / 2;
+      const ox = cx - (L.w / 2) * esc, oy = cy - (L.h / 2) * esc;
+      P.fosco.style.transform = `scale(${TB.f(1 / esc, 5)}) translate(${TB.f(960 + txBg - ox, 2)}px, ${TB.f(540 + tyBg - oy, 2)}px) scale(${TB.f(sBg, 5)}) translate(-960px, -540px)`;
+      // mídia: Ken Burns (modos alternados) + profundidade de campo
+      const m = TB.kb(t, DUR, P.modo, 0.8);
+      P.nit.style.transform = TB.kbCss(m);
+      P.mole.style.transform = TB.kbCss(m);
+      P.mole.style.opacity = TB.f(P.suave);
+      P.esc.style.opacity = TB.f(P.escuro + (1 - e) * 0.3);
+      const kb = TB.io(TB.fase(t, 620 + P.i * 200, 1200));
+      P.brilho.style.transform = `translateX(${TB.f(kb * (L.w + 600), 1)}px) rotate(18deg)`;
+      P.brilho.style.opacity = TB.f(kb > 0 && kb < 1 ? 1 : 0);
+      if (P.i === nP - 1) P.marca.style.transform = `scaleX(${TB.f(TB.io(TB.fase(t, st + 500, 700)), 4)})`;
+    });
+    if (temTexto) {
+      const sai = TB.suave(TB.fase(t, DUR - 440, 360));
+      const kr = TB.sai(TB.fase(t, 700, 600));
+      $('rot').style.opacity = TB.f(Math.min(kr, 1 - sai));
+      $('rot').style.transform = `translateX(${TB.f((1 - kr) * -24, 2)}px)`;
+      linhasT.forEach((l, j) => {
+        const e = TB.saiExpo(TB.fase(t, 820 + j * 110, 800));
+        l.style.transform = `translateY(${TB.f((1 - e) * 105 - sai * 30, 2)}%)`;
+        l.style.opacity = TB.f(Math.min(e, 1 - sai));
+      });
+      $('txt').style.transform = `translate(${TB.f(camX * 0.5, 2)}px, 0)`;
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-evidencias-foco (camada FUNDO). 3-4 midias entram como evidencias numeradas sobre
+     uma mesa de luz (grade discreta). Depois a camera avanca ate UMA delas: a mira de cantos trava
+     nela, as demais perdem o foco e escurecem; a legenda (titulo + frase) entra embaixo. -->
+<link rel="stylesheet" href="../comum/takes-c.css">
+<style>
+  #grade { position: absolute; inset: 0; opacity: .55;
+    background-image: linear-gradient(var(--tc-linha) 1px, transparent 1px), linear-gradient(90deg, var(--tc-linha) 1px, transparent 1px);
+    background-size: 120px 120px; background-position: 0 0;
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0,0,0,.35), rgba(0,0,0,0) 80%); }
+  #palco { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .ev { position: absolute; padding: 10px; background: var(--tc-sup); transform-origin: 50% 50%;
+        box-shadow: 0 22px 44px rgba(0,0,0,.5), 0 0 0 1px var(--tc-linha); }
+  .ev .tc-mid img { will-change: auto; }
+  .ev .tc-mid { position: absolute; left: 10px; top: 10px; right: 10px; bottom: 10px; }
+  .ev .veu { position: absolute; inset: 0; background: var(--tc-bg-escuro); opacity: 0; }
+  .tag { position: absolute; left: 10px; top: -38px; display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+  .tag b { font-family: var(--tc-fr); font-weight: 700; font-size: 20px; letter-spacing: .08em; padding: 5px 10px 4px;
+           background: var(--tc-ac); color: var(--tc-ac-tx); }
+  .tag span { font-family: var(--tc-fr); font-size: 17px; letter-spacing: .24em; color: var(--tc-tx2); text-transform: uppercase; }
+  .mira { position: absolute; left: -22px; top: -22px; right: -22px; bottom: -22px; opacity: 0; }
+  .mira i { position: absolute; width: 58px; height: 58px; border: 0 solid var(--tc-ac); }
+  .mira i:nth-child(1) { left: 0; top: 0; border-left-width: var(--bw); border-top-width: var(--bw); }
+  .mira i:nth-child(2) { right: 0; top: 0; border-right-width: var(--bw); border-top-width: var(--bw); }
+  .mira i:nth-child(3) { left: 0; bottom: 0; border-left-width: var(--bw); border-bottom-width: var(--bw); }
+  .mira i:nth-child(4) { right: 0; bottom: 0; border-right-width: var(--bw); border-bottom-width: var(--bw); }
+  #base { position: absolute; left: 0; right: 0; bottom: 0; height: 330px; opacity: 0;
+          background: linear-gradient(180deg, rgba(0,0,0,0), var(--tc-bg-escuro) 72%); }
+  #leg { position: absolute; left: 192px; width: 1536px; bottom: 70px; }
+  #lrot { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  #lrot i { display: block; width: 10px; height: 10px; border-radius: 50%; background: var(--tc-ac); }
+  #ltit { font-family: var(--tc-ft); color: var(--tc-tx); line-height: 1.08; }
+  #ltxt { font-family: var(--tc-fx); color: var(--tc-tx2); line-height: 1.34; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="tc-fundo"></div><div id="grade"></div>
+<div id="palco"></div>
+<div id="base"></div>
+<div id="leg">
+  <div id="lrot"><i></i><span id="rot" class="tc-rot"></span></div>
+  <div id="ltit"></div>
+  <div id="ltxt"></div>
+</div>
+<script src="../comum/takes-c.js"></script>
+<script>
+(() => {
+  const Z = window.TC, $ = (s) => document.querySelector(s);
+  const palco = $('#palco'), base = $('#base'), leg = $('#leg'), lrot = $('#lrot'), ltit = $('#ltit'), ltxt = $('#ltxt');
+  // posicoes (centro x/y, largura, altura, rotacao) da mesa com 3 ou 4 evidencias
+  const LAY = {
+    3: [[520, 330, 700, 440, -2.2], [1400, 320, 640, 410, 2.0], [990, 810, 660, 420, -1.1]],
+    4: [[560, 320, 660, 410, -2.0], [1350, 300, 620, 390, 1.6], [530, 770, 620, 390, 1.9], [1330, 770, 680, 420, -1.3]],
+  };
+  let DUR = 4500, cards = [], foco = 0, S = 1.6, CY = 540, T_F = 1500, D_F = 900, temLeg = false, temTxt = false;
+
+  window.montar = function (d) {
+    d = d || {};
+    Z.tema(d);
+    DUR = d.dur_ms || 4500;
+    const ms = Z.midias(d);
+    const n = ms.length >= 4 ? 4 : 3;
+    const sem = ms.join('|') + Z.txt(d.texto);
+    foco = Math.floor(Z.rnd(sem, 1) * n);            // posicao da mesa que recebe o foco
+    const sl = Z.slots(d, n);
+    // a midia principal (1a) vai para a posicao do foco
+    const ordem = []; for (let i = 0; i < n; i++) ordem.push(sl[(i - foco + n) % n]);
+    const k0 = Math.floor(Z.rnd(sem, 2) * 4);
+    const evid = Z.rot(d, 'evidencia');
+    LAY[n].forEach((L, i) => {
+      const [cx, cy, w, h, r] = L;
+      const el = document.createElement('div'); el.className = 'ev';
+      Object.assign(el.style, { left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px' });
+      const box = Z.criarMidia(el, ordem[i]);
+      const veu = document.createElement('div'); veu.className = 'veu'; el.appendChild(veu);
+      const tag = document.createElement('div'); tag.className = 'tag';
+      tag.innerHTML = `<b>${String(i + 1).padStart(2, '0')}</b>` + (evid ? `<span>${Z.esc(evid)}</span>` : '');
+      el.appendChild(tag);
+      palco.appendChild(el);
+      cards.push({ el, box, veu, tag, cx, cy, w, h, r, mov: Z.MOVS[(k0 + i) % 4], dx: (Z.rnd(sem, 10 + i) - .5) * 60, dy: 40 + Z.rnd(sem, 20 + i) * 50 });
+    });
+    const F = cards[foco];
+    const mira = document.createElement('div'); mira.className = 'mira';
+    mira.innerHTML = '<i></i><i></i><i></i><i></i>';
+    F.el.appendChild(mira); F.mira = mira;
+    // legenda
+    let titulo = Z.txt(d.titulo || d.nome), texto = Z.txt(d.texto);
+    if (!titulo && texto.split(' ').length <= 8) { titulo = texto; texto = ''; }   // frase curta vira o titulo
+    temTxt = !!texto && texto.toLowerCase() !== titulo.toLowerCase();
+    temLeg = !!titulo || temTxt;
+    $('#rot').textContent = evid ? `${evid} ${String(foco + 1).padStart(2, '0')}` : '';
+    ltit.style.display = titulo ? '' : 'none';
+    ltxt.style.display = temTxt ? '' : 'none';
+    ltit.style.width = ltxt.style.width = '1536px';
+    if (titulo) Z.caberTexto(ltit, titulo, temTxt ? 64 : 76, 36, temTxt ? 76 : 150);
+    if (temTxt) { Z.caberTexto(ltxt, texto, 36, 24, titulo ? 96 : 150); Z.palavras(ltxt); }
+    leg.style.display = temLeg ? '' : 'none';
+    // alvo da camera: evidencia do foco centralizada (acima da legenda quando ha legenda)
+    const hLeg = temLeg ? leg.getBoundingClientRect().height + 110 : 0;
+    const areaH = 1080 - hLeg - 90, cyAlvo = temLeg ? 60 + areaH / 2 : 540;
+    S = Math.min(1320 / F.w, areaH / (F.h + 40), 2.1);
+    CY = cyAlvo;
+    F.mira.style.setProperty('--bw', Z.f(4 / S, 2) + 'px');
+    T_F = Math.round(Math.max(1250, DUR * 0.3)); D_F = Math.round(Math.min(1000, DUR * 0.2));
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+    cards.forEach((c, i) => window.eventos.push({ evento: 'foto.entra', ms: 80 + i * 150 }));
+    window.eventos.push({ evento: 'foco.move', ms: T_F }, { evento: 'foco.trava', ms: T_F + D_F - 120 });
+  };
+
+  window.quadro = function (t) {
+    const k = t / DUR;
+    const kf = Z.eio(Z.seg(t, T_F, D_F));
+    const sai = Z.eio(Z.seg(t, DUR - 380, 380));
+    // camera: deriva lenta na mesa -> avanca ate a evidencia em foco -> continua aproximando devagar
+    // camera = (escala s, ponto P do palco que vai para o ponto C da tela)
+    const F0 = cards[foco];
+    const s = Math.exp(Z.lerp(Math.log(1 + 0.025 * k), Math.log(S), kf)) * (1 + 0.035 * Z.seg(t, T_F + D_F, DUR - T_F - D_F));
+    const px = Z.lerp(960, F0.cx, kf), py = Z.lerp(540, F0.cy, kf);
+    const cx = 960, cy = Z.lerp(540, CY, kf);
+    palco.style.transform = `translate(${Z.f(cx - px * s, 2)}px, ${Z.f(cy - py * s, 2)}px) scale(${Z.f(s, 5)})`;
+    cards.forEach((c, i) => {
+      const a = Z.eo(Z.seg(t, 80 + i * 150, 620));
+      const eF = i === foco;
+      const r = c.r * (eF ? 1 - kf * 0.75 : 1);
+      c.el.style.opacity = Z.f(Math.min(1, a * 2.5), 3);
+      c.el.style.transform = `translate(${Z.f((1 - a) * c.dx, 1)}px, ${Z.f((1 - a) * c.dy, 1)}px) scale(${Z.f(1.1 - 0.1 * a, 4)}) rotate(${Z.f(r, 3)}deg)`;
+      Z.kb(c.box, k, c.mov, eF ? 1 : 0.8);
+      if (!eF) {
+        const b = kf * 4.5;
+        c.box.style.filter = b > 0.05 ? `blur(${Z.f(b, 2)}px)` : '';
+        c.veu.style.opacity = Z.f(kf * 0.7, 3);
+      }
+      c.tag.style.opacity = Z.f(1 - kf, 3);
+    });
+    const F = cards[foco];
+    const km = Z.back(Z.seg(t, T_F + D_F - 260, 420));
+    F.mira.style.opacity = Z.f(Math.min(1, Z.seg(t, T_F + D_F - 260, 160)) * (1 - sai), 3);
+    F.mira.style.transform = `scale(${Z.f(1.12 - 0.12 * km, 4)})`;
+    // legenda
+    if (temLeg) {
+      const kl = Z.eo(Z.seg(t, T_F + 350, 600));
+      base.style.opacity = Z.f(Z.seg(t, T_F, D_F) * (1 - sai * 0.4), 3);
+      leg.style.opacity = Z.f(1 - sai, 3);
+      lrot.style.opacity = Z.f(kl, 3);
+      ltit.style.opacity = Z.f(kl, 3);
+      ltit.style.transform = `translateY(${Z.f((1 - kl) * 24, 2)}px)`;
+      if (temTxt) Z.revelar(ltxt, t, T_F + 600, Math.min(1300, DUR - T_F - 1100), 260);
+    }
+  };
+})();
+</script>
+</body>
+</html>

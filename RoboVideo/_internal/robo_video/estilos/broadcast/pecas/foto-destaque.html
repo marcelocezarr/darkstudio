@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / foto-destaque (foto_destaque: foto) -- camada FUNDO (opaca, tela cheia).
+     Entrada: cortina marinho com borda ciano varre a tela e revela a imagem (zoom lento).
+     Tarja inferior em duas linhas (nome + legenda) e selo "EM FOCO" no canto superior. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  body { background: var(--navy); }
+  #fundo { position: absolute; inset: 0; background: var(--navy); overflow: hidden; }
+  #img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 45%; }
+  #vinheta { position: absolute; left: 0; right: 0; bottom: 0; height: 520px;
+             background: linear-gradient(180deg, rgba(5,15,32,0) 0%, rgba(5,15,32,.55) 60%, rgba(5,15,32,.78) 100%); }
+  #moldura { position: absolute; left: 48px; top: 48px; right: 48px; bottom: 48px; border: 2px solid rgba(255,255,255,.28);
+             pointer-events: none; }
+  #cantos i { position: absolute; width: 44px; height: 44px; border-color: var(--acento); border-style: solid; }
+  #cantos i:nth-child(1) { left: 40px; top: 40px; border-width: 8px 0 0 8px; }
+  #cantos i:nth-child(2) { right: 40px; top: 40px; border-width: 8px 8px 0 0; }
+  #cantos i:nth-child(3) { left: 40px; bottom: 40px; border-width: 0 0 8px 8px; }
+  #cantos i:nth-child(4) { right: 40px; bottom: 40px; border-width: 0 8px 8px 0; }
+  #selow { position: absolute; left: 110px; top: 100px; }
+  #selo { font-size: 32px; }
+  #tarja { position: absolute; left: 110px; bottom: 150px; display: flex; align-items: stretch; }
+  #lado { width: 14px; background: var(--acento); }
+  #col { display: flex; flex-direction: column; align-items: flex-start; }
+  #nome { padding: 16px 80px 14px 30px; font-weight: 700; font-size: 84px; line-height: 1.02; text-transform: uppercase;
+          white-space: nowrap; }
+  #leg { background: var(--branco); color: var(--navy); padding: 12px 60px 12px 30px; font-family: var(--fx);
+         font-weight: 600; font-size: 34px; line-height: 1.2; max-width: 1300px;
+         clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%); }
+  #cortina { position: absolute; top: 0; bottom: 0; left: 0; width: 2400px; background: var(--navy); }
+  #cortina::after { content: ''; position: absolute; left: -2px; top: 0; bottom: 0; width: 26px; background: var(--acento); }
+</style>
+</head>
+<body>
+<div id="fundo"><img id="img" alt=""></div>
+<div id="vinheta"></div>
+<div id="moldura"></div>
+<div id="cantos"><i></i><i></i><i></i><i></i></div>
+<div id="selow"><div id="selo" class="tag"><span class="ponto"></span><span id="selot"></span></div></div>
+<div id="tarja">
+  <div id="lado"></div>
+  <div id="col">
+    <div id="nw"><div id="nome" class="painel corte-d"></div></div>
+    <div id="lw"><div id="leg"></div></div>
+  </div>
+</div>
+<div id="cortina"></div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 5000, temImg = false, temLeg = false, temNome = false;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 5000;
+    const url = d.midia_url || (Array.isArray(d.midias) && d.midias[0]) || '';
+    temImg = !!url;
+    if (temImg) $('img').src = url; else $('img').style.display = 'none';
+    $('selot').textContent = BC.rot(d, 'broadcast_em_foco') || BC.rot(d, 'destaque');
+    const nome = BC.txt(d.texto || d.nome);
+    temNome = !!nome;
+    $('nw').style.display = temNome ? '' : 'none';
+    if (temNome) BC.caberTexto($('nome'), nome, 84, 48, 1400, 0);
+    const leg = BC.txt(d.legenda);
+    temLeg = !!leg && leg.toLowerCase() !== nome.toLowerCase();
+    $('lw').style.display = temLeg ? '' : 'none';
+    if (temLeg) BC.caberTexto($('leg'), leg, 34, 26, 1210, 2 * 34 * 1.2 + 2);
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    // cortina: cobre tudo em t=0 e sai pela direita (borda inclinada)
+    const kc = BC.eio(BC.lin(t, 0, 520));
+    const x = kc * (1920 + 700) ;
+    $('cortina').style.transform = `translateX(${x.toFixed(1)}px) skewX(-14deg)`;
+    $('cortina').style.left = '-240px';
+    $('cortina').style.display = kc >= 1 ? 'none' : '';
+    // zoom lento (Ken Burns) deterministico
+    const z = 1.04 + 0.08 * BC.lin(t, 0, DUR);
+    $('img').style.transform = `scale(${z.toFixed(5)}) translateX(${(-12 * BC.lin(t, 0, DUR)).toFixed(2)}px)`;
+    const km = BC.eo(BC.lin(t, 300, 800)), sm = BC.ei(BC.lin(-S, -360, -60));
+    $('moldura').style.opacity = String(km * (1 - sm));
+    $('cantos').style.opacity = String(km * (1 - sm));
+    $('cantos').style.transform = '';
+    BC.wipe($('selow'), BC.eo(BC.lin(t, 420, 740)), BC.ei(BC.lin(-S, -320, -100)), 20);
+    BC.wipeV($('lado'), BC.eo(BC.lin(t, 380, 640)), BC.ei(BC.lin(-S, -160, 0)));
+    BC.wipe($('nw'), BC.eo(BC.lin(t, 460, 900)), BC.ei(BC.lin(-S, -360, -60)));
+    BC.wipe($('lw'), BC.eo(BC.lin(t, 640, 1080)), BC.ei(BC.lin(-S, -420, -180)), 30);
+    $('vinheta').style.opacity = String(BC.eo(BC.lin(t, 200, 700)) * (1 - 0.6 * sm));
+  };
+})();
+</script>
+</body>
+</html>

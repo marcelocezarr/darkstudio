@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: mapa-mundi (fatos/lugar, exige lat/lon). Mapa de papel com continentes desenhados
+     a mao (contorno simplificado, sem dados externos); o mapa aproxima do lugar, a tachinha
+     crava, a caneta circula e um barbante liga a etiqueta com o nome ao ponto. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #card { left: 780px; top: 140px; width: 960px; height: 560px; padding: 26px; opacity: 0; transform-origin: 50% 0; }
+  #janela { position: absolute; left: 26px; top: 26px; width: 908px; height: 508px; overflow: hidden;
+            background: rgba(214, 196, 158, .35); box-shadow: inset 0 0 0 2px rgba(60, 45, 25, .55), inset 0 0 40px rgba(110, 80, 35, .25); }
+  #mapa { position: absolute; left: 0; top: 0; overflow: visible; transform-origin: 0 0; }
+  #mapa .grade { fill: none; stroke: rgba(60, 45, 25, .22); stroke-width: 1; stroke-dasharray: 4 6; vector-effect: non-scaling-stroke; }
+  #mapa .terra { fill: url(#hachura); stroke: rgba(40, 30, 18, .85); stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  #sobre { position: absolute; left: 0; top: 0; width: 960px; height: 560px; overflow: visible; pointer-events: none; z-index: 3; }
+  #sobre path.caneta { fill: none; stroke: var(--vermelho); stroke-width: 6; stroke-linecap: round; opacity: .92; }
+  #sobre path.fio { fill: none; stroke: var(--vermelho); stroke-width: 3.5; stroke-dasharray: 2 0; filter: drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+  #tacha { position: absolute; z-index: 4; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+           background: radial-gradient(circle at 35% 30%, #ff8a7a, #c4231b 45%, #7d1510 100%); box-shadow: 0 7px 9px rgba(0,0,0,.5); opacity: 0; }
+  /* etiqueta FORA do cartao (logo abaixo da borda inferior, sem sobrepor), presa por uma fita que
+     cruza o vao ate o cartao. Cartao: 960x560 (border-box); etiqueta 14px abaixo. */
+  #etq { left: 44px; top: 574px; z-index: 2; padding: 22px 40px 22px 36px; max-width: 760px; transform-origin: 50% 0; opacity: 0; }
+  #etq .fita.f3 { left: 50%; top: -44px; width: 150px; height: 56px; margin-left: -75px; transform: rotate(-3deg); z-index: 3; }
+  #rot { font-size: 26px; margin-bottom: 4px; white-space: nowrap; }
+  #nome { font-size: 84px; color: #1d150c; white-space: nowrap; }
+  .fita.c1 { left: -44px; top: 8px; transform: rotate(-35deg); width: 140px; }
+  .fita.c2 { right: -44px; top: 8px; transform: rotate(35deg); width: 140px; }
+</style>
+</head>
+<body>
+<div id="card" class="papel">
+  <div class="fita c1"></div><div class="fita c2"></div>
+  <div id="janela">
+    <svg id="mapa" width="908" height="508">
+      <defs><pattern id="hachura" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+        <rect width="7" height="7" fill="rgba(160, 128, 80, .30)"/><line x1="0" y1="0" x2="0" y2="7" stroke="rgba(60, 42, 20, .30)" stroke-width="2"/></pattern></defs>
+      <g id="grade"></g><g id="terras"></g>
+    </svg>
+  </div>
+  <div id="etq" class="papel kraft"><div class="fita f3"></div><div id="rot" class="rotulo"></div><div id="nome" class="titulo"></div></div>
+  <svg id="sobre"><path id="fio" class="fio"/><path id="circ" class="caneta"/></svg>
+  <div id="tacha"></div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  // contornos MUITO simplificados, desenhados a mao em [lon, lat] (sem dados externos)
+  const TERRAS = [
+    // America do Norte
+    [[-168,66],[-162,70],[-156,71],[-140,70],[-128,70],[-115,68],[-95,72],[-85,70],[-80,63],[-94,59],[-92,57],[-82,53],[-78,58],[-72,61],[-64,60],[-56,52],[-60,47],[-66,44],[-70,42],[-76,38],[-76,35],[-81,31],[-80,26],[-82,28],[-85,30],[-90,29],[-97,27],[-97,22],[-92,18],[-87,21],[-88,16],[-84,11],[-80,8],[-78,9],[-83,8],[-86,12],[-92,15],[-96,16],[-105,20],[-106,23],[-112,29],[-114,31],[-110,24],[-115,30],[-117,33],[-121,35],[-124,40],[-124,46],[-123,49],[-127,51],[-133,56],[-140,60],[-148,60],[-153,58],[-158,57],[-162,55],[-165,60],[-165,63],[-168,66]],
+    // Groenlandia
+    [[-73,78],[-60,82],[-35,83],[-20,81],[-18,75],[-22,70],[-32,67],[-42,60],[-48,61],[-53,66],[-55,71],[-65,76],[-73,78]],
+    // America do Sul
+    [[-80,9],[-77,8],[-72,12],[-62,11],[-52,5],[-50,0],[-44,-2],[-35,-5],[-35,-9],[-39,-14],[-40,-22],[-48,-26],[-53,-34],[-58,-38],[-62,-39],[-65,-45],[-68,-50],[-69,-55],[-72,-54],[-75,-48],[-73,-40],[-71,-30],[-70,-18],[-76,-14],[-81,-6],[-80,-1],[-78,2],[-80,9]],
+    // Eurasia
+    [[-10,36],[-9,39],[-9,43],[-2,43.5],[-1.5,46.5],[-4.5,48],[-1,49.5],[2,51],[4.5,52.5],[8,54],[8.5,57],[10.5,57.5],[10,54.5],[14,54],[19,54.5],[21,57],[24,59.5],[29,60],[23,61],[21.5,63.5],[25,65.5],[22,66],[17,62],[19,60],[16,56.5],[13,55.5],[11,59],[8,58],[5,59],[5,62],[10,64],[14,67],[19,70],[26,71],[31,70],[41,67],[44,68],[54,69],[60,70],[68,73],[80,73],[90,76],[104,78],[113,74],[128,73],[140,72],[150,71],[160,70],[170,70],[180,68],[180,65],[172,61],[163,60],[156,51],[156,57],[162,62],[155,59],[143,59],[136,55],[141,52],[140,48],[135,43],[129,41],[129,35],[126,35],[126,38],[122,40],[119,39],[122,37],[119,34],[121,31],[122,28],[119,25],[114,22],[110,21],[108,17],[109,12],[105,9],[103,11],[100,13],[99,9],[101,6],[104,1.5],[101,3],[98,8],[98,16],[94,17],[92,22],[88,22],[86,20],[80,15],[80,10],[77,8],[73,17],[72,21],[68,24],[62,25],[57,26],[57,23],[59,22],[55,17],[52,16],[45,13],[43,15],[39,21],[35,28],[34,31],[35,36],[32,37],[28,37],[26,40],[29,41],[36,41.5],[41,41],[42,42],[38,45],[34,46],[30,45],[29,44],[28,42],[24,40],[23,38],[22,37],[21,39],[19,42],[16,43],[14,45],[12.5,44.5],[16,41],[18,40],[16,38],[15.5,40],[12,42],[10,44],[7,43.5],[3,43],[3,42],[0,39],[-0.5,38],[-2,36.8],[-5.5,36],[-10,36]],
+    // Africa
+    [[-17,21],[-13,27],[-10,30],[-9,33],[-6,35.8],[0,35.5],[10,37],[11,33],[20,31],[25,31.5],[32,31],[34,28],[38,22],[43,12],[51,11.5],[49,6],[40,-3],[39,-8],[40,-15],[35,-20],[35,-24],[32,-29],[28,-33],[20,-35],[18,-32],[15,-27],[12,-18],[13,-12],[9,-1],[9,4],[5,5],[-2,5],[-8,4.5],[-13,8],[-17,14],[-17,21]],
+    [[44,-25],[47,-25],[50,-15],[49,-12],[44,-17],[44,-25]],
+    // Australia, Nova Zelandia
+    [[114,-22],[114,-34],[118,-35],[124,-34],[131,-31.5],[138,-35],[141,-38],[147,-39],[150,-37],[153,-32],[153,-25],[146,-19],[143,-11],[141,-17],[136,-12],[131,-11],[125,-15],[122,-18],[114,-22]],
+    [[172,-34.5],[178,-38],[175,-41.5],[172,-41],[174,-39],[172,-34.5]], [[172,-41],[174,-42],[170,-46.5],[166,-46],[172,-41]],
+    // Ilhas: Reino Unido, Irlanda, Islandia, Japao, Sumatra, Borneu, Java, Nova Guine, Filipinas, Sri Lanka, Taiwan, Cuba, Sardenha/Corsega, Sicilia
+    [[-5.5,50],[1.5,51],[1.7,52.7],[0,53.5],[-2,55.5],[-1.8,57.5],[-3.5,58.6],[-5,58.6],[-6.2,56.5],[-5,55],[-3,54.5],[-4.6,53.3],[-4.2,52],[-5.3,51.7],[-3.5,51.3],[-5.5,50]],
+    [[-6,52],[-6,54],[-7.5,55.3],[-10,54],[-10,51.6],[-6,52]],
+    [[-24,65.5],[-22,66.4],[-16,66.5],[-13.5,65],[-18,63.4],[-22.5,63.8],[-24,65.5]],
+    [[130,31],[132,34],[135,34],[140,35],[141,38],[142,41],[141.5,45],[145,44],[143,42],[140,40],[140,36],[136,36],[133,35.5],[130,33],[130,31]],
+    [[95,5.5],[98,4],[104,-2],[106,-6],[102,-4],[95,5.5]], [[109,1],[111,-3],[116,-4],[119,1],[117,7],[113,3],[109,1]],
+    [[105,-6.5],[114,-8.5],[106,-7.5],[105,-6.5]], [[131,-1],[141,-2.5],[150,-10],[142,-9],[138,-8],[131,-1]],
+    [[120,18],[122,18.5],[124,13],[126,7],[122,7],[120,14],[120,18]], [[80,9.5],[82,7],[80,6],[80,9.5]],
+    [[120.5,25],[122,25],[121,22],[120.5,25]], [[-85,22],[-80,23],[-74,20],[-78,20],[-85,22]],
+    [[8.5,41],[9.5,41],[9.8,39],[8.4,39],[8.5,41]], [[12.5,38],[15.6,38.2],[15,36.7],[12.5,38]],
+  ];
+  const W = 908, H = 508, LAT_N = 80, LAT_S = -58;
+  const px = (lon) => (lon + 180) / 360 * W;
+  const py = (lat) => (LAT_N - lat) / (LAT_N - LAT_S) * H;
+  const NS = 'http://www.w3.org/2000/svg';
+  const card = document.getElementById('card'), mapa = document.getElementById('mapa'), tacha = document.getElementById('tacha');
+  const etq = document.getElementById('etq'), circ = document.getElementById('circ'), fio = document.getElementById('fio');
+  let DUR = 4200, pin = [W / 2, H / 2], S = 2.3, T_ZOOM = 380, D_ZOOM = 1000, T_PIN = 1300, T_ETQ = 1500, janela0 = [0, 0];
+
+  function vista(k) {
+    // escala + translacao (em coords da janela) para centralizar o alfinete, presa as bordas
+    const s = 1 + (S - 1) * k;
+    let tx = W / 2 - s * pin[0], ty = H / 2 - s * pin[1];
+    tx = Math.min(0, Math.max(W - s * W, tx)); ty = Math.min(0, Math.max(H - s * H, ty));
+    return { s, tx, ty };
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 4200;
+    const g = document.getElementById('grade'), ter = document.getElementById('terras');
+    let gd = '';
+    for (let lon = -150; lon <= 150; lon += 30) gd += `M${px(lon).toFixed(1)} 0 V${H} `;
+    for (let lat = -30; lat <= 60; lat += 30) gd += `M0 ${py(lat).toFixed(1)} H${W} `;
+    g.innerHTML = `<path class="grade" d="${gd}"/>`;
+    ter.innerHTML = TERRAS.map((poly) => '<path class="terra" d="M' + poly.map(([lo, la]) => px(lo).toFixed(1) + ' ' + py(la).toFixed(1)).join(' L') + 'Z"/>').join('');
+    const lat = Number(d.lat), lon = Number(d.lon);
+    pin = [px(isFinite(lon) ? lon : 0), py(isFinite(lat) ? Math.max(LAT_S, Math.min(LAT_N, lat)) : 0)];
+    // cartao do mapa: posicao na tela da janela
+    janela0 = [26, 26];  // coords relativas ao cartao
+    const nome = Z.txt(d.nome || d.lugar || d.texto);
+    document.getElementById('rot').textContent = Z.txt(d.rotulo) || Z.rot(d, 'lugar');
+    const nm = document.getElementById('nome');
+    nm.textContent = nome;
+    Z.caberLinha(nm, 84, 48, 680);
+    T_PIN = T_ZOOM + D_ZOOM - 80;
+    T_ETQ = T_PIN + 180;
+    // posicao final do alfinete na tela
+    const v = vista(1);
+    const fx = janela0[0] + v.tx + v.s * pin[0], fy = janela0[1] + v.ty + v.s * pin[1];
+    tacha.style.left = fx + 'px'; tacha.style.top = fy + 'px';
+    circ.setAttribute('d', Z.circuloMao(fx, fy, 62, 50, nome));
+    // barbante da etiqueta ate o alfinete
+    const eb = etq.getBoundingClientRect();
+    const ex = 44 + Math.min(eb.width - 60, 120), ey = 588;
+    fio.setAttribute('d', `M${ex} ${ey} Q${(ex + fx) / 2} ${Math.max(ey, fy) + 60} ${fx} ${fy}`);
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'alfinete.crava', ms: Math.round(T_PIN + 140) },
+                      { evento: 'papel.cola', ms: Math.round(T_ETQ) }];
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 420), sai = Z.seg(t, DUR - 340, 340);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    card.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    card.style.transform = `translate(${(1 - e) * 200 + s * 120}px, ${(1 - e) * -30}px) rotate(${1.2 + (1 - e) * 4}deg)`;
+    const v = vista(Z.eio(Z.seg(t, T_ZOOM, D_ZOOM)));
+    mapa.style.transform = `translate(${v.tx.toFixed(2)}px, ${v.ty.toFixed(2)}px) scale(${v.s.toFixed(4)})`;
+    // tachinha: cai e crava
+    const kp = Z.seg(t, T_PIN, 160);
+    tacha.style.opacity = String((kp > 0 ? 1 : 0) * (1 - sai));
+    tacha.style.transform = `translate(${(1 - kp) * 30}px, ${(1 - kp) * -80}px) scale(${(1 + (1 - kp) * 0.5).toFixed(3)})`;
+    Z.tracar(circ, Z.eio(Z.seg(t, T_PIN + 180, 420)));
+    circ.style.opacity = String(1 - sai);
+    const ke = Z.seg(t, T_ETQ, 380), ee = Z.eo(ke);
+    etq.style.opacity = String(Math.min(1, ke * 3) * (1 - sai));
+    etq.style.transform = `translate(0px, ${(1 - ee) * 60 + s * 40}px) rotate(${-1.5 + (1 - ee) * -4}deg)`;
+    Z.tracar(fio, Z.eio(Z.seg(t, T_ETQ + 260, 420)));
+    fio.style.opacity = String(1 - sai);
+  };
+})();
+</script>
+</body>
+</html>

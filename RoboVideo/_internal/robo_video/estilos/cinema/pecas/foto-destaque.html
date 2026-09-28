@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / foto-destaque (foto_destaque, camada FUNDO): tela inteira escura, a imagem emoldurada
+     com Ken Burns lento, fio dourado fino em volta e legenda de museu ao lado. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  body { background: var(--fundo); }
+  #vinheta { position: absolute; inset: 0;
+             background: radial-gradient(ellipse 75% 70% at 42% 50%, rgba(30,28,26,.55) 0%, rgba(12,12,14,.9) 60%, rgba(4,4,5,1) 100%); }
+  #quadro { position: absolute; left: 170px; top: 206px; width: 1190px; height: 670px; overflow: hidden;
+            background: #111; }
+  #quadro img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
+  #moldura { position: absolute; left: 152px; top: 188px; width: 1226px; height: 706px; pointer-events: none; }
+  #moldura rect { fill: none; stroke: var(--acento); stroke-width: 1.2; }
+  #leg { position: absolute; left: 1430px; top: 206px; width: 330px; height: 670px;
+         display: flex; flex-direction: column; justify-content: flex-end; }
+  #rot { font-size: 20px; letter-spacing: .4em; white-space: normal; line-height: 1.4; }
+  #nome { margin-top: 18px; font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.12; font-weight: normal; }
+  #fio { width: 90px; margin: 26px 0 22px; }
+  #txt { font-family: var(--fonte-titulo); font-style: italic; color: var(--suave); line-height: 1.34; }
+</style>
+</head>
+<body>
+<div id="vinheta"></div>
+<div id="quadro"><img id="img" alt=""></div>
+<svg id="moldura" viewBox="0 0 1226 706"><rect id="ret" x="0.6" y="0.6" width="1224.8" height="704.8"/></svg>
+<div id="leg">
+  <div id="rot" class="versal"></div>
+  <div id="nome"></div>
+  <div id="fio" class="fio"></div>
+  <div id="txt"></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const quadroEl = $('#quadro'), img = $('#img'), ret = $('#ret'), leg = $('#leg');
+  const rot = $('#rot'), nome = $('#nome'), fio = $('#fio'), txt = $('#txt');
+  let DUR = 5000, per = 0, dirX = 1, dirY = -1;
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 5000;
+    const url = d.midia_url || (Array.isArray(d.midias) && d.midias[0]) || '';
+    if (url) img.src = url;
+    const tipo = String(d.tipo_item || '').toLowerCase();
+    rot.textContent = C.rot(d, tipo) || C.rot(d, 'arquivo');
+    nome.textContent = C.txt(d.texto || d.nome);
+    C.caber(nome, 330, 200, 54, 30);
+    let legenda = C.txt(d.legenda);
+    // legenda longa: corta numa pausa natural (virgula/ponto) ate ~18 palavras
+    const ws = legenda.split(' ');
+    if (ws.length > 18) {
+      const corte = ws.slice(0, 18).join(' ');
+      const m = corte.match(/^(.*[,;:.!?])\s/);
+      legenda = (m && m[1].split(' ').length >= 8 ? m[1].replace(/[,;:]$/, '') : corte) + '…';
+    }
+    txt.textContent = legenda;
+    txt.style.display = legenda ? '' : 'none';
+    fio.style.display = legenda ? '' : 'none';
+    const livre = 640 - nome.getBoundingClientRect().height - rot.getBoundingClientRect().height - 90;
+    if (legenda) C.caber(txt, 330, Math.max(120, livre), 30, 20, 1);
+    per = ret.getTotalLength ? ret.getTotalLength() : 3860;
+    ret.style.strokeDasharray = `${per} ${per}`;
+    // direcao do Ken Burns derivada do texto (deterministica)
+    const h = [...(d.texto || 'x')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    dirX = h % 2 ? 1 : -1;
+    dirY = (h >> 1) % 2 ? 1 : -1;
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const kIn = C.sai(C.fase(t, 0, 900));
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(450, DUR * 0.12)));
+    quadroEl.style.opacity = String(kIn);
+    // Ken Burns lento e linear (sem aceleracao perceptivel)
+    const k = C.fase(t, 0, DUR);
+    const esc = 1.04 + 0.08 * k;
+    img.style.transform = `scale(${esc.toFixed(4)}) translate(${(dirX * (k - 0.5) * 22).toFixed(2)}px, ${(dirY * (k - 0.5) * 12).toFixed(2)}px)`;
+    // moldura: o fio se desenha em volta da foto
+    const km = C.io(C.fase(t, 300, 1400));
+    ret.style.strokeDashoffset = String(per * (1 - km));
+    ret.style.opacity = String(0.85 * sai);
+    const kl = C.sai(C.fase(t, 700, 900));
+    leg.style.opacity = String(Math.min(kl, sai));
+    leg.style.transform = `translateY(${((1 - kl) * 14).toFixed(2)}px)`;
+    fio.style.transform = `scaleX(${C.io(C.fase(t, 900, 800)).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

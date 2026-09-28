@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / lower-third (fatos: pessoa, item, lugar). Duas linhas:
+     nome em painel marinho + faixa branca com o tipo (dados.rotulo). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #lt { position: absolute; left: 192px; bottom: 176px; display: flex; align-items: stretch; }
+  #barra { width: 12px; background: var(--acento); margin-right: 0; }
+  #col { display: flex; flex-direction: column; align-items: flex-start; }
+  #l1 { padding: 18px 70px 16px 30px; min-width: 520px; }
+  #nome { font-weight: 700; font-size: 72px; line-height: 1.02; max-width: 1180px; letter-spacing: .005em;
+          text-transform: uppercase; }
+  #l2 { background: var(--branco); color: var(--navy); padding: 9px 56px 8px 30px;
+        font-weight: 600; font-size: 32px; line-height: 1.1; letter-spacing: .07em; text-transform: uppercase;
+        white-space: nowrap; clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%); }
+  #l2 b { color: #0a6f8c; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="lt">
+  <div id="barra"></div>
+  <div id="col">
+    <div id="l1w"><div id="l1" class="painel corte-d sombra"><div id="nome"></div></div></div>
+    <div id="l2w"><div id="l2"></div></div>
+  </div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000, temL2 = true;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    const nome = BC.txt(d.nome || d.texto);
+    $('nome').textContent = nome;
+    const px1 = BC.caber($('nome'), 72, 48, 1180, 72 * 1.02 + 2);   // 1 linha, reduzindo...
+    if (!BC.cabe($('nome'), 1180, px1 * 1.02 + 2)) BC.caberTexto($('nome'), nome, 60, 40, 1180, 2 * 60 * 1.02 + 4);  // ...ou 2 linhas
+    // segunda linha: tipo traduzido (PESSOA/PRODUTO/LOCAL) + legenda curta quando houver
+    const tipo = BC.txt(d.rotulo) || BC.rot(d, d.tipo_item) || BC.rot(d, 'destaque');
+    const leg = BC.txt(d.legenda);
+    $('l2').innerHTML = '';
+    const b = document.createElement('b'); b.textContent = tipo; $('l2').appendChild(b);
+    if (leg) { $('l2').appendChild(document.createTextNode('  ·  ' + BC.encurtar(leg, 60))); }
+    temL2 = !!(tipo || leg);
+    $('l2w').style.display = temL2 ? '' : 'none';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;  // tempo ate o fim
+    // entrada
+    const kb = BC.eo(BC.lin(t, 0, 260));
+    const k1 = BC.eo(BC.lin(t, 90, 520));
+    const kn = BC.eo(BC.lin(t, 220, 620));
+    const k2 = BC.eo(BC.lin(t, 380, 760));
+    // saida (ultimos ~420 ms), da direita para a esquerda
+    const s2 = BC.ei(BC.lin(-S, -420, -180));
+    const s1 = BC.ei(BC.lin(-S, -330, -40));
+    const sb = BC.ei(BC.lin(-S, -140, 0));
+    BC.wipeV($('barra'), kb, sb);
+    BC.wipe($('l1w'), k1, s1);
+    BC.wipe($('l2w'), k2, s2, 30);
+    $('nome').style.transform = `translateY(${((1 - kn) * 26).toFixed(2)}px)`;
+    $('nome').style.opacity = String(kn);
+  };
+})();
+</script>
+</body>
+</html>

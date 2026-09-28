@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / painel-esquerda (camada FUNDO): a midia ocupa um painel alto (~60%) que se abre a partir
+     da borda, com Ken Burns; titulo + frase na coluna livre. Sem texto: o painel cresce e o lado
+     livre mostra outro recorte esmaecido. Paleta/fontes do estilo do video (dados.estilo). -->
+<link rel="stylesheet" href="../comum/takes-a.css">
+<style>
+  #bg { position: absolute; inset: 0; background: var(--fundo); }
+  #palco { position: absolute; inset: 0; }
+  .eco img { filter: grayscale(.4); }
+  #ecov { position: absolute; inset: 0; background: linear-gradient(270deg, var(--fundo) 0%, var(--fundo-a9) 38%, var(--fundo-a6) 100%); }
+  #mol { position: absolute; border: 2px solid var(--acento); }
+  #col { position: absolute; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; z-index: 4; }
+  #sep { width: 120px; margin: 38px 0 30px; }
+  #frase.so-frase { font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.16; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="palco"><div id="mol"></div></div>
+<div id="col">
+  <div id="tit" class="tka-tit"></div>
+  <div id="sep" class="tka-fio"></div>
+  <div id="frase" class="tka-frase"></div>
+</div>
+<script src="../comum/takes-a.js"></script>
+<script>TKA.painel('esquerda');</script>
+</body>
+</html>

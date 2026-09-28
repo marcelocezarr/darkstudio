@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / citacao. Cartao azul-marinho translucido com barra vermelha
+     (mesmo do numero-impacto), aspas vermelhas grandes, frase em condensada semibold e autor
+     em rotulo pequeno espacado. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 192px; top: 250px; width: 1100px; padding: 56px 70px 52px 84px; }
+  #aspas { position: absolute; left: 76px; top: 8px; font-family: Georgia, serif; font-size: 150px; line-height: 1;
+           color: var(--acento); }
+  #tx { position: relative; margin-top: 54px; font-family: var(--ft); font-stretch: condensed; font-weight: 600;
+        font-size: 66px; line-height: 1.1; white-space: normal; }
+  #au { margin-top: 30px; font-size: 26px; color: var(--texto2); }
+  #au::before { content: ''; display: inline-block; width: 40px; height: 3px; background: var(--acento);
+                vertical-align: middle; margin-right: 18px; }
+</style>
+</head>
+<body>
+<div id="c" class="cartao"><div id="aspas">&ldquo;</div><div id="tx"></div><div id="au" class="esp"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 6000;
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 6000;
+    BC.caberTexto($('tx'), BC.txt(d.texto), 66, 36, 946, 400);
+    const au = BC.txt(d.autor);
+    $('au').textContent = au;
+    if (!au) $('au').style.display = 'none';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const k = BC.expo(BC.lin(t, 0, 480)) * (1 - BC.ei(BC.lin(-S, -380, -40)));
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 100).toFixed(3);
+    const ka = BC.back(BC.lin(t, 250, 600));
+    $('aspas').style.transform = `scale(${Math.max(0, ka).toFixed(4)})`;
+    const kt = BC.eo(BC.lin(t, 350, 800));
+    $('tx').style.opacity = kt.toFixed(3);
+    $('tx').style.transform = `translateY(${((1 - kt) * 20).toFixed(2)}px)`;
+    $('au').style.opacity = BC.eo(BC.lin(t, 800, 1200)).toFixed(3);
+  };
+})();
+</script>
+</body>
+</html>

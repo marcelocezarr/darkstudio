@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / versus (contrastes: versus, mas): dois painéis inclinados entram pelos lados e se chocam
+     no centro; o conector (VS / MAS) bate entre eles. A em preto, B em acento. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #palco { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; will-change: transform; }
+  .lado { position: absolute; top: 400px; height: 280px; width: 760px; transform-origin: center;
+          display: flex; align-items: center; justify-content: center; will-change: transform;
+          box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  #a { left: 176px; background: var(--tinta); }
+  #b { left: 984px; background: var(--acento); }
+  .txt { font-family: var(--f-titulo); line-height: 1.02; text-align: center; text-transform: uppercase;
+         width: 600px; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .22em; }
+  .txt span { white-space: nowrap; }
+  #a .txt { color: var(--texto); }
+  #b .txt { color: var(--tinta); }
+  #selo { position: absolute; left: 960px; top: 540px; transform: translate(-50%, -50%);
+          background: var(--texto); color: var(--tinta); font-family: var(--f-titulo); font-size: 124px; line-height: 1;
+          padding: 16px 26px 12px; white-space: nowrap; will-change: transform;
+          box-shadow: 0 0 0 10px var(--tinta), 0 16px 40px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="lado" id="a"><div class="txt" id="ta"></div></div>
+  <div class="lado" id="b"><div class="txt" id="tb"></div></div>
+  <div id="selo"></div>
+</div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 4200;
+  const SKEW = -10, CHOQUE = 330;
+
+  let LW = 600;
+  function preencher(el, texto) {
+    el.innerHTML = '';
+    el.style.width = LW + 'px';
+    K.palavrasDe(texto).forEach((w) => { const s = document.createElement('span'); s.textContent = w; el.appendChild(s); });
+    let fs = K.ajustar(el, LW, 220, 128, 36);
+    while (fs > 36 && !K.maiorPalavraCabe(Array.from(el.children), LW)) { fs -= 4; el.style.fontSize = fs + 'px'; }
+    return fs;
+  }
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4200;
+    let a = d.a, b = d.b;
+    if ((!a || !b) && d.texto) {  // sem a/b: divide o texto pelo conector
+      const partes = String(d.texto).split(/\s+(?:vs\.?|versus|x|contra|mas|but)\s+/i);
+      a = a || partes[0] || ''; b = b || partes[1] || '';
+    }
+    const con = String(d.conector || '').trim() || K.rot(d, 'versus', 'VS');
+    $('selo').textContent = K.maiusc(/^vs\.?$/i.test(con) ? K.rot(d, 'versus', 'VS') : con, d.idioma);
+    // o selo fica no centro: o texto de cada lado se afasta dele
+    const meio = $('selo').offsetWidth / 2;
+    const folga = Math.max(0, meio - 24 + 16);
+    LW = Math.floor(760 - 70 - folga);
+    $('a').style.paddingRight = folga + 'px'; $('a').style.boxSizing = 'border-box';
+    $('b').style.paddingLeft = folga + 'px'; $('b').style.boxSizing = 'border-box';
+    const fa = preencher($('ta'), K.maiusc(a, d.idioma));
+    const fb = preencher($('tb'), K.maiusc(b, d.idioma));
+    // mesmo tamanho dos dois lados (equilibrio visual)
+    const fs = Math.min(fa, fb);
+    $('ta').style.fontSize = fs + 'px'; $('tb').style.fontSize = fs + 'px';
+    // contra-inclinacao do texto
+    $('ta').style.transform = $('tb').style.transform = `skewX(${-SKEW}deg)`;
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'versus.choque', ms: CHOQUE }];
+  };
+
+  window.quadro = function (t) {
+    const k = K.outExpo(K.prog(t, 0, CHOQUE + 60));
+    const ks = K.inExpo(K.prog(t, DUR - 320, 300));
+    // recuo elastico apos o choque
+    const rec = t > CHOQUE ? 18 * Math.exp(-(t - CHOQUE) / 120) * Math.sin((t - CHOQUE) / 40) : 0;
+    const xa = (1 - k) * -1100 - rec - ks * 1300;
+    const xb = (1 - k) * 1100 + rec + ks * 1300;
+    $('a').style.transform = `translateX(${xa.toFixed(1)}px) skewX(${SKEW}deg)`;
+    $('b').style.transform = `translateX(${xb.toFixed(1)}px) skewX(${SKEW}deg)`;
+    // selo bate no choque
+    const kc = K.prog(t, CHOQUE - 40, 200);
+    const esc = kc <= 0 ? 0 : K.lerp(3, 1, K.outExpo(kc)) * (1 - ks);
+    $('selo').style.opacity = kc > 0 ? '1' : '0';
+    $('selo').style.transform = `translate(-50%, -50%) rotate(${(-6 + (1 - K.outExpo(kc)) * -20).toFixed(2)}deg) scale(${esc.toFixed(4)})`;
+    const [tx, ty] = K.tremor(t, CHOQUE, 14, 5);
+    $('palco').style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)`;
+  };
+})();
+</script>
+</body>
+</html>

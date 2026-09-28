@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-par-vidro (camada FUNDO): duas mídias em painéis de vidro fosco, levemente
+     girados um para o outro, flutuando sobre a própria mídia desfocada. O "fosco" é um canvas
+     pré-desfocado alinhado ao fundo (sem backdrop-filter). 1..N mídias (usa 2; com 1, dois recortes). -->
+<link rel="stylesheet" href="../comum/takes-b.css">
+<style>
+  #cena { perspective: 2400px; perspective-origin: 50% 45%; }
+  #veu { background:
+           radial-gradient(ellipse 70% 65% at 50% 46%, rgba(0,0,0,0) 0%, var(--veu-borda) 100%),
+           linear-gradient(180deg, var(--veu-topo) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, var(--veu-base) 100%); }
+  .painel { position: absolute; width: 780px; height: 640px; transform-style: flat; }
+  .painel .vidro { left: 0; top: 0; width: 780px; height: 640px; }
+  .painel .midia { left: 20px; top: 20px; width: 740px; height: 540px; border-radius: 16px; }
+  .painel .midia::after { content: ''; position: absolute; inset: 0; border-radius: inherit;
+                          box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
+  .painel .pe { position: absolute; left: 30px; right: 30px; top: 572px; height: 56px; display: flex; align-items: center; gap: 22px; }
+  .painel .num { font-family: var(--fonte-rotulo); font-size: 26px; letter-spacing: .18em; color: var(--texto); text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+  .painel .traco { flex: 1; height: 1.5px; background: rgba(255,255,255,.34); transform-origin: 0 50%; }
+  .painel .ponto { width: 12px; height: 12px; border-radius: 50%; background: var(--acento); }
+  .painel .sombra { left: 30px; top: 70px; width: 740px; height: 640px; }
+  #txt { position: absolute; left: 192px; top: 800px; width: 720px; }
+  #txt .fio { width: 96px; margin-bottom: 20px; }
+  #tit { font-weight: 600; }
+  #frase { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="cena" class="cheio">
+  <div id="fundo" class="cheio"></div>
+  <div id="veu" class="cheio"></div>
+  <div id="p0" class="painel"></div>
+  <div id="p1" class="painel"></div>
+  <div id="txt"><div class="fio" id="fio"></div><div id="tit" class="titulo"></div><div id="frase" class="frase"></div></div>
+</div>
+<script src="../comum/takes-b.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4500, detalhe = 1, fundoCv = null, paineis = [], temTexto = false, semente = 0, linhasT = [];
+  const BASE = [{ x: 150, y: 180, ry: 5, rz: -0.6 }, { x: 990, y: 262, ry: -5, rz: 0.6 }];
+
+  function montarPainel(el, img, fosco, i, n) {
+    el.innerHTML = '';
+    const sombra = document.createElement('div'); sombra.className = 'sombra';
+    const vidro = document.createElement('div'); vidro.className = 'vidro';
+    fosco.className = 'fosco'; vidro.appendChild(fosco);
+    for (const c of ['tinta', 'brilho', 'aresta']) { const d = document.createElement('div'); d.className = c; vidro.appendChild(d); }
+    const mid = document.createElement('div'); mid.className = 'midia';
+    const im = document.createElement('img'); im.alt = ''; if (img) im.src = img.src;
+    if (img) mid.appendChild(im);
+    const pe = document.createElement('div'); pe.className = 'pe';
+    pe.innerHTML = `<span class="num">${String(i + 1).padStart(2, '0')}</span><span class="traco"></span><span class="ponto"></span>`;
+    el.append(sombra, vidro, mid, pe);
+    return { el, vidro, fosco, im, mid, brilho: vidro.querySelector('.brilho'), traco: pe.querySelector('.traco'),
+             pe, sombra, i };
+  }
+
+  window.montar = async function (d) {
+    d = d || {};
+    const tm = TB.tema(d);
+    DUR = d.dur_ms || 4500;
+    const r = document.documentElement.style;
+    r.setProperty('--veu-borda', TB.rgba(tm.fundo, 0.66));
+    r.setProperty('--veu-topo', TB.rgba(tm.fundo, 0.35));
+    r.setProperty('--veu-base', TB.rgba(tm.fundo, 0.7));
+    const ims = await TB.carregar(TB.urls(d));
+    semente = TB.hash((d.texto || '') + (d.titulo || '') + ims.length);
+    const h2 = semente >>> 3;
+    const a = ims[0] || null, b = ims[1] || ims[0] || null;
+    const cor = `rgb(${tm.fundo.join(',')})`;
+    fundoCv = TB.borrao(a, 480, 270, 9, { mf: 0.06, cor, sat: 1.2, brilho: 1.0, tinta: TB.rgba(tm.fundo, 0.18) });
+    $('fundo').innerHTML = ''; $('fundo').appendChild(fundoCv);
+    // vidro: mesmo enquadramento do fundo, mais claro
+    const fosco = () => TB.borrao(a, 480, 270, 9, { mf: 0.06, cor, sat: 1.25, brilho: 1.4, tinta: 'rgba(255,255,255,.10)' });
+    paineis = [montarPainel($('p0'), a, fosco(), 0, 2), montarPainel($('p1'), b, fosco(), 1, 2)];
+    // com uma só mídia: dois recortes diferentes da mesma imagem
+    // (o 2o painel mostra um detalhe ampliado, com origem deslocada)
+    detalhe = ims.length < 2 ? 1.6 : 1;
+    if (ims.length < 2) paineis[1].im.style.transformOrigin = (h2 % 2 ? '70% 38%' : '32% 40%');
+    // texto opcional
+    const tit = TB.txt(d.titulo), fr = TB.txt(d.texto);
+    const principal = tit || TB.resumir(fr, 14);
+    const apoio = tit ? TB.resumir(fr, 20) : '';
+    temTexto = !!principal;
+    $('txt').style.display = temTexto ? '' : 'none';
+    $('tit').textContent = principal;
+    $('frase').textContent = apoio;
+    $('frase').style.display = apoio ? '' : 'none';
+    if (temTexto) {
+      const sT = TB.caber($('tit'), 720, apoio ? 110 : 170, tm.caixaAlta ? 60 : 56, 30);
+      if (apoio) TB.caber($('frase'), 720, 184 - $('tit').getBoundingClientRect().height, 28, 20, 1);
+      linhasT = TB.linhas($('tit')).concat(apoio ? TB.linhas($('frase')) : []);
+      void sT;
+    } else linhasT = [];
+    // com texto: o par sobe para abrir a faixa inferior esquerda
+    const dy = temTexto ? -78 : 0;
+    paineis.forEach((p, i) => { p.bx = BASE[i].x; p.by = BASE[i].y + dy; });
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const k = TB.fase(t, 0, DUR);
+    const out = TB.fim(t, DUR, 460);
+    // fundo: deriva lenta (zoom-out suave + pan), entra de mais perto
+    const eBg = TB.sai(TB.fase(t, 0, 1400));
+    const s = 1.16 - 0.05 * eBg - 0.05 * k;
+    const tx = TB.lerp(26, -26, k), ty = TB.lerp(-8, 10, k);
+    fundoCv.style.transform = `translate(${TB.f(tx, 2)}px, ${TB.f(ty, 2)}px) scale(${TB.f(s, 5)})`;
+    fundoCv.style.opacity = TB.f(0.55 + 0.45 * eBg);
+    paineis.forEach((p, i) => {
+      const st = i * 200;
+      const e = TB.saiExpo(TB.fase(t, 60 + st, 1100));
+      const flut = Math.sin((t / DUR) * Math.PI * 1.2 + i * 1.7) * 7;
+      const sep = TB.entra(out) * (i ? 70 : -70);
+      const x = p.bx + sep + (1 - e) * (i ? 90 : -90) + (tx * (i ? 0.35 : 0.25));
+      const y = p.by + (1 - e) * 170 + flut - (i ? 1 : -1) * 6 * k;
+      const ry = BASE[i].ry * (1 + (1 - e) * 2.4);
+      const sc = 0.94 + 0.06 * e - 0.03 * TB.entra(out);
+      p.el.style.transform = `translate(${TB.f(x, 2)}px, ${TB.f(y, 2)}px) rotateY(${TB.f(ry, 3)}deg) rotateZ(${TB.f(BASE[i].rz * e, 3)}deg) scale(${TB.f(sc, 4)})`;
+      p.el.style.opacity = TB.f(Math.min(TB.suave(TB.fase(t, st, 520)), 1 - TB.suave(out)));
+      TB.alinhar(p.fosco, x, y, s, tx, ty);
+      // mídia: Ken Burns próprio (modos diferentes entre os painéis)
+      const m = TB.kb(t, DUR, (semente + i * 3) % 4, 1);
+      const ei = TB.sai(TB.fase(t, 240 + st, 900));
+      p.im.style.transform = TB.kbCss({ s: (m.s + 0.08 * (1 - ei)) * (i ? detalhe : 1), x: m.x, y: m.y });
+      p.mid.style.opacity = TB.f(TB.suave(TB.fase(t, 200 + st, 600)));
+      // reflexo passa uma vez pelo vidro
+      const kb = TB.io(TB.fase(t, 700 + st * 1.5, 1300));
+      p.brilho.style.transform = `translateX(${TB.f(kb * 1250, 1)}px) rotate(18deg)`;
+      p.brilho.style.opacity = TB.f(kb > 0 && kb < 1 ? 1 : 0);
+      p.traco.style.transform = `scaleX(${TB.f(TB.io(TB.fase(t, 650 + st, 900)), 4)})`;
+      p.pe.style.opacity = TB.f(TB.suave(TB.fase(t, 520 + st, 500)));
+    });
+    if (temTexto) {
+      const sai = TB.suave(TB.fase(t, DUR - 420, 360));
+      $('fio').style.transform = `scaleX(${TB.f(TB.io(TB.fase(t, 620, 700)) * (1 - sai), 4)})`;
+      linhasT.forEach((l, j) => {
+        const e = TB.saiExpo(TB.fase(t, 760 + j * 110, 800));
+        l.style.transform = `translateY(${TB.f((1 - e) * 105 - sai * 30, 2)}%)`;
+        l.style.opacity = TB.f(Math.min(e, 1 - sai));
+      });
+    }
+  };
+})();
+</script>
+</body>
+</html>

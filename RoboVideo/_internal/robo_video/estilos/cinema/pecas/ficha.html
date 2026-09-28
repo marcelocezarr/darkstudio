@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / ficha (listas): ficha tecnica elegante. Titulo em versalete dourado + fio, 2-5 linhas
+     numeradas em romanos (ou pares rotulo/valor em dados.campos), cada uma entra quando e dita. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: linear-gradient(90deg, rgba(0,0,0,.76) 0%, rgba(0,0,0,.6) 36%, rgba(0,0,0,.22) 62%, rgba(0,0,0,0) 80%); }
+  #bloco { position: absolute; left: 200px; top: 50%; transform: translateY(-50%); width: 860px; }
+  #tit { font-size: 25px; letter-spacing: .4em; opacity: 0; white-space: normal; line-height: 1.35; }
+  #fio { width: 100%; margin: 22px 0 10px; }
+  .linha { display: flex; align-items: baseline; gap: 30px; padding: 20px 0 20px; position: relative; opacity: 0; }
+  .linha::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+                  background: rgba(243,238,226,.16); }
+  .linha:last-child::after { display: none; }
+  .num { flex: 0 0 74px; font-family: var(--fonte-titulo); font-style: italic; color: var(--acento); font-size: 32px; }
+  .rotc { flex: 0 0 250px; font-family: var(--fonte-rotulo); text-transform: uppercase; letter-spacing: .26em;
+          color: var(--acento); font-size: 21px; line-height: 1.3; }
+  .val { flex: 1 1 auto; font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.18; font-weight: normal; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="bloco">
+  <div id="tit" class="versal sombra"></div>
+  <div id="fio" class="fio"></div>
+  <div id="linhas"></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), tit = $('#tit'), fio = $('#fio'), caixa = $('#linhas'), bloco = $('#bloco');
+  let DUR = 6000, linhas = [], ent = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 6000;
+    const titulo = C.txt(d.titulo || d.nome).replace(/[:\s]+$/, '');
+    tit.textContent = titulo || C.rot(d, 'cinema_ficha') || C.rot(d, 'dados');
+    // pares rotulo/valor (dados.campos) ou lista simples (dados.itens)
+    let pares = Array.isArray(d.campos) ? d.campos.filter((c) => c && C.txt(c.valor))
+      .map((c) => ({ r: C.txt(c.rotulo), v: C.txt(c.valor) })) : [];
+    if (!pares.length) pares = (Array.isArray(d.itens) ? d.itens : []).map((x) => ({ r: '', v: C.txt(x) })).filter((p) => p.v);
+    pares = pares.slice(0, 5);
+    const comRot = pares.some((p) => p.r);
+    caixa.innerHTML = '';
+    linhas = pares.map((p, i) => {
+      const l = document.createElement('div');
+      l.className = 'linha';
+      const a = document.createElement('div');
+      a.className = comRot ? 'rotc' : 'num';
+      a.textContent = comRot ? p.r : C.romano(i + 1) + '.';
+      const v = document.createElement('div');
+      v.className = 'val sombra';
+      v.textContent = p.v;
+      l.append(a, v);
+      caixa.appendChild(l);
+      return l;
+    });
+    // tamanho unico para os valores: cabe a lista inteira na faixa util (letterbox)
+    const vals = [...caixa.querySelectorAll('.val')];
+    let s = pares.length > 4 ? 46 : 52;
+    const larg = 860 - (comRot ? 280 : 104);
+    const cabe = () => vals.every((v) => v.scrollWidth <= larg + 1 && v.getBoundingClientRect().height <= s * 1.18 * 2 + 2)
+      && bloco.getBoundingClientRect().height <= 700;
+    for (; s > 30; s -= 2) { vals.forEach((v) => (v.style.fontSize = s + 'px')); if (cabe()) break; }
+    const ims = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    const passo = Math.min(650, (DUR * 0.5) / Math.max(1, linhas.length));
+    ent = linhas.map((_, i) => {
+      const m = ims[i] != null ? Number(ims[i]) : i * passo;
+      return Math.max(350 + i * 180, Math.min(m + 150, DUR * 0.6));
+    });
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(ent.map((m) => ({ evento: 'lista.item', ms: Math.round(m) })));
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 650, 600);
+    veu.style.opacity = String(env);
+    const kt = C.sai(C.fase(t, 100, 700));
+    tit.style.opacity = String(Math.min(kt, env));
+    fio.style.transform = `scaleX(${C.io(C.fase(t, 150, 1000)).toFixed(4)})`;
+    fio.style.opacity = String(env);
+    linhas.forEach((l, i) => {
+      const k = C.sai(C.fase(t, ent[i], 700));
+      l.style.opacity = String(Math.min(k, env));
+      l.style.transform = `translateX(${((1 - k) * -18).toFixed(2)}px)`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

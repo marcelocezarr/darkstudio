@@ -1,0 +1,96 @@
+{
+  "nome": "Cinema",
+  "grupo": "validado",
+  "descricao": "Recriado dos quadros de referência: footage bem escurecido, número dourado serifado, foto sobre grade finíssima com fio dourado, contorno do país desenhado em dourado com \"THE PLACE\" e nome serifado. Fades lentos, sem ticker.",
+  "paleta": {"fundo": "#17181b", "texto": "#f4efe4", "acento": "#c9a24e", "acento_claro": "#e6b04a",
+             "suave": "rgba(244,239,228,.78)"},
+  "fontes": {"titulo": "'Sitka Banner', 'Sitka Display', Constantia, Georgia, serif",
+             "texto": "'Sitka Heading', 'Sitka Text', Constantia, Georgia, serif",
+             "numero": "'Sitka Banner', 'Sitka Display', Constantia, Georgia, serif",
+             "rotulo": "'Segoe UI', Arial, sans-serif"},
+  "trilha_mood": "atmosferica",
+  "ritmo": {"distancia_min_ms": 6000, "teto_por_min": 5, "leitura_min_ms": 1800},
+  "sfx_volume_db": -18,
+  "transicao_fundo_ms": 450,
+  "sfx": {
+    "secao.abre": {"arquivo": "sfx/swell.wav", "volume_db": -17},
+    "cena.abre": {"arquivo": "sfx/sopro.wav", "volume_db": -22},
+    "foto.entra": {"arquivo": "sfx/sopro.wav", "volume_db": -21},
+    "foto.desliza": {"arquivo": "sfx/whoosh.wav", "volume_db": -24},
+    "rota.traca": {"arquivo": "sfx/whoosh.wav", "volume_db": -25},
+    "numero.impacto": {"arquivo": "sfx/grave.wav", "volume_db": -17},
+    "palavra.slam": {"arquivo": "sfx/grave.wav", "volume_db": -19},
+    "versus.choque": {"arquivo": "sfx/impacto.wav", "volume_db": -22},
+    "tique": {"arquivo": "sfx/tique.wav", "volume_db": -23},
+    "lista.item": {"arquivo": "sfx/tique.wav", "volume_db": -24}
+  },
+  "pecas": {
+    "secao-titulo": {
+      "arquivo": "pecas/secao-titulo.html", "familia": "secoes", "camada": "principal", "subtipos": ["capitulo"],
+      "dur_ms_padrao": 4000, "minimo_ms": 2600, "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "The honest summary", "numero": 2, "total": 6, "subtipo": "capitulo"}
+    },
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["numero", "percentual", "moeda", "ano"], "dur_ms_padrao": 3600, "minimo_ms": 2400,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "8", "numero": 8, "numero_texto": "8", "prefixo": "", "sufixo": " years", "decimais": 0,
+                  "legenda": "of battery warranty", "subtipo": "numero"}
+    },
+    "mapa": {
+      "arquivo": "pecas/mapa.html", "familia": "fatos", "camada": "principal", "subtipos": ["lugar"],
+      "dur_ms_padrao": 5000, "minimo_ms": 3200, "variaveis_exigidas": ["lat", "lon"], "usa_midia": false,
+      "mantem_legenda": true,
+      "exemplo": {"texto": "Britain", "nome": "Britain", "lugar": "Britain", "lat": 55.4, "lon": -3.4,
+                  "tipo_item": "lugar", "subtipo": "lugar"}
+    },
+    "lower-third": {
+      "arquivo": "pecas/lower-third.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["lugar", "pessoa", "item"], "dur_ms_padrao": 3600, "minimo_ms": 2200,
+      "variaveis_exigidas": ["nome"], "usa_midia": false, "zona": "inferior", "zona_topo": 0.66,
+      "exemplo": {"texto": "Maxus eDeliver 3", "nome": "Maxus eDeliver 3", "tipo_item": "produto", "rotulo": "PRODUCT",
+                  "subtipo": "item"}
+    },
+    "ficha": {
+      "arquivo": "pecas/ficha.html", "familia": "listas", "camada": "principal", "subtipos": ["ficha", "lista"],
+      "dur_ms_padrao": 6000, "minimo_ms": 3200, "variaveis_exigidas": ["itens"], "usa_midia": false,
+      "exemplo": {"titulo": "Maxus eDeliver 3", "nome": "Maxus eDeliver 3", "subtipo": "ficha",
+                  "campos": [{"rotulo": "Battery", "valor": "50 kWh"}, {"rotulo": "Range", "valor": "150 miles"},
+                             {"rotulo": "Warranty", "valor": "8 years"}],
+                  "itens": ["Battery: 50 kWh", "Range: 150 miles", "Warranty: 8 years"], "itens_ms": [0, 900, 1800],
+                  "texto": "50 kWh, 150 miles, 8 years"}
+    },
+    "foto-destaque": {
+      "arquivo": "pecas/foto-destaque.html", "familia": "foto_destaque", "camada": "fundo",
+      "subtipos": ["foto", "fotos"], "dur_ms_padrao": 4200, "minimo_ms": 2800, "variaveis_exigidas": ["midia_url"],
+      "usa_midia": true,
+      "exemplo": {"texto": "The fall in value", "legenda": "The first thing to understand is the fall in value.",
+                  "tipo_item": "conceito", "subtipo": "foto"}
+    },
+    "citacao": {
+      "arquivo": "pecas/citacao.html", "familia": "citacoes", "camada": "principal", "subtipos": ["citacao"],
+      "dur_ms_padrao": 5500, "minimo_ms": 3000, "variaveis_exigidas": ["texto"], "usa_midia": false, "zona": "tela",
+      "exemplo": {"texto": "It is not a criticism, it is simply how the market works.", "autor": "Trade press"}
+    },
+    "comparacao": {
+      "arquivo": "pecas/comparacao.html", "familia": "contrastes", "camada": "principal", "subtipos": ["versus", "mas"],
+      "dur_ms_padrao": 4500, "minimo_ms": 2600, "variaveis_exigidas": ["a", "b"], "usa_midia": false, "zona": "tela",
+      "exemplo": {"a": "New van", "b": "Used van", "conector": "vs", "texto": "New van vs used van",
+                  "palavras": [{"texto": "New", "ms": 0}, {"texto": "van", "ms": 300}, {"texto": "vs", "ms": 700},
+                               {"texto": "used", "ms": 1100}, {"texto": "van", "ms": 1400}]}
+    },
+    "karaoke": {
+      "arquivo": "pecas/karaoke.html", "familia": "karaoke", "camada": "principal", "subtipos": ["frase"],
+      "dur_ms_padrao": 3600, "minimo_ms": 2000, "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Better used buys are out there", "destaque": 1,
+                  "palavras": [{"texto": "Better", "ms": 0}, {"texto": "used", "ms": 300}, {"texto": "buys", "ms": 600},
+                               {"texto": "are", "ms": 950}, {"texto": "out", "ms": 1150}, {"texto": "there", "ms": 1400}]}
+    },
+    "palavra-gigante": {
+      "arquivo": "pecas/palavra-gigante.html", "familia": "impactos", "camada": "principal", "subtipos": ["palavra"],
+      "dur_ms_padrao": 2800, "minimo_ms": 1800, "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Not a criticism", "palavras": [{"texto": "Not", "ms": 0}, {"texto": "a", "ms": 250},
+                                                           {"texto": "criticism", "ms": 400}]}
+    }
+  }
+}

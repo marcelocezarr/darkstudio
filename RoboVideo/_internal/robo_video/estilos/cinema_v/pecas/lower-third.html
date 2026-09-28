@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / lower-third (fatos: lugar, pessoa, item). Mesma tipografia do mapa da
+     referencia ("THE PLACE" + "Britain" + fio), no canto inferior esquerdo sobre uma sombra suave:
+     rotulo sans dourado espacado, nome serifado, fio dourado que cresce. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #sombra { position: absolute; left: 0; bottom: 0; width: 1400px; height: 460px; opacity: 0;
+            background: radial-gradient(ellipse 70% 80% at 12% 100%, rgba(8,10,14,.78) 0%, rgba(8,10,14,.45) 50%, rgba(8,10,14,0) 100%); }
+  #bloco { position: absolute; left: 192px; top: 0; }
+  #rot { color: var(--acento); font-size: 28px; letter-spacing: .3em; opacity: 0; }
+  #nome { margin-top: 16px; font-family: var(--fonte-titulo); font-weight: 600; color: var(--texto); font-size: 88px;
+          line-height: 1; white-space: nowrap; opacity: 0; }
+  #fio { margin-top: 26px; height: 2px; width: 400px; transform: scaleX(0); }
+</style>
+</head>
+<body>
+<div id="sombra"></div>
+<div id="bloco">
+  <div id="rot" class="rotulo"></div>
+  <div id="nome" class="sombra"></div>
+  <div id="fio" class="fio"></div>
+</div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const sombra = $('#sombra'), rot = $('#rot'), nome = $('#nome'), fio = $('#fio'), bloco = $('#bloco');
+  let DUR = 3600;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3600;
+    const tipo = C.txt(d.tipo_item);
+    const r = (tipo === 'lugar' && C.rot(d, 'cinema_v_o_lugar')) || C.txt(d.rotulo) || C.rot(d, tipo);
+    rot.textContent = r;
+    rot.style.display = r ? '' : 'none';
+    nome.textContent = C.txt(d.nome || d.texto);
+    C.caberLinha(nome, 1100, 88, 48, 2);
+    fio.style.width = Math.max(260, Math.min(1100, nome.getBoundingClientRect().width * 1.17)) + 'px';
+    // base do bloco em ~y 900 (acima da area dos botoes do YouTube, a direita)
+    bloco.style.top = (905 - bloco.getBoundingClientRect().height) + 'px';
+    window.eventos = [{ evento: 'tique', ms: 350 }];
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(650, DUR * 0.22)));
+    sombra.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 600)), sai));
+    C.revela(rot, Math.min(C.sai(C.fase(t, 150, 700)), sai), 8, 4);
+    C.revela(nome, Math.min(C.sai(C.fase(t, 400, 750)), sai), 14, 7);
+    fio.style.transform = `scaleX(${C.io(C.fase(t, 700, 900)).toFixed(4)})`;
+    fio.style.opacity = String(sai);
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / secao-titulo (camada fundo): o mesmo fundo escuro quadriculado da foto-destaque;
+     etiqueta limão "CAPÍTULO 02" (odômetro no número), título gigante em Impact branco subindo linha a
+     linha dentro de máscaras e fio limão de progresso (capítulo / total) na base. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #fundo { position: absolute; inset: 0; background-color: var(--fundo); }
+  #etq { position: absolute; left: 184px; top: 300px; height: 80px; padding: 0 26px; font-family: var(--f-texto); font-weight: 900;
+         font-size: 44px; line-height: 80px; letter-spacing: .06em; text-transform: uppercase; }
+  #etq .odo-m { vertical-align: -0.14em; }
+  #tit { position: absolute; left: 184px; top: 410px; width: 1552px; font-family: var(--f-titulo); color: var(--texto);
+         font-size: 190px; line-height: 1; text-transform: uppercase; }
+  .ln { overflow: hidden; height: 1.04em; }
+  .li { display: inline-block; line-height: 1.04em; white-space: nowrap; transform-origin: 0 50%; will-change: transform; }
+  #trilho { position: absolute; left: 184px; top: 900px; width: 1552px; height: 10px; background: #262626; }
+  #fio { position: absolute; left: 0; top: 0; height: 10px; width: 0; background: var(--acento); }
+</style>
+</head>
+<body>
+<div id="fundo"></div>
+<div id="etq" class="etq"><span id="rot"></span> <span id="n"></span></div>
+<div id="tit"></div>
+<div id="trilho"><div id="fio"></div></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ESTREITO = 0.9;
+  let d = {}, DUR = 3500, REAL = 3500, linhas = [], odo = null, frac = 1;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3500;
+    REAL = d.dur_ms_real || DUR;
+    K.grade($('fundo'), 96, 'var(--grade)', 2, 0, 22);
+    $('rot').textContent = K.maiusc(K.rot(d, 'capitulo', 'CHAPTER'), d.idioma);
+    const num = Number(d.numero) || 0;
+    const ntxt = num ? String(num).padStart(2, '0') : '';
+    odo = K.odometro($('n'), ntxt, 120, 480);
+    // título: até 3 linhas, largura 1552 (Impact levemente estreitado)
+    const tit = $('tit');
+    const ws = K.palavrasDe(K.maiusc(d.texto || '', d.idioma));
+    let fs = 190;
+    const montarLinhas = () => {
+      tit.innerHTML = '';
+      const out = [];
+      let atual = [];
+      const med = document.createElement('span'); med.className = 'li'; tit.appendChild(med);
+      ws.forEach((w) => {
+        med.textContent = atual.concat(w).join(' ');
+        if (atual.length && med.offsetWidth * ESTREITO > 1552) { out.push(atual.join(' ')); atual = [w]; }
+        else atual.push(w);
+      });
+      if (atual.length) out.push(atual.join(' '));
+      med.remove();
+      return out;
+    };
+    let ls = montarLinhas();
+    while (fs > 70 && (ls.length > 3 || ls.some((l) => { const m = document.createElement('span'); m.className = 'li'; m.textContent = l; tit.appendChild(m); const w = m.offsetWidth * ESTREITO; m.remove(); return w > 1552; }))) {
+      fs -= 8; tit.style.fontSize = fs + 'px'; ls = montarLinhas();
+    }
+    tit.innerHTML = '';
+    linhas = ls.map((l) => { const ln = document.createElement('div'); ln.className = 'ln'; const li = document.createElement('div');
+                             li.className = 'li'; li.textContent = l; li.style.transform = `scaleX(${ESTREITO})`; ln.appendChild(li); tit.appendChild(ln); return li; });
+    // centraliza o conjunto verticalmente em torno de ~560
+    const h = tit.offsetHeight;
+    tit.style.top = Math.round(Math.min(Math.max(410, 600 - h / 2), 860 - h)) + 'px';
+    $('etq').style.top = (parseInt(tit.style.top, 10) - 110) + 'px';
+    const tot = Number(d.total) || 0;
+    frac = tot && num ? K.clamp(num / tot, 0.05, 1) : 1;
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }, { evento: 'etiqueta.entra', ms: 80 }];
+  };
+
+  window.quadro = function (t) {
+    $('etq').style.clipPath = K.cortina(K.outExpo(K.prog(t, 80, 120)));
+    odo.quadro(t);
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, 180 + i * 110, 420));
+      li.style.transform = `translateY(${((1 - k) * 105).toFixed(2)}%) scaleX(${ESTREITO})`;
+    });
+    const kf = K.outCubic(K.prog(t, 250, Math.min(1400, REAL * 0.5)));
+    $('fio').style.width = (1552 * frac * kf).toFixed(1) + 'px';
+    // saída (depois da duração real: fica escondida pelo crossfade do motor)
+    const ks = K.inCubic(K.prog(t, REAL, 400));
+    $('tit').style.opacity = String(1 - ks); $('etq').style.opacity = String(1 - ks);
+  };
+})();
+</script>
+</body>
+</html>

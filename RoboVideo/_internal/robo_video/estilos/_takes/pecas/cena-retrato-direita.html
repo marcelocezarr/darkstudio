@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / cena-retrato-direita (camada FUNDO): mídia em formato retrato à direita, aberta por uma
+     cortina lateral sobre um bloco de cor do acento deslocado; à esquerda, texto grande revelado
+     linha a linha, sobre uma lavagem desfocada da própria mídia. 1..N mídias (usa a 1a). -->
+<link rel="stylesheet" href="../comum/takes-b.css">
+<style>
+  #lavagem { opacity: .75; }
+  #veu { background: linear-gradient(90deg, var(--fundo-a) 0%, var(--fundo-b) 52%, var(--fundo-c) 100%); }
+  #bloco { position: absolute; left: 1128px; top: 124px; width: 628px; height: 888px; background: var(--acento); transform-origin: 100% 50%; }
+  #painel { position: absolute; left: 1100px; top: 96px; width: 628px; height: 888px; overflow: hidden; background: #111; }
+  #painel img { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform; }
+  #painel .aresta { position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+  #painel .pe { position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
+                background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.42)); }
+  #regua { position: absolute; left: 1050px; top: 96px; width: 1.5px; height: 888px; background: rgba(255,255,255,.18); transform-origin: 50% 0; }
+  #esq { position: absolute; left: 192px; top: 96px; width: 800px; height: 888px; display: flex; flex-direction: column; justify-content: center; }
+  #cab { display: flex; align-items: center; gap: 22px; margin-bottom: 34px; }
+  #cab .fio { width: 72px; }
+  #tit { font-weight: 700; }
+  #frase { margin-top: 30px; }
+</style>
+</head>
+<body>
+<div id="lavagem" class="cheio"></div>
+<div id="veu" class="cheio"></div>
+<div id="regua"></div>
+<div id="bloco"></div>
+<div id="painel"><img id="img" alt=""><div class="pe"></div><div class="aresta"></div></div>
+<div id="esq">
+  <div id="cab"><div class="fio" id="fio"></div><div id="rot" class="rotulo"></div></div>
+  <div id="tit" class="titulo"></div>
+  <div id="frase" class="frase"></div>
+</div>
+<script src="../comum/takes-b.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const PW = 628, PH = 888;
+  let DUR = 4500, semTexto = false, lav = null, img = null, iw = PW, ih = PH, panX = 0, dir = 1, linT = [], linF = [], vertical = false;
+
+  window.montar = async function (d) {
+    d = d || {};
+    const tm = TB.tema(d);
+    DUR = d.dur_ms || 4500;
+    const r = document.documentElement.style;
+    r.setProperty('--fundo-a', TB.rgba(tm.fundo, 0.96));
+    r.setProperty('--fundo-b', TB.rgba(tm.fundo, 0.74));
+    r.setProperty('--fundo-c', TB.rgba(tm.fundo, 0.55));
+    const ims = await TB.carregar(TB.urls(d));
+    const a = ims[0] || null;
+    const h = TB.hash((d.texto || '') + (d.titulo || ''));
+    dir = h % 2 ? 1 : -1;
+    const cor = `rgb(${tm.fundo.join(',')})`;
+    lav = TB.borrao(a, 384, 216, 8, { mf: 0.07, cor, sat: 1.1, brilho: 0.9 });
+    $('lavagem').innerHTML = ''; $('lavagem').appendChild(lav);
+    img = $('img');
+    if (a) {
+      img.src = a.src;
+      const nw = a.naturalWidth, nh = a.naturalHeight;
+      const s = Math.max((PW * 1.14) / nw, (PH * 1.08) / nh);
+      iw = nw * s; ih = nh * s;
+      img.style.width = iw + 'px'; img.style.height = ih + 'px';
+      panX = Math.max(0, iw - PW) / 2;
+      vertical = panX < 100;
+    } else img.style.display = 'none';
+    // texto: título grande + frase; sem título, a frase sobe a título; sem nada, só o rótulo
+    const tit = TB.txt(d.titulo), fr = TB.txt(d.texto);
+    const grande = tit || TB.resumir(fr, 14);
+    const apoio = tit ? TB.resumir(fr, 26) : '';
+    $('rot').textContent = TB.rot(d, 'destaque');
+    // sem texto: o lado esquerdo vira a própria mídia desfocada (bokeh), só com o rótulo
+    semTexto = !grande;
+    $('tit').style.display = semTexto ? 'none' : '';
+    $('lavagem').style.opacity = semTexto ? '1' : '';
+    if (semTexto) r.setProperty('--fundo-a', TB.rgba(tm.fundo, 0.55)), r.setProperty('--fundo-b', TB.rgba(tm.fundo, 0.4));
+    $('tit').textContent = grande;
+    $('frase').textContent = apoio;
+    $('frase').style.display = apoio ? '' : 'none';
+    const maxTit = apoio ? 470 : 640;
+    linT = [];
+    if (!semTexto) { TB.caber($('tit'), 800, maxTit, tm.caixaAlta ? 132 : 120, 44, 3); linT = TB.linhas($('tit')); }
+    linF = [];
+    if (apoio) {
+      const livre = 888 - 90 - $('tit').getBoundingClientRect().height - 40;
+      TB.caber($('frase'), 760, Math.min(260, livre), 36, 22, 1);
+      linF = TB.linhas($('frase'));
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const k = TB.fase(t, 0, DUR);
+    const kl = TB.lerp(k, TB.suave(k), 0.3);
+    const out = TB.io(TB.fase(t, DUR - 480, 440));
+    // lavagem: deriva lenta
+    lav.style.transform = `translate(${TB.f(TB.lerp(24, -24, kl), 2)}px, 0) scale(${TB.f(1.12 + 0.05 * kl, 5)})`;
+    // bloco de acento entra primeiro, o painel abre por cima (cortina da direita p/ esquerda)
+    const kb = TB.saiExpo(TB.fase(t, 60, 800));
+    const kp = TB.saiExpo(TB.fase(t, 220, 950));
+    $('bloco').style.transform = `scaleX(${TB.f(kb * (1 - out), 4)})`;
+    const abre = kp * (1 - out);
+    $('painel').style.clipPath = `inset(0 0 0 ${TB.f((1 - abre) * 100, 3)}%)`;
+    $('painel').style.transform = `translateX(${TB.f((1 - kp) * 60 + TB.entra(out) * 30, 2)}px)`;
+    // a foto contra-desliza dentro da cortina e depois faz o seu movimento lento
+    if (img) {
+      let tx, s;
+      if (!vertical) {
+        const amp = Math.min(panX, 130);
+        tx = -dir * TB.lerp(-amp, amp, kl);
+        s = 1.0 + 0.03 * kl;
+      } else { tx = 0; s = 1.0 + 0.08 * kl; }
+      tx += (1 - kp) * -120;
+      img.style.transform = `translate(${TB.f((PW - iw) / 2 + tx, 2)}px, ${TB.f((PH - ih) / 2 + 8 - 16 * kl, 2)}px) scale(${TB.f(s + 0.05 * (1 - kp), 5)})`;
+    }
+    $('regua').style.transform = `scaleY(${TB.f(TB.io(TB.fase(t, 300, 1000)) * (1 - out), 4)})`;
+    // texto
+    const sai = TB.suave(TB.fase(t, DUR - 440, 380));
+    $('fio').style.transform = `scaleX(${TB.f(TB.io(TB.fase(t, 380, 600)) * (1 - sai), 4)})`;
+    const kr = TB.sai(TB.fase(t, 480, 600));
+    $('rot').style.opacity = TB.f(Math.min(kr, 1 - sai));
+    $('rot').style.transform = `translateX(${TB.f((1 - kr) * -18, 2)}px)`;
+    linT.forEach((l, j) => {
+      const e = TB.saiExpo(TB.fase(t, 520 + j * 120, 850));
+      const so = TB.entra(TB.fase(t, DUR - 470 + j * 30, 380));
+      l.style.transform = `translateY(${TB.f((1 - e) * 108 - so * 108, 2)}%)`;
+    });
+    linF.forEach((l, j) => {
+      const e = TB.saiExpo(TB.fase(t, 900 + linT.length * 60 + j * 90, 800));
+      l.style.transform = `translateY(${TB.f((1 - e) * 100, 2)}%)`;
+      l.style.opacity = TB.f(Math.min(e, 1 - sai));
+    });
+    // a coluna de texto acompanha o movimento com parallax sutil
+    $('esq').style.transform = `translateX(${TB.f(TB.lerp(0, -14, kl), 2)}px)`;
+  };
+})();
+</script>
+</body>
+</html>

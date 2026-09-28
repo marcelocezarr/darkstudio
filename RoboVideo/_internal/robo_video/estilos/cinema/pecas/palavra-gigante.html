@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / palavra-gigante (impactos): 1-5 palavras em serifa grande, versal com tracking,
+     cada palavra surge em fade lento no tempo da fala; fio dourado curto embaixo. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: radial-gradient(ellipse 58% 46% at 50% 50%, rgba(0,0,0,.66) 0%, rgba(0,0,0,.4) 55%, rgba(0,0,0,.08) 100%); }
+  #palco { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+           display: flex; flex-direction: column; align-items: center; }
+  #frase { font-family: var(--fonte-titulo); color: var(--texto); text-transform: uppercase; text-align: center;
+           line-height: 1.08; letter-spacing: .08em; font-weight: normal; }
+  #frase .w { display: inline-block; opacity: 0; }
+  #frase .w.acento { font-style: italic; color: var(--acento-claro); text-transform: none; letter-spacing: .01em; }
+  #fio { width: 180px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="palco"><div id="frase" class="sombra"></div><div id="fio" class="fio centro"></div></div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), frase = $('#frase'), fio = $('#fio');
+  let DUR = 2600, spans = [], ent = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 2600;
+    const texto = C.txt(d.texto).replace(/[.!?…;:,]+$/, '');
+    spans = C.palavrasEm(frase, texto);
+    // a palavra mais longa (>= 5 letras) de frases com 2+ palavras vira italico dourado
+    if (spans.length >= 2) {
+      let m = 0;
+      spans.forEach((s, i) => { if (s.textContent.length >= spans[m].textContent.length) m = i; });
+      if (spans[m].textContent.length >= 5) spans[m].classList.add('acento');
+    }
+    C.caber(frase, 1480, 470, 150, 64, 3);
+    ent = C.temposFala(spans.map((s) => s.textContent), d.palavras, 180, DUR * 0.45);
+    window.eventos = [{ evento: 'palavra.slam', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 500, 650);
+    veu.style.opacity = String(env);
+    spans.forEach((s, i) => {
+      const k = C.sai(C.fase(t, ent[i], 650));
+      s.style.opacity = String(Math.min(k, env));
+      s.style.transform = `translateY(${((1 - k) * 18).toFixed(2)}px)`;
+    });
+    // deriva lenta: tracking fecha e a frase aproxima 2% durante toda a peca
+    const kd = C.fase(t, 0, DUR);
+    frase.style.transform = `scale(${(0.985 + 0.03 * kd).toFixed(4)})`;
+    const kf = C.io(C.fase(t, 450, 900));
+    fio.style.transform = `scaleX(${kf.toFixed(4)})`;
+    fio.style.opacity = String(env);
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+/* Kinético (validado) — estilos comuns */
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+/* odometro: mascara por caractere */
+.odo-m { display: inline-block; overflow: hidden; height: 1em; line-height: 1em; vertical-align: top; }
+.odo-s { display: flex; flex-direction: column; will-change: transform; }
+.odo-s > span { display: block; height: 1em; line-height: 1em; text-align: center; }
+/* etiqueta limao (texto preto) */
+.etq { display: inline-block; background: var(--acento); color: var(--tinta); white-space: nowrap; }
+/* caixa escura (rank / rotulos) */
+.cx { background: var(--tinta); color: var(--texto); }
+/* rotulo "aba" branco condensado sobre caixa escura */
+.aba { display: inline-block; background: var(--tinta); color: var(--texto); font-family: var(--f-rotulo);
+       text-transform: uppercase; white-space: nowrap; }

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / topicos (listas): coluna à esquerda; cada item entra quando é dito (itens_ms):
+     o número bate num quadrado de acento e a faixa preta varre com o texto. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #grupo { position: absolute; left: 192px; top: 108px; height: 864px; width: 1150px;
+           display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+  #titulo { background: var(--acento); color: var(--tinta); font-family: var(--f-rotulo); font-weight: 700;
+            text-transform: uppercase; letter-spacing: .08em; font-size: 46px; padding: 8px 22px 5px; margin-bottom: 22px;
+            max-width: 1100px; box-sizing: border-box; }
+  #titulo:empty { display: none; }
+  .item { display: flex; align-items: flex-start; margin-bottom: 16px; will-change: transform; }
+  .num { flex: none; display: flex; align-items: center; justify-content: center; background: var(--texto);
+         color: var(--tinta); font-family: var(--f-titulo); line-height: 1; will-change: transform; }
+  .item.atual .num { background: var(--acento); }
+  .faixa { background: var(--tinta); display: flex; align-items: center; padding: 0 34px 0 26px; box-sizing: border-box;
+           box-shadow: 0 14px 36px rgba(0,0,0,.35); }
+  .txt { font-family: var(--f-titulo); color: var(--texto); text-transform: uppercase; line-height: 1.08;
+         max-width: 900px; will-change: transform; }
+  .clip { overflow: hidden; padding: .08em 0 .06em; }
+</style>
+</head>
+<body>
+<div id="grupo"><div id="titulo"></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 6000, itens = [], tempos = [];
+  const MAXW = 900;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 6000;
+    const lista = (Array.isArray(d.itens) ? d.itens : []).map((x) => String(x || '').trim()).filter(Boolean).slice(0, 5);
+    $('titulo').textContent = d.titulo || '';
+    itens.forEach((it) => it.el.remove());
+    itens = lista.map((txt, i) => {
+      const el = document.createElement('div'); el.className = 'item';
+      const num = document.createElement('div'); num.className = 'num'; num.textContent = String(i + 1).padStart(2, '0');
+      const fx = document.createElement('div'); fx.className = 'faixa';
+      const clip = document.createElement('div'); clip.className = 'clip';
+      const t = document.createElement('div'); t.className = 'txt'; t.textContent = K.maiusc(txt, d.idioma);
+      clip.appendChild(t); fx.appendChild(clip); el.appendChild(num); el.appendChild(fx); $('grupo').appendChild(el);
+      return { el, num, fx, t };
+    });
+    // mesmo tamanho para todos: o maior que caiba em MAXW e na altura disponivel
+    const n = Math.max(1, itens.length);
+    const altTit = $('titulo').textContent ? 90 : 0;
+    let fs = Math.min(112, Math.floor((840 - altTit) / n / 1.45));
+    const aplicar = () => itens.forEach((it) => {
+      it.t.style.fontSize = fs + 'px';
+      const h = Math.round(fs * 1.3);
+      it.num.style.width = it.num.style.height = h + 'px';
+      it.num.style.fontSize = Math.round(fs * 0.8) + 'px';
+      it.fx.style.minHeight = h + 'px';
+    });
+    // cada item: no maximo 2 linhas, nenhuma palavra maior que a linha; altura total cabe
+    const linhasDe = (it) => Math.round(it.t.scrollHeight / (fs * 1.08));
+    const palavraLarga = (it) => {
+      const sp = document.createElement('span'); sp.style.whiteSpace = 'nowrap';
+      let max = 0;
+      K.palavrasDe(it.t.textContent).forEach((w) => { sp.textContent = w; it.t.appendChild(sp); max = Math.max(max, sp.offsetWidth); sp.remove(); });
+      return max > MAXW;
+    };
+    const altura = () => {
+      const ks = Array.from($('grupo').children).filter((c) => c.offsetHeight > 0);
+      const a = ks[0], b = ks[ks.length - 1];
+      return b.offsetTop + b.offsetHeight - a.offsetTop;
+    };
+    aplicar();
+    while (fs > 30 && (itens.some((it) => linhasDe(it) > 2 || palavraLarga(it)) || altura() > 860)) { fs -= 2; aplicar(); }
+    // quando cada item entra: itens_ms (quando e dito), senao escalonado
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    const passo = Math.min(700, (DUR * 0.6) / n);
+    tempos = itens.map((_, i) => {
+      const v = ms[i] != null ? Number(ms[i]) : 200 + i * passo;
+      return K.clamp(v, 0, DUR - 1400);
+    });
+    for (let i = 1; i < tempos.length; i++) if (tempos[i] < tempos[i - 1] + 180) tempos[i] = tempos[i - 1] + 180;
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(tempos.map((t) => ({ evento: 'lista.item', ms: Math.round(t) })));
+  };
+
+  window.quadro = function (t) {
+    $('titulo').style.clipPath = K.cortina(K.outExpo(K.prog(t, 0, 320)));
+    let atual = -1;
+    tempos.forEach((ti, i) => { if (t >= ti) atual = i; });
+    itens.forEach((it, i) => {
+      const t0 = tempos[i];
+      const kn = K.prog(t, t0, 200);
+      const esc = kn <= 0 ? 0 : K.lerp(1.7, 1, K.outExpo(kn));
+      it.num.style.transform = `scale(${esc.toFixed(4)})`;
+      const kf = K.outExpo(K.prog(t, t0 + 60, 340));
+      it.fx.style.clipPath = K.cortina(kf);
+      const kt = K.outExpo(K.prog(t, t0 + 140, 360));
+      it.t.style.transform = `translateY(${((1 - kt) * 110).toFixed(2)}%)`;
+      it.el.classList.toggle('atual', i === atual);
+      // saida em cascata
+      const ks = K.inExpo(K.prog(t, DUR - 380 + i * 40, 260));
+      it.el.style.transform = `translateX(${(-ks * 140).toFixed(1)}px)`;
+      it.el.style.opacity = String(1 - ks);
+    });
+    const kst = K.inExpo(K.prog(t, DUR - 400, 260));
+    $('titulo').style.opacity = String(1 - kst);
+  };
+})();
+</script>
+</body>
+</html>

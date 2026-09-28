@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / lower-third (fatos: pessoa, item, lugar). Cartao azul-marinho com
+     barra vermelha a esquerda, acima do ticker: rotulo pequeno espacado + nome bold condensado. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 120px; top: 760px; height: 152px; padding: 0 60px 0 44px; overflow: hidden; }
+  #rot { position: absolute; left: 44px; top: 24px; font-size: 24px; color: var(--texto2); }
+  #nome { position: absolute; left: 44px; top: 62px; font-size: 68px; line-height: 1; }
+</style>
+</head>
+<body>
+<div id="c" class="cartao"><div id="rot" class="esp"></div><div id="nome" class="cond"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000;
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    $('rot').textContent = BC.txt(d.rotulo || BC.rot(d, d.tipo_item || 'destaque'));
+    BC.caberTexto($('nome'), BC.txt(d.nome || d.texto), 68, 40, 1200, 0);
+    const w = Math.max($('rot').getBoundingClientRect().width, $('nome').getBoundingClientRect().width) + 44 + 60;
+    $('c').style.width = Math.max(420, w) + 'px';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const k = BC.expo(BC.lin(t, 0, 450)) * (1 - BC.ei(BC.lin(-S, -360, -40)));
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 100).toFixed(3);
+    const kn = BC.eo(BC.lin(t, 200, 560));
+    $('nome').style.transform = `translateY(${((1 - kn) * 22).toFixed(2)}px)`;
+    $('nome').style.opacity = kn.toFixed(3);
+    $('rot').style.opacity = BC.eo(BC.lin(t, 320, 700)).toFixed(3);
+  };
+})();
+</script>
+</body>
+</html>

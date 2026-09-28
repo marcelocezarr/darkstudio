@@ -1,0 +1,43 @@
+/* Broadcast (validado, broadcast_v) -- base visual compartilhada pelas pecas.
+   Recriado dos quadros de referencia: azul-marinho + branco + acento VERMELHO;
+   titulos em sans condensada bold (Bahnschrift condensada), rotulos pequenos em
+   Segoe UI com letras bem espacadas; barras verticais vermelhas finas. */
+:root {
+  --navy: #0f1d31;          /* fundo (foto-destaque) */
+  --navy2: #14243d;         /* cartoes */
+  --card-a: rgba(19, 35, 60, .93);
+  --branco: #ffffff;
+  --texto2: #c5cedb;
+  --acento: #e3242f;
+  --ft: Bahnschrift, 'Arial Narrow', 'Segoe UI Semibold', 'Segoe UI', sans-serif;
+  --fx: 'Segoe UI', Bahnschrift, Arial, sans-serif;
+}
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+body { font-family: var(--ft); color: var(--branco); -webkit-font-smoothing: antialiased; }
+/* titulo condensado bold (equivalente Windows da condensada da referencia) */
+.cond { font-family: var(--ft); font-stretch: condensed; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .01em; white-space: nowrap;
+        -webkit-text-stroke: .03em currentColor; paint-order: stroke fill; }  /* mais peso (a condensada da referencia e mais pesada) */
+/* rotulo pequeno espacado ("YEARS OF BATTERY WARRANTY", "THE HONEST SUMMARY") */
+.esp { font-family: var(--fx); font-weight: 400; text-transform: uppercase; letter-spacing: .24em;
+       white-space: nowrap; }
+.esp.forte { font-weight: 600; }
+/* cartao azul-marinho translucido com barra vermelha a esquerda */
+.cartao { position: absolute; background: var(--card-a); }
+.cartao::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--acento); }
+/* rotulo superior esquerdo: barra vermelha + texto espacado */
+.rotsup { position: absolute; left: 120px; top: 72px; display: flex; align-items: center; gap: 22px; }
+.rotsup .barra { width: 7px; height: 42px; background: var(--acento); flex: none; }
+.rotsup .t { font-family: var(--fx); font-weight: 600; font-size: 30px; letter-spacing: .3em; text-transform: uppercase;
+             white-space: nowrap; color: var(--branco); }
+/* escurecimento do footage (rede, mapa, secao) */
+.escurece { position: absolute; inset: 0; background: rgba(13, 20, 33, .84); }
+.grade { position: absolute; inset: 0;
+         background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+         background-size: 80px 80px; }
+.hex { clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.tracos { display: flex; gap: 10px; }
+.tracos i { display: block; width: 84px; height: 5px; background: rgba(255,255,255,.28); }
+.tracos i.on { background: var(--acento); }

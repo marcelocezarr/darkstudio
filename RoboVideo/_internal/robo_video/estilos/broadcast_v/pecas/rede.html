@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / rede de evidencias (foto_destaque: fotos). Footage escurecido com
+     grade sutil; titulo espacado no canto superior esquerdo com barra vermelha; no central
+     HEXAGONAL com contorno vermelho e ate 4 nos hexagonais menores (contorno claro) ligados
+     por linhas finas, entrando um a um (cima, direita, baixo, esquerda), com legenda bold. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #fundo { position: absolute; inset: 0; }
+  svg#ln { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .no { position: absolute; }
+  .no .borda { position: absolute; inset: 0; }
+  .no .img { position: absolute; overflow: hidden; }
+  .no .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .leg { position: absolute; width: 380px; margin-left: -190px; text-align: center; font-size: 27px; line-height: 1.12;
+         white-space: normal; }
+</style>
+</head>
+<body>
+<div id="fundo"><div class="escurece"></div><div class="grade"></div></div>
+<svg id="ln"></svg>
+<div id="nos"></div>
+<div class="rotsup" id="tt"><div class="barra"></div><div class="t" id="ttt"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  let DUR = 5200, nos = [];
+  // centro e satelites (cima, direita, baixo, esquerda) -- sobe um pouco p/ nao cair no ticker
+  const C = { x: 960, y: 545, r: 170 };
+  const POS = [{ x: 960, y: 178 }, { x: 1334, y: 545 }, { x: 960, y: 858 }, { x: 586, y: 545 }];
+  const RS = 104;
+
+  function clausulas(s) {
+    return BC.txt(s).split(/\s*[,;:.!?–—]\s+|\s+(?:and|e|y|und|en|et|i)\s+/i).map(BC.txt).filter((x) => x.split(' ').length >= 2);
+  }
+
+  function criaNo(url, r, borda, bw, leg) {
+    const n = document.createElement('div'); n.className = 'no';
+    n.style.width = n.style.height = 2 * r + 'px';
+    const b = document.createElement('div'); b.className = 'borda hex'; b.style.background = borda; n.appendChild(b);
+    const i = document.createElement('div'); i.className = 'img hex';
+    i.style.left = i.style.top = bw + 'px'; i.style.width = i.style.height = (2 * r - 2 * bw) + 'px';
+    i.style.background = '#1b2536';
+    if (url) { const im = document.createElement('img'); im.src = url; i.appendChild(im); }
+    n.appendChild(i);
+    $('nos').appendChild(n);
+    let l = null;
+    if (leg) { l = document.createElement('div'); l.className = 'leg cond'; l.textContent = leg; $('nos').appendChild(l); }
+    return { el: n, img: i, leg: l, r };
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 5200;
+    const tit = BC.txt(d.texto || d.titulo);
+    $('ttt').textContent = BC.encurtar(tit, 48);
+    let urls = (Array.isArray(d.midias) ? d.midias : []).filter(Boolean);
+    if (d.midia_url && urls[0] !== d.midia_url) urls.unshift(d.midia_url);
+    urls = [...new Set(urls)];
+    const sat = urls.slice(1, 5);
+    // legendas dos satelites: dados.legendas/itens, senao oracoes curtas da legenda do beat
+    let legs = (Array.isArray(d.legendas) ? d.legendas : Array.isArray(d.itens) ? d.itens : []).map(BC.txt).filter(Boolean);
+    if (!legs.length) legs = clausulas(d.legenda);
+    legs = legs.map((s) => BC.encurtar(s, 30));
+    // ordem de posicoes: 3 satelites -> cima, direita, esquerda; 4 -> cima, direita, baixo, esquerda
+    const ordem = sat.length >= 4 ? [0, 1, 2, 3] : sat.length === 3 ? [0, 1, 3] : sat.length === 2 ? [3, 1] : [1];
+    const svg = $('ln'); svg.innerHTML = '';
+    nos = [];
+    const cen = criaNo(urls[0], C.r, 'var(--acento)', 7, BC.encurtar(tit, 34));
+    cen.x = C.x; cen.y = C.y;
+    nos.push(cen);
+    sat.forEach((u, i) => {
+      const p = POS[ordem[i]];
+      // no de baixo: menor e com legenda a direita (nao invade o ticker persistente)
+      const n = criaNo(u, ordem[i] === 2 ? 80 : RS, 'rgba(225,230,238,.75)', 2, legs[i] || '');
+      n.x = p.x; n.y = p.y; n.baixo = ordem[i] === 2;
+      const l = document.createElementNS(NS, 'line');
+      l.setAttribute('stroke', 'rgba(210,216,226,.55)'); l.setAttribute('stroke-width', '2');
+      svg.appendChild(l); n.linha = l;
+      nos.push(n);
+    });
+    nos.forEach((n) => {
+      n.el.style.left = (n.x - n.r) + 'px'; n.el.style.top = (n.y - n.r) + 'px';
+      if (n.leg && n.baixo) {
+        n.leg.style.left = (n.x + n.r + 20 + 190) + 'px'; n.leg.style.textAlign = 'left';
+        n.leg.style.top = (n.y - n.leg.getBoundingClientRect().height / 2) + 'px';
+      } else if (n.leg) { n.leg.style.left = n.x + 'px'; n.leg.style.top = (n.y + n.r + 12) + 'px'; }
+    });
+    const passo = Math.min(650, (DUR - 1800) / Math.max(1, sat.length));
+    nos.forEach((n, i) => { n.t0 = i === 0 ? 150 : 700 + (i - 1) * passo; });
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(nos.map((n) => ({ evento: 'lista.item', ms: Math.round(n.t0 + 120) })));
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const ks = BC.ei(BC.lin(-S, -420, -40));               // saida geral
+    document.body.style.opacity = (BC.lin(t, 0, 320) * (1 - ks)).toFixed(3);
+    const ktt = BC.eo(BC.lin(t, 100, 700));
+    $('ttt').style.clipPath = `inset(0 ${((1 - ktt) * 100).toFixed(3)}% 0 0)`;
+    nos.forEach((n, i) => {
+      const k = BC.eo(BC.lin(t, n.t0, n.t0 + 380));
+      const sc = i === 0 ? 0.86 + 0.14 * k : 0.7 + 0.3 * BC.back(BC.lin(t, n.t0, n.t0 + 380));
+      n.el.style.opacity = k.toFixed(3);
+      n.el.style.transform = `scale(${sc.toFixed(4)})`;
+      const im = n.img.firstChild;
+      if (im) im.style.transform = `scale(${(1.04 - 0.04 * BC.lin(t, n.t0, DUR)).toFixed(4)})`;
+      if (n.leg) n.leg.style.opacity = BC.eo(BC.lin(t, n.t0 + 200, n.t0 + 520)).toFixed(3);
+      if (n.linha) {
+        // linha do centro ate o satelite, crescendo antes do no aparecer
+        const kl = BC.eo(BC.lin(t, n.t0 - 250, n.t0 + 50));
+        const dx = n.x - C.x, dy = n.y - C.y, dist = Math.hypot(dx, dy);
+        const ux = dx / dist, uy = dy / dist;
+        const a0 = C.r + 4, a1 = n.r + 4;   // hexagono w=h: lado plano (x) e vertice (y) a r do centro
+        const x0 = C.x + ux * a0, y0 = C.y + uy * a0;
+        const L = dist - a0 - a1;
+        n.linha.setAttribute('x1', x0.toFixed(1)); n.linha.setAttribute('y1', y0.toFixed(1));
+        n.linha.setAttribute('x2', (x0 + ux * L * kl).toFixed(1)); n.linha.setAttribute('y2', (y0 + uy * L * kl).toFixed(1));
+        n.linha.style.opacity = kl > 0 ? '1' : '0';
+      }
+    });
+  };
+})();
+</script>
+</body>
+</html>

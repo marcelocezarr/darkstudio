@@ -1,0 +1,18 @@
+/* Takes (conjunto A): base comum -- encaixe-quadros, arquivo-fotogramas, sequencia-alternada, paineis.
+   Cores/fontes vem de dados.estilo via TKA.tema(d) (variaveis abaixo). */
+* { box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; margin: 0; padding: 0; overflow: hidden; }
+body { position: relative; background: var(--fundo, #0b0b0f); color: var(--texto, #f2f2f2);
+       font-family: var(--fonte-texto, 'Segoe UI', Arial, sans-serif);
+       -webkit-font-smoothing: antialiased; }
+.tka-abs { position: absolute; }
+.tka-m { position: absolute; overflow: hidden; background: var(--fundo-escuro, #000); }
+.tka-m img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover;
+             transform-origin: 50% 50%; display: block; }
+.tka-tit { font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.04; margin: 0;
+           text-wrap: balance; overflow-wrap: break-word; font-weight: normal; }
+.tka-frase { font-family: var(--fonte-texto); color: var(--suave); line-height: 1.34; margin: 0;
+             text-wrap: pretty; overflow-wrap: break-word; }
+.tka-num { font-family: var(--fonte-texto); font-variant-numeric: tabular-nums; letter-spacing: .18em;
+           color: var(--acento); font-size: 18px; }
+.tka-fio { height: 3px; background: var(--acento); transform-origin: 0 50%; }

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / lower-third (fatos: pessoa, item, lugar): traço de acento sobe, faixa preta varre,
+     nome sobe por máscara, etiqueta do tipo (dados.rotulo) entra por cortina. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #grupo { position: absolute; left: 192px; bottom: 150px; display: flex; align-items: stretch; will-change: transform; }
+  #traco { width: 16px; background: var(--acento); transform-origin: bottom; flex: none; }
+  #col { display: flex; flex-direction: column; align-items: flex-start; }
+  #rot { background: var(--acento); color: var(--tinta); font-family: var(--f-rotulo); font-weight: 700; font-size: 30px;
+         letter-spacing: .18em; padding: 6px 18px 3px 18px; white-space: nowrap; }
+  #rot:empty { display: none; }
+  #faixa { background: var(--tinta); padding: 14px 42px 18px 26px; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  #nome { font-family: var(--f-titulo); color: var(--texto); line-height: 1.04; text-transform: uppercase; }
+  #nome .ln { overflow: hidden; }
+  #nome .li { display: inline-block; white-space: nowrap; will-change: transform; }
+</style>
+</head>
+<body>
+<div id="grupo"><div id="traco"></div><div id="col"><div id="rot"></div><div id="faixa"><div id="nome"></div></div></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 3500, linhas = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3500;
+    const rotulo = d.rotulo || (d.tipo_item && K.rot(d, d.tipo_item, '')) || '';
+    $('rot').textContent = K.maiusc(rotulo, d.idioma);
+    const nome = $('nome');
+    const texto = K.maiusc(String(d.nome || d.texto || '').trim(), d.idioma);
+    nome.style.width = '1100px';
+    nome.textContent = texto;
+    let fs = K.ajustar(nome, 1100, 200, 96, 48);
+    linhas = K.linhas(nome, texto);
+    while (fs > 48 && (linhas.length > 2 || linhas.some((l) => l.scrollWidth > 1100))) {
+      fs -= 4; nome.style.fontSize = fs + 'px'; linhas = K.linhas(nome, texto);
+    }
+    nome.style.width = 'auto';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    $('traco').style.transform = `scaleY(${K.outExpo(K.prog(t, 0, 260)).toFixed(4)})`;
+    const kf = K.outExpo(K.prog(t, 120, 380));
+    $('faixa').style.clipPath = kf >= 1 ? 'none' : K.cortina(kf);
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, 260 + i * 80, 420));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    $('rot').style.clipPath = K.cortina(K.outExpo(K.prog(t, 380, 320)));
+    // saida: cortina fecha para a esquerda e o traco desce
+    const ks = K.inExpo(K.prog(t, DUR - 320, 280));
+    const g = $('grupo');
+    g.style.transform = `translateX(${(-ks * 60).toFixed(1)}px)`;
+    if (ks > 0) {
+      $('col').style.clipPath = K.cortina(1 - ks);
+      $('traco').style.transform = `scaleY(${(1 - ks).toFixed(4)})`;
+    } else {
+      $('col').style.clipPath = 'none';
+    }
+  };
+})();
+</script>
+</body>
+</html>

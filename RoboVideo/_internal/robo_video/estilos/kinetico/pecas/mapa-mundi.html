@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / mapa-mundi (fatos: lugar, camada FUNDO): mapa-múndi simplificado (contornos à mão,
+     sem dados externos). Linhas de mira de acento varrem até o ponto, a câmera aproxima e o nome
+     do lugar bate grande numa faixa preta. Coordenadas vêm de dados.lat/lon (motion/geo.py). -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--fundo, #0a0a0a); }
+  svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #terra path { fill: #26272a; stroke: #4a4c50; stroke-width: 1.2; vector-effect: non-scaling-stroke; fill-rule: evenodd; }
+  #grade line { stroke: #17181a; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .mira { stroke: var(--acento); stroke-width: 3; }
+  #anel { fill: none; stroke: var(--acento); stroke-width: 4; }
+  #ponto { fill: var(--acento); }
+  #nucleo { fill: var(--tinta); }
+  #rotulo { position: absolute; left: 192px; bottom: 150px; display: flex; flex-direction: column; align-items: flex-start; }
+  #tag { display: flex; gap: 18px; align-items: center; }
+  #tag .t { background: var(--acento); color: var(--tinta); font-family: var(--f-rotulo); font-weight: 700; font-size: 32px;
+            letter-spacing: .18em; padding: 6px 18px 3px; white-space: nowrap; }
+  #tag .t:empty { display: none; }
+  #tag .c { color: var(--acento); font-family: var(--f-rotulo); font-weight: 700; font-size: 30px; letter-spacing: .08em;
+            white-space: nowrap; text-shadow: 0 2px 10px rgba(0,0,0,.8); }
+  #faixa { background: var(--tinta); padding: 14px 44px 20px 28px; margin-top: 10px; box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  #nome { font-family: var(--f-titulo); color: var(--texto); line-height: 1.02; text-transform: uppercase; }
+  #nome .ln { overflow: hidden; }
+  #nome .li { display: inline-block; white-space: nowrap; will-change: transform; }
+  #flash { position: absolute; inset: 0; background: var(--acento); will-change: transform; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080">
+  <g id="camera"><g id="grade"></g><g id="terra"><path id="continentes"></path></g></g>
+  <line class="mira" id="mh" x1="0" x2="1920"></line>
+  <line class="mira" id="mv" y1="0" y2="1080"></line>
+  <circle id="anel" r="30"></circle>
+  <circle id="ponto" r="16"></circle>
+  <circle id="nucleo" r="6"></circle>
+</svg>
+<div id="rotulo"><div id="tag"><span class="t"></span><span class="c"></span></div><div id="faixa"><div id="nome"></div></div></div>
+<div id="flash"></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  // Contornos grosseiros [lon, lat] -- estilizados de proposito (sem dados externos).
+  const TERRA = [
+    // America do Norte
+    [[-168,65],[-162,70],[-140,70],[-125,70],[-110,73],[-95,72],[-80,73],[-65,62],[-60,55],[-55,52],[-66,45],[-70,42],
+     [-76,35],[-81,31],[-80,25],[-84,30],[-90,29],[-97,26],[-97,21],[-92,18],[-88,21],[-87,16],[-83,10],[-78,8],[-80,7],
+     [-86,11],[-92,14],[-105,20],[-110,24],[-112,30],[-117,33],[-124,40],[-124,48],[-130,55],[-140,60],[-150,60],[-158,57],
+     [-165,60]],
+    // Groenlandia
+    [[-73,78],[-60,82],[-30,83],[-20,75],[-22,70],[-40,65],[-45,60],[-52,64],[-55,70]],
+    // America do Sul
+    [[-80,8],[-77,9],[-72,12],[-62,11],[-52,5],[-50,0],[-35,-5],[-35,-9],[-39,-15],[-41,-22],[-48,-26],[-53,-34],[-58,-38],
+     [-65,-41],[-66,-47],[-69,-52],[-72,-54],[-75,-50],[-73,-40],[-71,-30],[-70,-18],[-76,-14],[-81,-6],[-80,0],[-78,3]],
+    // Eurasia
+    [[-9,37],[-9,43],[-1,44],[-4,48],[2,51],[5,53],[8,54],[9,57],[11,58],[5,59],[5,62],[14,68],[20,70],[28,71],[40,67],
+     [44,68],[60,69],[70,73],[80,73],[100,77],[113,74],[130,71],[140,72],[160,70],[179,68],[179,65],[170,60],[163,57],
+     [156,51],[157,59],[143,59],[137,54],[141,48],[135,43],[129,40],[129,35],[126,35],[126,38],[121,40],[118,38],[122,31],
+     [121,28],[117,23],[110,21],[108,17],[109,12],[105,9],[103,10],[100,13],[99,8],[103,1],[100,4],[98,9],[98,16],[94,17],
+     [92,22],[87,21],[80,15],[77,8],[73,17],[72,22],[67,24],[62,25],[57,26],[56,24],[59,22],[52,17],[44,12],[43,15],
+     [39,21],[35,28],[34,31],[36,36],[30,36],[27,37],[26,40],[23,40],[24,38],[22,37],[21,39],[19,42],[16,43],[13,45],
+     [12,44],[16,41],[18,40],[16,38],[15,40],[12,42],[10,44],[7,44],[3,43],[3,42],[0,39],[-2,37],[-5,36]],
+    // mares internos (buracos: evenodd)
+    [[10,54],[14,54],[21,55],[21,57],[24,58],[30,60],[22,60],[21,63],[25,65],[22,66],[18,63],[18,60],[16,57],[12,56]],
+    [[28,41],[28,45],[33,46],[37,47],[41,42],[36,41]],
+    [[47,45],[50,47],[53,45],[53,41],[54,37],[50,37],[49,40]],
+    // Africa
+    [[-17,21],[-17,15],[-15,11],[-8,4],[-2,5],[7,4],[9,4],[10,-1],[13,-6],[12,-17],[15,-27],[18,-34],[20,-35],[26,-34],
+     [33,-26],[35,-20],[40,-15],[40,-5],[43,0],[51,11],[44,11],[43,13],[38,18],[34,27],[32,31],[25,32],[20,31],[20,32],
+     [10,37],[10,33],[0,36],[-6,36],[-10,30],[-13,27]],
+    // ilhas
+    [[-6,50],[1,51],[2,53],[-2,56],[-2,58],[-5,59],[-6,56],[-5,54],[-3,54],[-5,52]],
+    [[-10,52],[-6,52],[-6,55],[-8,55],[-10,54]],
+    [[-24,64],[-22,66],[-14,66],[-14,64],[-20,63]],
+    [[130,31],[132,34],[136,34],[140,35],[141,38],[142,42],[145,44],[141,45],[140,41],[139,38],[136,36],[132,35],[129,33]],
+    [[114,-22],[114,-34],[117,-35],[124,-33],[131,-31],[138,-35],[140,-38],[146,-39],[150,-37],[153,-32],[153,-25],
+     [146,-19],[142,-11],[141,-16],[136,-12],[131,-11],[126,-14],[122,-18]],
+    [[172,-34],[178,-38],[175,-41],[170,-46],[167,-46],[172,-41],[174,-39]],
+    [[95,5],[98,4],[106,-6],[104,-6],[99,-1]],
+    [[109,1],[117,7],[119,5],[116,-4],[110,-3]],
+    [[106,-6],[114,-7],[114,-8],[106,-7]],
+    [[131,-1],[141,-3],[150,-10],[141,-9],[137,-5]],
+    [[44,-25],[47,-25],[50,-15],[49,-12],[44,-17]],
+    [[120,18],[122,18],[124,13],[126,7],[122,7],[121,13]],
+    [[80,10],[82,7],[80,6]],
+  ];
+  const LAT_N = 84, LAT_S = -58;
+  const proj = (lon, lat) => [(lon + 180) / 360 * 1920, (LAT_N - lat) / (LAT_N - LAT_S) * 1080];
+  let d = {}, DUR = 4200, P = [960, 540], ALVO = [1180, 470], ESC = 2.1, linhas = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4200;
+    const cam = TERRA.map((poly) => 'M' + poly.map(([lo, la]) => proj(lo, la).map((v) => v.toFixed(1)).join(',')).join('L') + 'Z');
+    $('continentes').setAttribute('d', cam.join(''));
+    const g = $('grade'); g.innerHTML = '';
+    for (let lo = -150; lo <= 180; lo += 30) {
+      const [x] = proj(lo, 0);
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', 0); l.setAttribute('y2', 1080); g.appendChild(l);
+    }
+    for (let la = -30; la <= 60; la += 30) {
+      const [, y] = proj(0, la);
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', 0); l.setAttribute('x2', 1920); l.setAttribute('y1', y); l.setAttribute('y2', y); g.appendChild(l);
+    }
+    const lat = Number(d.lat), lon = Number(d.lon);
+    const ok = isFinite(lat) && isFinite(lon) && d.lat !== '' && d.lon !== '' && d.lat != null && d.lon != null;
+    P = ok ? proj(lon, K.clamp(lat, LAT_S, LAT_N)) : [960, 540];
+    // o ponto termina a direita do rotulo, sem sair da tela com o zoom
+    ALVO = [1230, 440];
+    $('tag').querySelector('.t').textContent = K.maiusc(d.rotulo || K.rot(d, 'lugar', ''), d.idioma);
+    $('tag').querySelector('.c').textContent = ok
+      ? `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}  ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}` : '';
+    const nome = $('nome');
+    const texto = K.maiusc(String(d.nome || d.lugar || d.texto || '').trim(), d.idioma);
+    nome.style.width = '1250px';
+    nome.textContent = texto;
+    let fs = K.ajustar(nome, 1250, 250, 150, 56);
+    linhas = K.linhas(nome, texto);
+    while (fs > 56 && (linhas.length > 2 || linhas.some((l) => l.scrollWidth > 1250))) {
+      fs -= 4; nome.style.fontSize = fs + 'px'; linhas = K.linhas(nome, texto);
+    }
+    nome.style.width = 'auto';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'mapa.ponto', ms: 1000 }, { evento: 'palavra.slam', ms: 1240 },
+                      { evento: 'cena.fecha', ms: Math.max(0, DUR - 380) }];
+  };
+
+  window.quadro = function (t) {
+    // entrada: acento cobre a tela e se retrai (0-320)
+    const kfl = K.inOutQuint(K.prog(t, 0, 340));
+    const kout = K.inOutQuint(K.prog(t, DUR - 380, 300));
+    const fl = $('flash');
+    if (kout > 0) { fl.style.transformOrigin = 'left'; fl.style.transform = `scaleX(${kout.toFixed(4)})`; }
+    else { fl.style.transformOrigin = 'right'; fl.style.transform = `scaleX(${(1 - kfl).toFixed(4)})`; }
+    // camera: aproxima do ponto
+    const kz = K.inOutQuint(K.prog(t, 250, 1100));
+    const s = K.lerp(1, ESC, kz) + 0.08 * K.prog(t, 1350, DUR);
+    const cx = K.lerp(P[0], ALVO[0], kz), cy = K.lerp(P[1], ALVO[1], kz);
+    const tx = cx - P[0] * s, ty = cy - P[1] * s;
+    $('camera').setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${s.toFixed(4)})`);
+    // miras varrem ate o ponto (posicao de tela)
+    const km = K.outExpo(K.prog(t, 700, 400));
+    const mh = $('mh'), mv = $('mv');
+    mh.setAttribute('y1', cy); mh.setAttribute('y2', cy);
+    mh.setAttribute('x1', 0); mh.setAttribute('x2', (1920 * km).toFixed(1));
+    mv.setAttribute('x1', cx); mv.setAttribute('x2', cx);
+    mv.setAttribute('y1', 0); mv.setAttribute('y2', (1080 * km).toFixed(1));
+    const op = String(0.55 * (1 - K.prog(t, 1600, 600)) + 0.25);
+    mh.style.opacity = km > 0 ? op : '0'; mv.style.opacity = km > 0 ? op : '0';
+    // ponto bate + anel pulsando
+    const kp = K.prog(t, 1000, 200);
+    const esc = kp <= 0 ? 0 : K.lerp(2.4, 1, K.outExpo(kp));
+    ['ponto', 'nucleo'].forEach((id) => {
+      const c = $(id); c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+      c.setAttribute('transform', `translate(${cx} ${cy}) scale(${esc.toFixed(4)}) translate(${-cx} ${-cy})`);
+    });
+    const an = $('anel');
+    const fase = t >= 1000 ? ((t - 1000) % 900) / 900 : 0;
+    an.setAttribute('cx', cx); an.setAttribute('cy', cy);
+    an.setAttribute('r', (18 + fase * 70).toFixed(1));
+    an.style.opacity = t >= 1000 ? (1 - fase).toFixed(3) : '0';
+    // rotulo
+    const kf = K.outExpo(K.prog(t, 1100, 380));
+    $('faixa').style.clipPath = kf >= 1 ? 'none' : K.cortina(kf);
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, 1240 + i * 80, 420));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    $('tag').style.clipPath = K.cortina(K.outExpo(K.prog(t, 1350, 320)));
+  };
+})();
+</script>
+</body>
+</html>

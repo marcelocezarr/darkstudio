@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: numero-impacto (fatos). Ficha de evidencia presa com fita; o numero conta,
+     a caneta vermelha circula o valor e a legenda e datilografada. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #ficha { right: 230px; top: 250px; min-width: 520px; max-width: 760px; padding: 44px 72px 40px 54px;
+           transform-origin: 70% 0; opacity: 0; }
+  #ficha::before { content: ''; position: absolute; left: 0; right: 0; top: 96px; height: 2px; background: rgba(179, 33, 27, .45); }
+  #rot { margin-bottom: 30px; white-space: nowrap; font-size: 28px; }
+  #caixaNum { position: relative; display: inline-block; margin: 14px 0 18px 30px; }
+  #num { font-size: 176px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--tinta); }
+  #leg { font-size: 34px; line-height: 1.25; margin-top: 26px; max-width: 640px; min-height: 0; color: #2b251e; }
+  #fita { left: 50%; top: -22px; transform: translateX(-50%) rotate(-3deg); }
+  svg.caneta { left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="ficha" class="papel">
+  <div id="fita" class="fita"></div>
+  <div id="rot" class="rotulo"></div>
+  <div id="caixaNum"><div id="num" class="titulo"></div>
+    <svg class="caneta" id="svg" width="10" height="10"><path id="circ"/></svg></div>
+  <div id="leg" class="maquina"></div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const ficha = document.getElementById('ficha'), num = document.getElementById('num'), leg = document.getElementById('leg');
+  const circ = document.getElementById('circ');
+  let d = {}, DUR = 3200, T0 = 280, CONTA = 1100, alvo = 0, ehAno = false, temLeg = false, rotF = -2;
+
+  function formatar(v) {
+    const dec = Number(d.decimais) || 0;
+    let [int, fr] = Math.abs(v).toFixed(dec).split('.');
+    if (!ehAno) int = int.replace(/\B(?=(\d{3})+(?!\d))/g, d.separador_milhar == null ? '.' : d.separador_milhar);
+    const s = fr ? int + (d.separador_decimal || ',') + fr : int;
+    return (v < 0 ? '-' : '') + (d.prefixo || '') + s + (d.sufixo || '');
+  }
+
+  window.montar = function (dados) {
+    d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3200;
+    alvo = Number(d.numero) || 0;
+    ehAno = d.subtipo === 'ano' || (!!d.ano && Number.isInteger(alvo) && alvo > 1000 && alvo < 2200);
+    CONTA = Math.min(1100, DUR * 0.35);
+    rotF = -1.5 - Z.rnd(d.numero_texto || alvo, 1) * 2;
+    document.getElementById('rot').textContent = Z.rot(d, 'evidencia');
+    num.textContent = formatar(alvo);
+    Z.caberLinha(num, 176, 90, 560);
+    num.style.minWidth = num.getBoundingClientRect().width + 'px';  // largura travada: sem "pulos"
+    const legenda = Z.txt(d.legenda);
+    temLeg = !!legenda;
+    if (temLeg) { Z.prepararDatilo(leg, legenda); Z.caber(leg, 36, 27, 180); } else leg.style.display = 'none';
+    // circulo de caneta em volta do numero
+    const b = num.getBoundingClientRect(), W = b.width, H = b.height;
+    const svg = document.getElementById('svg');
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    circ.setAttribute('d', Z.circuloMao(W / 2, H / 2 + 4, W / 2 + 32, H / 2 + 26, alvo));
+    const imp = T0 + CONTA;
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'numero.impacto', ms: Math.round(imp) }];
+    if (temLeg) window.eventos.push({ evento: 'maquina.digita', ms: Math.round(imp + 260) });
+  };
+
+  window.quadro = function (t) {
+    const { ent, sai } = Z.envelope(t, DUR, 420, 320);
+    const e = Z.eo(ent), s = Z.eio(1 - sai);
+    ficha.style.opacity = String(Math.min(1, ent * 2) * sai);
+    ficha.style.transform = `translate(${(1 - e) * 260 + s * 140}px, ${s * 20}px) rotate(${rotF + (1 - e) * 6 + s * 3}deg)`;
+    const k = Z.eo(Z.seg(t, T0, CONTA));
+    num.textContent = ehAno ? formatar(Math.round(Z.lerp(alvo - 30, alvo, k))) : formatar(alvo * k);
+    const imp = T0 + CONTA;
+    const pulso = t > imp ? 1 + 0.05 * Math.exp(-(t - imp) / 110) : 1;
+    num.style.transform = `scale(${pulso.toFixed(4)})`;
+    num.style.transformOrigin = 'left center';
+    Z.tracar(circ, Z.eio(Z.seg(t, imp - 60, 420)));
+    if (temLeg) Z.datilo(leg, Z.seg(t, imp + 260, Math.min(900, DUR * 0.3)));
+  };
+})();
+</script>
+</body>
+</html>

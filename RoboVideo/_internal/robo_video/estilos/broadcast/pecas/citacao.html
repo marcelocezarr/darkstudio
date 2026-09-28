@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / citacao (citacoes: citacao). Painel de declaracao: tag CITACAO, aspas
+     ciano desenhadas, texto em ate 4 linhas e autor em faixa branca. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #cit { position: absolute; left: 192px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center;
+         padding-bottom: 40px; }
+  #tagw { margin-bottom: -1px; }
+  #pw { }
+  #p { position: relative; padding: 40px 110px 44px 150px; width: 1300px; }
+  #aspas { position: absolute; left: 36px; top: 30px; width: 84px; height: 72px; }
+  #aspas path { fill: var(--acento); }
+  #txt { font-weight: 600; font-size: 64px; line-height: 1.14; color: var(--branco); }
+  #autw { margin-left: 150px; margin-top: -1px; }
+  #aut { background: var(--branco); color: var(--navy); font-weight: 700; font-size: 36px; letter-spacing: .06em;
+         text-transform: uppercase; padding: 10px 48px 9px 24px; white-space: nowrap;
+         clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%); display: inline-block; }
+  #aut::before { content: ''; display: inline-block; width: 26px; height: 5px; background: var(--acento);
+                 vertical-align: middle; margin: -4px 16px 0 0; }
+</style>
+</head>
+<body>
+<div id="cit">
+  <div id="tagw"><div id="tag" class="tag"></div></div>
+  <div id="pw"><div id="p" class="painel-a corte-d sombra">
+    <svg id="aspas" viewBox="0 0 84 72"><path d="M0 72V40C0 17 11 4 33 0l4 10C25 14 19 22 19 34h16v38zM47 72V40C47 17 58 4 80 0l4 10C72 14 66 22 66 34h16v38z"/></svg>
+    <div id="txt"></div>
+  </div></div>
+  <div id="autw"><div id="aut"></div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 6000, temAut = false;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 6000;
+    $('tag').textContent = BC.rot(d, 'citacao');
+    const txt = BC.txt(d.texto).replace(/^["“”„«»']+|["“”„«»']+$/g, '');
+    BC.caberTexto($('txt'), txt, 64, 38, 1040, 4 * 64 * 1.14);
+    const px = parseFloat($('txt').style.fontSize) || 64;
+    if ($('txt').getBoundingClientRect().height > 4 * px * 1.14 + 2) BC.caberTexto($('txt'), txt, px, 38, 1040, 4 * px * 1.14);
+    const aut = BC.txt(d.autor);
+    temAut = !!aut;
+    $('autw').style.display = temAut ? '' : 'none';
+    $('aut').textContent = aut;
+    if (temAut) BC.caber($('aut'), 36, 24, 1100, 0);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('tagw'), BC.eo(BC.lin(t, 0, 300)), BC.ei(BC.lin(-S, -300, -120)), 20);
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 80, 520)), BC.ei(BC.lin(-S, -380, -40)), 80);
+    const ka = BC.back(BC.lin(t, 300, 620));
+    $('aspas').style.transform = `scale(${Math.max(0, ka).toFixed(4)})`;
+    $('aspas').style.transformOrigin = 'center';
+    const kt = BC.eo(BC.lin(t, 320, 900));
+    $('txt').style.opacity = String(kt);
+    $('txt').style.transform = `translateY(${((1 - kt) * 24).toFixed(2)}px)`;
+    BC.wipe($('autw'), BC.eo(BC.lin(t, 700, 1100)), BC.ei(BC.lin(-S, -440, -220)), 20);
+  };
+})();
+</script>
+</body>
+</html>

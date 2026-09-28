@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / encaixe-quadros (ABERTURA, camada FUNDO). Guias finas desenham a grade; cinco quadros
+     com as midias chegam de direcoes diferentes e se encaixam num mosaico; o quadro principal
+     entao se expande e cobre os outros ate virar tela cheia, onde entra o titulo.
+     Paleta/fontes do estilo do video (dados.estilo). Tolera 1..N midias (recortes diferentes). -->
+<link rel="stylesheet" href="../comum/takes-a.css">
+<style>
+  #bg { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 70% at 45% 45%, var(--fundo2) 0%, var(--fundo) 75%); }
+  #guias { position: absolute; inset: 0; }
+  .g { position: absolute; background: var(--acento-a3); }
+  .canto { position: absolute; width: 34px; height: 34px; border-color: var(--acento); border-style: solid; border-width: 0; }
+  #mosaico { position: absolute; inset: 0; transform-origin: 960px 540px; }
+  .q { box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+  .q .borda { position: absolute; inset: 0; border: 3px solid var(--acento); pointer-events: none; }
+  .q .idx { position: absolute; left: 0; top: 0; padding: 7px 10px 6px 12px; background: var(--fundo); font-size: 15px; }
+  #veu { position: absolute; left: 0; right: 0; bottom: 0; height: 560px; opacity: 0;
+         background: linear-gradient(180deg, var(--fundo-a0) 0%, var(--fundo-a6) 55%, var(--fundo-a9) 100%); }
+  #leg { position: absolute; left: 150px; bottom: 120px; width: 1180px; }
+  #leg .tka-fio { width: 110px; margin-bottom: 30px; }
+  #ltit { text-shadow: 0 2px 18px rgba(0,0,0,.35); }
+  #lfrase { margin-top: 18px; color: var(--texto); opacity: .9; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="guias"></div>
+<div id="mosaico"></div>
+<div id="veu"></div>
+<div id="leg">
+  <div id="lfio" class="tka-fio"></div>
+  <div id="ltit" class="tka-tit"></div>
+  <div id="lfrase" class="tka-frase"></div>
+</div>
+<script src="../comum/takes-a.js"></script>
+<script>
+(() => {
+  const A = window.TKA, $ = (id) => document.getElementById(id);
+  // grade do mosaico (1920x1080, margem 96, calha 16): A principal + 4 satelites
+  const RET = [
+    [96, 96, 1068, 600],    // A principal (16:9 -> expande sem pular recorte)
+    [1180, 96, 644, 392],   // B
+    [1180, 504, 644, 480],  // C
+    [96, 712, 526, 272],    // D
+    [638, 712, 526, 272],   // E
+  ];
+  // de onde cada quadro chega (px) e giro inicial
+  const DE = [[-1250, 60, -3], [80, -560, 2.5], [820, 90, 3], [-120, 520, -2], [160, 480, 2]];
+  const ORDEM = [4, 1, 3, 2, 0];   // atraso relativo (principal chega por ultimo)
+  let DUR = 4500, s = 1, qs = [], guias = [], cantos = [], temLeg = false;
+  let T_CH = [], R0 = 2450, R1 = 3200, L0 = 3050;
+
+  window.montar = function (d) {
+    d = d || {};
+    A.tema(d);
+    DUR = Math.max(2500, d.dur_ms || 4500);
+    s = A.clamp(DUR / 4500, 0.68, 1.12);
+    const urls = A.urls(d);
+    const sem = A.hash(urls.join('|') || 'x') % 4;
+    const slots = A.slots(urls, 5);
+    const mos = $('mosaico');
+    qs = RET.map((r, i) => {
+      const q = A.midia(slots[i], i, sem, 'q');
+      Object.assign(q.style, { left: r[0] + 'px', top: r[1] + 'px', width: r[2] + 'px', height: r[3] + 'px', zIndex: i === 0 ? 5 : 2 });
+      const b = document.createElement('div'); b.className = 'borda'; q.appendChild(b); q._b = b;
+      const n = document.createElement('div'); n.className = 'idx tka-num'; n.textContent = String(i + 1).padStart(2, '0'); q.appendChild(n); q._n = n;
+      mos.appendChild(q);
+      return q;
+    });
+    // guias da grade (calhas) + cantos de registro
+    const G = [[1172, 96, 0, 888, 'v'], [96, 704, 1068, 0, 'h'], [1180, 496, 644, 0, 'h'], [630, 712, 0, 272, 'v'],
+               [96, 88, 1728, 0, 'h'], [96, 992, 1728, 0, 'h']];
+    const gw = $('guias');
+    guias = G.map(([x, y, w, h, o]) => {
+      const g = document.createElement('div'); g.className = 'g';
+      Object.assign(g.style, o === 'v' ? { left: (x - 0.5) + 'px', top: y + 'px', width: '1px', height: h + 'px', transformOrigin: '50% 0' }
+                                       : { left: x + 'px', top: (y - 0.5) + 'px', width: w + 'px', height: '1px', transformOrigin: '0 50%' });
+      g._o = o; gw.appendChild(g); return g;
+    });
+    cantos = [[70, 70, 'lt'], [1816, 70, 'rt'], [70, 976, 'lb'], [1816, 976, 'rb']].map(([x, y, k]) => {
+      const c = document.createElement('div'); c.className = 'canto';
+      c.style.left = x + 'px'; c.style.top = y + 'px';
+      c.style[k[0] === 'l' ? 'borderLeftWidth' : 'borderRightWidth'] = '3px';
+      c.style[k[1] === 't' ? 'borderTopWidth' : 'borderBottomWidth'] = '3px';
+      c._dx = k[0] === 'l' ? -1 : 1; c._dy = k[1] === 't' ? -1 : 1;
+      gw.appendChild(c); return c;
+    });
+    // tempos
+    T_CH = ORDEM.map((o) => (140 + o * 95) * s);           // inicio da chegada de cada quadro
+    const VOO = 640 * s;
+    T_CH.voo = VOO;
+    R0 = Math.max(T_CH[0] + VOO + 500 * s, DUR - 2050 * s);  // resolve: principal expande
+    R1 = R0 + 780 * s;
+    L0 = R1 - 150 * s;
+    // legenda final (titulo e/ou frase), opcional
+    const tit = A.txt(d.titulo), frase = A.txt(d.texto);
+    temLeg = !!(tit || frase);
+    $('leg').style.display = temLeg ? '' : 'none';
+    if (temLeg) {
+      const principal = tit || frase, secund = tit ? frase : '';
+      const et = $('ltit'), ef = $('lfrase');
+      A.caber(et, principal, 1180, secund ? 240 : 300, tit ? 104 : 74, 46);
+      if (secund) A.caber(ef, secund, 1080, 132, 36, 27); else ef.style.display = 'none';
+    }
+    const fim = T_CH[0] + VOO;
+    window.eventos = [
+      { evento: 'take.entra', ms: 0 },
+      ...T_CH.slice(0, 5).map((t0) => ({ evento: 'quadro.desliza', ms: Math.round(t0) })).sort((a, b) => a.ms - b.ms).slice(0, 1),
+      { evento: 'quadro.encaixa', ms: Math.round(fim - 40 * s) },
+      { evento: 'take.expande', ms: Math.round(R0) },
+    ];
+  };
+
+  window.quadro = function (t) {
+    const kb = A.fase(t, 0, DUR);
+    const kr = A.io(A.fase(t, R0, R1 - R0));           // resolucao (expansao)
+    const hold = A.suave(A.fase(t, T_CH[0] + T_CH.voo, R0 - T_CH[0] - T_CH.voo));
+    // leve "respiracao" do mosaico enquanto espera (some ao expandir)
+    const z = 1 + 0.022 * hold * (1 - kr);
+    $('mosaico').style.transform = `scale(${A.f(z, 5)})`;
+    // guias: desenham no inicio e somem quando a principal expande
+    const kg = A.io(A.fase(t, 0, 520 * s));
+    const gsai = 1 - A.fase(t, R0 - 100 * s, 450 * s);
+    guias.forEach((g, i) => {
+      const k = A.io(A.fase(t, i * 45 * s, 520 * s));
+      g.style.transform = g._o === 'v' ? `scaleY(${A.f(k)})` : `scaleX(${A.f(k)})`;
+      g.style.opacity = A.f(gsai);
+    });
+    cantos.forEach((c) => {
+      const k = A.expo(A.fase(t, 80 * s, 700 * s));
+      c.style.opacity = A.f(Math.min(k, gsai));
+      c.style.transform = `translate(${A.f(c._dx * (1 - k) * 40, 2)}px, ${A.f(c._dy * (1 - k) * 40, 2)}px)`;
+    });
+    qs.forEach((q, i) => {
+      const t0 = T_CH[i], kc = A.expo(A.fase(t, t0, T_CH.voo));
+      const [dx, dy, rot] = DE[i];
+      let x = dx * (1 - kc), y = dy * (1 - kc);
+      const r = rot * (1 - kc), sc = 1 + 0.06 * (1 - kc);
+      q.style.opacity = A.f(A.clamp(A.fase(t, t0, 120 * s) * 1.0));
+      // "encaixe": pulso da borda de acento no momento em que assenta
+      const pulso = A.fase(t, t0 + T_CH.voo * 0.45, 90 * s) * (1 - A.fase(t, t0 + T_CH.voo * 0.55, 520 * s));
+      q._b.style.opacity = A.f(pulso);
+      q._n.style.opacity = A.f(A.fase(t, t0 + T_CH.voo * 0.5, 250 * s) * (1 - A.fase(t, R0, 250 * s)));
+      if (i === 0) {
+        // principal: retangulo interpola ate a tela inteira
+        const [L, T, W, H] = RET[0];
+        q.style.left = A.f(A.mix(L, 0, kr), 2) + 'px';
+        q.style.top = A.f(A.mix(T, 0, kr), 2) + 'px';
+        q.style.width = A.f(A.mix(W, 1920, kr), 2) + 'px';
+        q.style.height = A.f(A.mix(H, 1080, kr), 2) + 'px';
+        q.style.boxShadow = kr > 0.98 ? 'none' : '';
+      } else {
+        // satelites: empurrados para fora enquanto a principal cresce por cima
+        const px = (i === 1 || i === 2) ? 520 : 140 * (i - 2.5);
+        const py = (i >= 3) ? 360 : (i === 1 ? -160 : 220);
+        x += px * kr; y += py * kr;
+      }
+      q.style.transform = `translate(${A.f(x, 2)}px, ${A.f(y, 2)}px) rotate(${A.f(r, 3)}deg) scale(${A.f(sc, 4)})`;
+      // Ken Burns em todos; a principal ganha um empurrao extra ao expandir
+      A.kb(q, kb, i === 0 ? 1.1 : 1);
+    });
+    if (temLeg) {
+      const kv = A.sai(A.fase(t, R0 + 200 * s, 700 * s));
+      $('veu').style.opacity = A.f(kv);
+      $('lfio').style.transform = `scaleX(${A.f(A.io(A.fase(t, L0, 520 * s)))})`;
+      A.revela($('ltit'), A.sai(A.fase(t, L0 + 90 * s, 650 * s)), 36);
+      A.revela($('lfrase'), A.sai(A.fase(t, L0 + 260 * s, 600 * s)), 22);
+    }
+  };
+})();
+</script>
+</body>
+</html>

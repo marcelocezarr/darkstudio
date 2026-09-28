@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / palavra-gigante (impactos): 1–5 palavras que "batem" na tela no tempo exato da fala. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #palco { position: absolute; left: 192px; top: 108px; width: 1536px; height: 864px;
+           display: flex; align-items: center; justify-content: center; }
+  #frase { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline;
+           gap: 0 .22em; width: 1536px; font-family: var(--f-titulo); line-height: .98;
+           text-align: center; color: var(--texto); }
+  .w { position: relative; display: inline-block; white-space: nowrap; will-change: transform, opacity;
+       text-shadow: 0 .03em 0 rgba(0,0,0,.35), 0 .06em .22em rgba(0,0,0,.6); padding: 0 .02em; }
+  .w .bloco { position: absolute; left: -.08em; right: -.08em; top: .08em; bottom: .02em; background: var(--acento);
+              transform-origin: left center; z-index: 2; }
+  .w.acento { color: var(--acento); }
+</style>
+</head>
+<body>
+<div id="palco"><div id="frase"></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const frase = document.getElementById('frase');
+  let d = {}, DUR = 2400, ws = [], ent = [], idxAcento = -1;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 2400;
+    const palavras = K.palavrasDe(d.texto);
+    frase.innerHTML = '';
+    ws = palavras.map((p) => {
+      const s = document.createElement('span');
+      s.className = 'w';
+      s.textContent = K.maiusc(p, d.idioma);
+      const b = document.createElement('i'); b.className = 'bloco';
+      s.appendChild(b);
+      frase.appendChild(s);
+      return s;
+    });
+    // palavra de acento: a que tem numero, senao a ultima
+    idxAcento = palavras.findIndex((p) => /\d/.test(p));
+    if (idxAcento < 0) idxAcento = palavras.length - 1;
+    if (ws[idxAcento] && palavras.length > 1) ws[idxAcento].classList.add('acento');
+    // tamanho: o maior que caiba (1536 x 800) sem quebrar palavra
+    const n = palavras.length;
+    let fs = K.ajustar(frase, 1536, 800, n <= 1 ? 330 : n <= 2 ? 280 : 230, 70);
+    while (fs > 70 && !K.maiorPalavraCabe(ws, 1536)) { fs -= 6; frase.style.fontSize = fs + 'px'; }
+    // o bloco comeca ~90 ms antes da fala; a palavra aparece quando e dita
+    ent = K.alinhar(palavras, d.palavras, DUR, 170).map((ms) => Math.max(0, ms - 90));
+    window.eventos = [];
+    let ultimo = -1e9;
+    ent.forEach((ms, i) => {
+      if (ms - ultimo < 260 && i !== idxAcento) return;
+      window.eventos.push({ evento: i === 0 || i === idxAcento ? 'palavra.slam' : 'palavra.batida', ms: Math.round(ms + 100) });
+      ultimo = ms;
+    });
+  };
+
+  window.quadro = function (t) {
+    // tremor global a cada batida
+    let tx = 0, ty = 0;
+    ent.forEach((ms, i) => { const [a, b] = K.tremor(t, ms + 110, i === idxAcento ? 12 : 6, i + 1); tx += a; ty += b; });
+    const tSai = DUR - 300;
+    frase.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
+    ws.forEach((s, i) => {
+      const t0 = ent[i];
+      const kIn = K.prog(t, t0, 100), kOut = K.prog(t, t0 + 100, 150);
+      const vis = t >= t0 + 100 ? 1 : 0;
+      const e = K.outExpo(K.prog(t, t0 + 100, 240));
+      const esc = K.lerp(i === idxAcento ? 1.45 : 1.25, 1, e);
+      // saida: esmaga verticalmente e sobe, em cascata
+      const ks = K.inExpo(K.prog(t, tSai + i * 35, 230));
+      const sy = esc * (1 - ks);
+      s.style.color = '';
+      s.style.opacity = String(t < t0 ? 0 : (ks > 0.98 ? 0 : 1));
+      s.style.transform = `translateY(${(-ks * 60).toFixed(1)}px) scale(${esc.toFixed(4)}, ${Math.max(0, sy).toFixed(4)})`;
+      s.style.webkitTextFillColor = vis ? '' : 'transparent';
+      s.style.textShadow = vis ? '' : 'none';
+      const b = s.firstElementChild;
+      if (kOut <= 0) { b.style.transformOrigin = 'left center'; b.style.transform = `scaleX(${K.outQuint(kIn).toFixed(4)})`; }
+      else { b.style.transformOrigin = 'right center'; b.style.transform = `scaleX(${(1 - K.outQuint(kOut)).toFixed(4)})`; }
+      b.style.opacity = kOut >= 1 || t < t0 ? '0' : '1';
+    });
+  };
+})();
+</script>
+</body>
+</html>

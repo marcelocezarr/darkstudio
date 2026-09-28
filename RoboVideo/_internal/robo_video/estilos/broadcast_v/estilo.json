@@ -1,0 +1,120 @@
+{
+  "nome": "Broadcast",
+  "grupo": "validado",
+  "descricao": "Telejornal: ticker LIVE com manchetes, cartões azul-marinho com barra vermelha, rede hexagonal e mapa-múndi.",
+  "paleta": {"fundo": "#0f1d31", "painel": "#14243d", "texto": "#ffffff", "texto2": "#c5cedb", "acento": "#e3242f"},
+  "fontes": {"titulo": "Bahnschrift, 'Arial Narrow', 'Segoe UI Semibold', 'Segoe UI', sans-serif",
+             "texto": "'Segoe UI', Bahnschrift, Arial, sans-serif"},
+  "trilha_mood": "jornalistica",
+  "ritmo": {"distancia_min_ms": 4500, "teto_por_min": 7, "leitura_min_ms": 1600},
+  "sfx_volume_db": -15,
+  "transicao_fundo_ms": 300,
+  "sfx": {
+    "cena.abre": {"arquivo": "sfx/whoosh.wav", "volume_db": -18},
+    "secao.abre": {"arquivo": "sfx/swell.wav", "volume_db": -16},
+    "numero.impacto": {"arquivo": "sfx/impacto.wav", "volume_db": -15},
+    "lista.item": {"arquivo": "sfx/clique.wav", "volume_db": -17},
+    "palavra.slam": {"arquivo": "sfx/whoosh.wav", "volume_db": -16},
+    "barra.enche": {"arquivo": "sfx/swell.wav", "volume_db": -20},
+    "foto.entra": {"arquivo": "sfx/whoosh.wav", "volume_db": -16},
+    "mapa.ponto": {"arquivo": "sfx/pop.wav", "volume_db": -14},
+    "tique": {"arquivo": "sfx/tique.wav", "volume_db": -20}
+  },
+  "pecas": {
+    "ticker": {
+      "arquivo": "pecas/ticker.html", "familia": "persistente", "camada": "persistente",
+      "zona": "inferior", "zona_topo": 0.87,
+      "dur_ms_padrao": 30000, "minimo_ms": 10000,
+      "variaveis_exigidas": ["itens"], "usa_midia": false,
+      "exemplo": {"itens": ["One of the better used buys", "Carries its own separate warranty", "Typically eight years",
+                            "Which transfers to you", "Get the battery health report in writing"],
+                  "texto": "One of the better used buys • Carries its own separate warranty • Typically eight years • Which transfers to you • Get the battery health report in writing",
+                  "loop": true}
+    },
+    "secao-titulo": {
+      "arquivo": "pecas/secao-titulo.html", "familia": "secoes", "camada": "principal", "zona": "tela",
+      "subtipos": ["capitulo"], "dur_ms_padrao": 3800, "minimo_ms": 2400,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "The honest summary", "numero": 2, "total": 5, "subtipo": "capitulo"}
+    },
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["numero", "moeda", "ano"], "dur_ms_padrao": 3000, "minimo_ms": 1800,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "8 years", "numero": 8, "numero_texto": "8 years", "prefixo": "", "sufixo": " years",
+                  "unidade": "years", "decimais": 0, "separador_milhar": ",", "separador_decimal": ".",
+                  "legenda": "of battery warranty", "subtipo": "numero"}
+    },
+    "barras": {
+      "arquivo": "pecas/barras.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["percentual"], "dur_ms_padrao": 3800, "minimo_ms": 2400,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "70%", "numero": 70, "percentual": 70, "numero_texto": "70%", "prefixo": "", "sufixo": "%",
+                  "decimais": 0, "separador_milhar": ",", "separador_decimal": ".", "pct": true,
+                  "legenda": "battery health after eight years", "subtipo": "percentual"}
+    },
+    "lower-third": {
+      "arquivo": "pecas/lower-third.html", "familia": "fatos", "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.70,
+      "subtipos": ["pessoa", "item", "lugar"], "dur_ms_padrao": 3800, "minimo_ms": 2200,
+      "variaveis_exigidas": ["nome"], "usa_midia": false,
+      "exemplo": {"texto": "Maxus eDeliver 3", "nome": "Maxus eDeliver 3", "tipo_item": "produto", "rotulo": "PRODUCT", "subtipo": "item"}
+    },
+    "mapa-mundi": {
+      "arquivo": "pecas/mapa-mundi.html", "familia": "fatos", "camada": "principal", "zona": "tela",
+      "subtipos": ["lugar"], "dur_ms_padrao": 4600, "minimo_ms": 2800,
+      "variaveis_exigidas": ["lat", "lon"], "usa_midia": false,
+      "exemplo": {"texto": "Britain", "nome": "Britain", "lugar": "Britain", "tipo_item": "lugar", "rotulo": "PLACE",
+                  "lat": 54.0, "lon": -2.5, "subtipo": "lugar"}
+    },
+    "topicos": {
+      "arquivo": "pecas/topicos.html", "familia": "listas", "camada": "principal",
+      "subtipos": ["lista"], "dur_ms_padrao": 5000, "minimo_ms": 3000,
+      "variaveis_exigidas": ["itens"], "usa_midia": false,
+      "exemplo": {"titulo": "What to check", "itens": ["Battery health report", "Separate warranty", "Service history"],
+                  "itens_ms": [300, 1000, 1700], "texto": "battery health report, separate warranty, service history", "subtipo": "lista"}
+    },
+    "foto-destaque": {
+      "arquivo": "pecas/foto-destaque.html", "familia": "foto_destaque", "camada": "fundo",
+      "subtipos": ["foto", "fotos"], "dur_ms_padrao": 5000, "minimo_ms": 2600,
+      "variaveis_exigidas": ["midia_url"], "usa_midia": true,
+      "exemplo": {"texto": "Battery health", "legenda": "Get the battery health report in writing", "tipo_item": "conceito", "subtipo": "foto"}
+    },
+    "rede": {
+      "arquivo": "pecas/rede.html", "familia": "foto_destaque", "camada": "principal", "zona": "tela",
+      "subtipos": ["fotos"], "dur_ms_padrao": 5000, "minimo_ms": 3400,
+      "variaveis_exigidas": ["midias"], "usa_midia": true,
+      "exemplo": {"texto": "The honest summary", "legenda": "Nearly no impact here, in Britain for years, passenger cars never landed",
+                  "tipo_item": "conceito", "subtipo": "fotos"}
+    },
+    "foto-rotulo": {
+      "arquivo": "pecas/foto-rotulo.html", "familia": "foto_destaque", "camada": "principal", "zona": "tela",
+      "subtipos": ["foto"], "dur_ms_padrao": 3800, "minimo_ms": 2400,
+      "variaveis_exigidas": ["midia_url"], "usa_midia": true,
+      "exemplo": {"texto": "The vehicles", "legenda": "Not a criticism", "tipo_item": "produto", "subtipo": "foto"}
+    },
+    "citacao": {
+      "arquivo": "pecas/citacao.html", "familia": "citacoes", "camada": "principal",
+      "subtipos": ["citacao"], "dur_ms_padrao": 5500, "minimo_ms": 3000,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "It is not a criticism, it is simply how the market works.", "autor": "Trade press", "subtipo": "citacao"}
+    },
+    "karaoke": {
+      "arquivo": "pecas/karaoke.html", "familia": "karaoke", "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.73,
+      "subtipos": ["frase"], "dur_ms_padrao": 3800, "minimo_ms": 2200,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Get the battery health report in writing", "destaque": 2, "subtipo": "frase",
+                  "palavras": [{"texto": "Get", "ms": 200}, {"texto": "the", "ms": 420}, {"texto": "battery", "ms": 560},
+                               {"texto": "health", "ms": 900}, {"texto": "report", "ms": 1200}, {"texto": "in", "ms": 1500},
+                               {"texto": "writing", "ms": 1640}]}
+    },
+    "palavra-gigante": {
+      "arquivo": "pecas/palavra-gigante.html", "familia": "impactos", "camada": "principal", "zona": "centro",
+      "subtipos": ["palavra"], "dur_ms_padrao": 2600, "minimo_ms": 1600,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Not a criticism", "subtipo": "palavra",
+                  "palavras": [{"texto": "Not", "ms": 0}, {"texto": "a", "ms": 220}, {"texto": "criticism", "ms": 330}]}
+    }
+  }
+}

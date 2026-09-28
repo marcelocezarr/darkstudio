@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / ticker (camada persistente). Faixa inferior: selo AO VIVO com ponto
+     pulsante + rotulo + itens rolando. Animacao PERIODICA: quadro(0) == quadro(dur_ms)
+     (o deslocamento por periodo e um multiplo inteiro da largura de uma copia da lista
+     e o pulso tem numero inteiro de ciclos no periodo). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #tk { position: absolute; left: 0; right: 0; bottom: 56px; height: 64px; display: flex; align-items: stretch; }
+  #selo { flex: none; display: flex; align-items: center; gap: 14px; padding: 0 34px 0 96px; background: var(--acento);
+          color: var(--navy); font-weight: 700; font-size: 34px; letter-spacing: .08em; text-transform: uppercase;
+          clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%); position: relative; z-index: 2;
+          white-space: nowrap; }
+  #ponto { width: 16px; height: 16px; border-radius: 50%; background: var(--navy); }
+  #rot { flex: none; display: flex; align-items: center; padding: 0 30px 0 44px; margin-left: -24px;
+         background: var(--branco); color: var(--navy); font-weight: 700; font-size: 30px; letter-spacing: .1em;
+         text-transform: uppercase; clip-path: polygon(24px 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+         position: relative; z-index: 1; white-space: nowrap; }
+  #faixa { flex: 1 1 auto; margin-left: -24px; position: relative; overflow: hidden;
+           background: linear-gradient(180deg, rgba(14,42,82,.95), rgba(7,21,43,.95)); }
+  #faixa::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--acento); opacity: .9; z-index: 1; }
+  #trilho { position: absolute; left: 0; top: 0; bottom: 0; display: flex; align-items: center; white-space: nowrap;
+            will-change: transform; padding-top: 3px; }
+  .it { font-weight: 600; font-size: 34px; letter-spacing: .02em; text-transform: uppercase; padding: 0 30px; }
+  .sep { width: 12px; height: 12px; background: var(--acento); transform: rotate(45deg); flex: none; }
+  #borda { position: absolute; left: 0; top: 0; bottom: 0; width: 70px; z-index: 1;
+           background: linear-gradient(90deg, rgba(7,21,43,1), rgba(7,21,43,0)); }
+</style>
+</head>
+<body>
+<div id="tk">
+  <div id="selo"><div id="ponto"></div><span id="selot"></span></div>
+  <div id="rot"></div>
+  <div id="faixa"><div id="borda"></div><div id="trilho"></div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 30000, larg = 1, voltas = 1, ciclos = 1;
+  const VEL = 120;  // px/s desejado
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 30000;
+    $('selot').textContent = BC.rot(d, 'ao_vivo');
+    const rot = BC.rot(d, 'broadcast_manchetes');
+    $('rot').textContent = rot;
+    $('rot').style.display = rot ? '' : 'none';
+    let itens = (Array.isArray(d.itens) ? d.itens : []).map(BC.txt).filter(Boolean);
+    if (!itens.length) itens = BC.txt(d.texto).split(/\s*[•|]\s*/).filter(Boolean);
+    if (!itens.length) itens = [BC.rot(d, 'ao_vivo')];
+    itens = itens.map((s) => BC.encurtar(s, 70));
+    const tr = $('trilho');
+    tr.innerHTML = '';
+    const copia = () => itens.forEach((s) => {
+      const e = document.createElement('span'); e.className = 'it'; e.textContent = s; tr.appendChild(e);
+      const p = document.createElement('span'); p.className = 'sep'; tr.appendChild(p);
+    });
+    copia();
+    larg = tr.getBoundingClientRect().width;
+    // a faixa visivel tem ~1500 px: repete a lista ate cobrir a tela + 1 copia (emenda invisivel)
+    const vis = $('faixa').getBoundingClientRect().width;
+    let n = 1;
+    while (n * larg < vis + larg && n < 40) { copia(); n++; }
+    // voltas inteiras por periodo, com velocidade mais perto de VEL
+    voltas = Math.max(1, Math.round((VEL * DUR / 1000) / larg));
+    // o trilho precisa ter (voltas + cobertura) copias
+    while (n * larg < voltas * larg + vis + 4 && n < 200) { copia(); n++; }
+    ciclos = Math.max(1, Math.round(DUR / 1400));  // pulso do ponto: ciclos inteiros
+    window.eventos = [];
+  };
+
+  window.quadro = function (t) {
+    const fase = ((t % DUR) + DUR) % DUR / DUR;       // 0..1, periodica
+    const x = -(fase * voltas * larg) % larg;           // deslocamento modulo 1 copia
+    $('trilho').style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+    const p = 0.5 + 0.5 * Math.cos(2 * Math.PI * ciclos * fase);
+    $('ponto').style.opacity = (0.25 + 0.75 * p).toFixed(3);
+    $('ponto').style.transform = `scale(${(0.8 + 0.25 * p).toFixed(3)})`;
+  };
+})();
+</script>
+</body>
+</html>

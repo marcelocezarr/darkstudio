@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: karaoke (karaoke). Tira de transcricao no terco inferior: cada palavra e
+     datilografada quando e dita; a palavra de destaque fica vermelha e e sublinhada a caneta. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #tira { left: 192px; bottom: 132px; max-width: 1320px; padding: 30px 46px 30px 46px; opacity: 0; transform-origin: 0 100%; }
+  #aba { position: absolute; left: 34px; top: -44px; height: 50px; padding: 10px 24px 0; font-size: 24px; letter-spacing: .24em;
+         white-space: nowrap; color: var(--vermelho); }
+  #txt { position: relative; font-size: 50px; line-height: 1.3; color: var(--tinta); }
+  .w { white-space: pre; }
+  .w.dest { color: var(--vermelho); }
+  svg.caneta { left: 0; top: 0; }
+  svg.caneta path { stroke-width: 6; }
+</style>
+</head>
+<body>
+<div id="tira" class="papel">
+  <div id="aba" class="papel maquina"></div>
+  <div id="txt" class="maquina"></div>
+  <svg class="caneta" id="svg" width="10" height="10"><path id="sub"/></svg>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const tira = document.getElementById('tira'), txt = document.getElementById('txt'), sub = document.getElementById('sub');
+  let DUR = 3500, ws = [], ems = [], dest = -1;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3500;
+    const aba = Z.rot(d, 'dossie_transcricao');
+    document.getElementById('aba').textContent = aba;
+    if (!aba) document.getElementById('aba').style.display = 'none';
+    const falas = Array.isArray(d.palavras) ? d.palavras.filter((p) => Z.txt(p.texto)) : [];
+    let palavras = Z.txt(d.texto).split(' ').filter(Boolean);
+    if (!palavras.length) palavras = falas.map((p) => Z.txt(p.texto));
+    // tempo de cada palavra: dados.palavras (mesmo tamanho) ou escalonado
+    const passo = Math.min(320, (DUR * 0.6) / Math.max(1, palavras.length));
+    ems = palavras.map((_, i) => (falas.length === palavras.length && falas[i].ms != null)
+      ? Math.max(0, Math.min(Number(falas[i].ms), DUR - 700)) : 200 + i * passo);
+    for (let i = 1; i < ems.length; i++) ems[i] = Math.max(ems[i], ems[i - 1] + 40);
+    dest = Number.isInteger(d.destaque) && d.destaque >= 0 && d.destaque < palavras.length ? d.destaque : -1;
+    txt.innerHTML = '';
+    ws = palavras.map((w, i) => {
+      const s = document.createElement('span');
+      s.className = 'w' + (i === dest ? ' dest' : '');
+      s.textContent = w;
+      txt.appendChild(s);
+      if (i < palavras.length - 1) txt.appendChild(document.createTextNode(' '));
+      return { s, w };
+    });
+    txt.style.width = 'max-content'; txt.style.maxWidth = '1228px';
+    Z.caber(txt, 50, 32, 200);
+    ws.forEach((o) => Z.prepararDatilo(o.s, o.w));
+    const tb = tira.getBoundingClientRect(), svg = document.getElementById('svg');
+    svg.setAttribute('width', tb.width); svg.setAttribute('height', tb.height);
+    if (dest >= 0) {
+      const b = ws[dest].s.getBoundingClientRect();
+      sub.setAttribute('d', Z.sublinhadoMao(b.left - tb.left - 4, b.right - tb.left + 6, b.bottom - tb.top - 2, d.texto || ''));
+    }
+    const ev = [{ evento: 'papel.desliza', ms: 0 }];
+    ems.forEach((m, i) => { if (i % 2 === 0) ev.push({ evento: 'maquina.tecla', ms: Math.round(m) }); });
+    window.eventos = ev;
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 360), sai = Z.seg(t, DUR - 320, 320);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    tira.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    tira.style.transform = `translate(${s * -60}px, ${(1 - e) * 90 + s * 30}px) rotate(${-0.6 + (1 - e) * -2}deg)`;
+    ws.forEach((o, i) => Z.datilo(o.s, Z.seg(t, ems[i], Math.min(160, o.w.length * 30)), false));
+    if (dest >= 0) Z.tracar(sub, Z.eio(Z.seg(t, ems[dest] + 150, 300)));
+  };
+})();
+</script>
+</body>
+</html>

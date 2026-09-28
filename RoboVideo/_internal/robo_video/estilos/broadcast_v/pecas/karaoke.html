@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / karaoke (frase). Faixa azul-marinho acima do ticker, com barra
+     vermelha a esquerda; palavras em condensada bold caixa alta acendendo no tempo da fala;
+     a palavra de destaque ganha fundo vermelho. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 50%; top: 792px; transform: translateX(-50%); width: max-content; max-width: 1640px; padding: 18px 40px 20px 46px; }
+  #tx { font-size: 60px; line-height: 1.12; white-space: normal; text-align: left; }
+  #tx span { display: inline-block; padding: 0 8px; margin: 0 -2px; color: rgba(255,255,255,.34); }
+  #tx span.dito { color: #fff; }
+  #tx span.dest { background: var(--acento); color: #fff; }
+</style>
+</head>
+<body>
+<div id="c" class="cartao"><div id="tx" class="cond"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4000, spans = [], tms = [], dest = -1;
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4000;
+    const ps = (Array.isArray(d.palavras) && d.palavras.length ? d.palavras : BC.txt(d.texto).split(' ').map((w, i) => ({ texto: w, ms: 150 + i * 260 })));
+    const tx = ps.map((p) => BC.txt(p.texto)).join(' ');
+    BC.caber($('tx'), 60, 40, 1550, 150);
+    $('tx').textContent = tx;
+    BC.caber($('tx'), 60, 40, 1550, 150);
+    $('tx').innerHTML = '';
+    spans = ps.map((p, i) => { const s = document.createElement('span'); s.textContent = BC.txt(p.texto); $('tx').appendChild(s);
+      if (i < ps.length - 1) $('tx').appendChild(document.createTextNode(' ')); return s; });
+    tms = ps.map((p, i) => (isFinite(p.ms) ? Number(p.ms) : 150 + i * 260));
+    dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    window.eventos = [];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const k = BC.expo(BC.lin(t, 0, 380)) * (1 - BC.ei(BC.lin(-S, -320, -30)));
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 100).toFixed(3);
+    spans.forEach((s, i) => {
+      const dito = t >= tms[i];
+      s.className = dito ? (i === dest ? 'dest' : 'dito') : '';
+    });
+  };
+})();
+</script>
+</body>
+</html>

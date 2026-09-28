@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / mapa-mundi (fatos: lugar; exige lat/lon). Painel com mapa-mundi em matriz
+     de pontos (contorno simplificado de comum/mundo.js, desenhado uma vez num canvas).
+     A camera sai do mundo inteiro e aproxima do lugar; ponto pulsante e rotulo. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #card { position: absolute; right: 192px; top: 140px; }
+  #tagw { margin-left: 30px; margin-bottom: -1px; }
+  #pw { }
+  #painel { position: relative; width: 980px; height: 560px; overflow: hidden;
+            background: radial-gradient(ellipse at 50% 45%, #10305c 0%, #0a1d3a 60%, #07152b 100%);
+            border-bottom: 8px solid var(--acento); }
+  #cv { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #camada { position: absolute; inset: 0; }
+  #brilho { position: absolute; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(34,196,238,.34) 0%, rgba(34,196,238,.12) 35%, rgba(34,196,238,0) 70%); }
+  .anel { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+          border: 4px solid var(--acento); }
+  #ponto { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+           background: var(--branco); border: 6px solid var(--acento); box-shadow: 0 0 0 4px rgba(7,21,43,.6); }
+  #rotw { position: absolute; }
+  #rot { display: flex; flex-direction: column; align-items: flex-start; }
+  #rtag { font-size: 24px; padding: 7px 26px 6px 14px; }
+  #nome { background: var(--branco); color: var(--navy); font-weight: 700; font-size: 54px; line-height: 1.04;
+          text-transform: uppercase; padding: 8px 40px 6px 16px; white-space: nowrap;
+          clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); }
+  #coord { margin-top: 6px; font-family: var(--fx); font-weight: 600; font-size: 22px; letter-spacing: .06em;
+           color: var(--branco); background: rgba(7,21,43,.82); padding: 4px 12px; white-space: nowrap; }
+  #haste { position: absolute; height: 3px; background: var(--acento); transform-origin: 0 50%; }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="tagw"><div id="tag" class="tag"></div></div>
+  <div id="pw"><div id="painel" class="sombra">
+    <canvas id="cv"></canvas>
+    <div id="camada">
+      <div id="brilho"></div><div class="anel" id="a1"></div><div class="anel" id="a2"></div>
+      <div id="haste"></div><div id="ponto"></div>
+      <div id="rotw"><div id="rot"><div id="nome"></div><div id="coord"></div></div></div>
+    </div>
+  </div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script src="../comum/mundo.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const K = 8, LAT0 = 84, LAT1 = -58, MW = 360 * K, MH = (LAT0 - LAT1) * K;   // mapa 2880 x 1136
+  const W = 980, H = 560;
+  let DUR = 4800, px = 0, py = 0, S1 = 1.1, T_ZI = 250, T_ZF = 1500, T_PT = 1400, esq = false;
+  const X = (lon) => (lon + 180) * K, Y = (lat) => (LAT0 - lat) * K;
+
+  function desenhar() {
+    // 1) mascara de terra (terra - aguas internas)
+    const m = document.createElement('canvas'); m.width = MW; m.height = MH;
+    const g = m.getContext('2d');
+    const poli = (lista) => lista.forEach((p) => { g.beginPath(); p.forEach(([lo, la], i) => (i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)))); g.closePath(); g.fill(); });
+    g.fillStyle = '#fff'; poli(window.MUNDO_TERRA || []);
+    g.globalCompositeOperation = 'destination-out'; poli(window.MUNDO_AGUA || []);
+    const px_ = g.getImageData(0, 0, MW, MH).data;
+    // 2) matriz de pontos + graticula
+    const cv = $('cv'); cv.width = MW; cv.height = MH;
+    const c = cv.getContext('2d');
+    c.strokeStyle = 'rgba(255,255,255,.07)'; c.lineWidth = 2;
+    for (let lo = -150; lo <= 150; lo += 30) { c.beginPath(); c.moveTo(X(lo), 0); c.lineTo(X(lo), MH); c.stroke(); }
+    for (let la = -30; la <= 60; la += 30) { c.beginPath(); c.moveTo(0, Y(la)); c.lineTo(MW, Y(la)); c.stroke(); }
+    const passo = 1.25 * K, r = 3.5;
+    c.fillStyle = 'rgba(200,222,245,.62)';
+    c.beginPath();
+    for (let y = passo / 2; y < MH; y += passo) {
+      for (let x = passo / 2; x < MW; x += passo) {
+        if (px_[(Math.floor(y) * MW + Math.floor(x)) * 4 + 3] > 127) { c.moveTo(x + r, y); c.arc(x, y, r, 0, Math.PI * 2); }
+      }
+    }
+    c.fill();
+  }
+
+  function camera(t) {
+    const k = BC.eio(BC.lin(t, T_ZI, T_ZF));
+    const s0 = W / MW;
+    const s = s0 * Math.pow(S1 / s0, k);
+    const cx = MW / 2 + (px - MW / 2) * k, cy = MH / 2 + (py - MH / 2) * k;
+    let tx = W / 2 - cx * s, ty = H / 2 - cy * s;
+    // mantem o mapa cobrindo a janela quando possivel
+    if (MW * s >= W) tx = BC.clamp(tx, W - MW * s, 0);
+    if (MH * s >= H) ty = BC.clamp(ty, H - MH * s, 0); else ty = (H - MH * s) / 2;
+    return { s, tx, ty };
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4800;
+    const lat = Number(d.lat), lon = Number(d.lon);
+    px = X(isFinite(lon) ? lon : 0); py = Y(isFinite(lat) ? BC.clamp(lat, LAT1, LAT0) : 0);
+    $('tag').textContent = BC.rot(d, 'lugar');
+    const nome = BC.txt(d.nome || d.lugar || d.texto);
+    BC.caberTexto($('nome'), nome, 54, 32, 520, 0);
+    const f = (v, pos, neg) => `${Math.abs(v).toFixed(1).replace('.', (d.idioma === 'en' ? '.' : ','))}° ${v >= 0 ? pos : neg}`;
+    $('coord').textContent = (isFinite(lat) && isFinite(lon)) ? `${f(lat, 'N', 'S')}  ·  ${f(lon, 'E', 'W')}` : '';
+    if (!$('coord').textContent) $('coord').style.display = 'none';
+    desenhar();
+    T_ZF = Math.min(1500, DUR * 0.34); T_PT = T_ZF - 100;
+    const cam = camera(DUR);
+    const sx = cam.tx + px * cam.s;
+    esq = sx > W * 0.55;          // rotulo do lado com mais espaco
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'mapa.ponto', ms: Math.round(T_PT) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('tagw'), BC.eo(BC.lin(t, 0, 280)), BC.ei(BC.lin(-S, -280, -80)), 20);
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 60, 520)), BC.ei(BC.lin(-S, -380, -20)), 80);
+    const cam = camera(t);
+    $('cv').style.transform = `translate(${cam.tx.toFixed(2)}px, ${cam.ty.toFixed(2)}px) scale(${cam.s.toFixed(5)})`;
+    const sx = cam.tx + px * cam.s, sy = cam.ty + py * cam.s;
+    const kp = BC.lin(t, T_PT, T_PT + 260);
+    const pp = BC.back(kp);
+    const posiciona = (el) => { el.style.left = sx.toFixed(1) + 'px'; el.style.top = sy.toFixed(1) + 'px'; };
+    ['ponto', 'brilho', 'a1', 'a2'].forEach((id) => posiciona($(id)));
+    $('ponto').style.transform = `scale(${Math.max(0, pp).toFixed(4)})`;
+    $('brilho').style.opacity = String(BC.eo(BC.lin(t, T_PT - 200, T_PT + 400)));
+    // aneis: pulso periodico (900 ms), defasados
+    [['a1', 0], ['a2', 450]].forEach(([id, off]) => {
+      const tt = t - T_PT - 120 - off;
+      const f = tt < 0 ? -1 : (tt % 900) / 900;
+      const e = $(id);
+      e.style.opacity = f < 0 ? '0' : ((1 - f) * 0.9).toFixed(3);
+      e.style.transform = `scale(${(0.2 + 1.3 * f).toFixed(4)})`;
+    });
+    // haste + rotulo
+    const kr = BC.eo(BC.lin(t, T_PT + 180, T_PT + 520));
+    const sr = BC.ei(BC.lin(-S, -420, -160));
+    const L = 90, ang = esq ? -135 : -45;
+    const h = $('haste');
+    h.style.left = sx + 'px'; h.style.top = sy + 'px'; h.style.width = L + 'px';
+    h.style.transform = `rotate(${ang}deg) scaleX(${(kr * (1 - sr)).toFixed(4)})`;
+    const ex = sx + Math.cos(ang * Math.PI / 180) * L, ey = sy + Math.sin(ang * Math.PI / 180) * L;
+    const rw = $('rotw');
+    const rr = $('rot').getBoundingClientRect();
+    rw.style.left = BC.clamp(esq ? ex - rr.width : ex, 10, W - rr.width - 10) + 'px';
+    rw.style.top = BC.clamp(ey - rr.height + 3, 10, H - rr.height - 10) + 'px';
+    if (esq) $('rot').style.alignItems = 'flex-end';
+    BC.wipe(rw, BC.eo(BC.lin(t, T_PT + 380, T_PT + 760)), sr, 30);
+  };
+})();
+</script>
+</body>
+</html>

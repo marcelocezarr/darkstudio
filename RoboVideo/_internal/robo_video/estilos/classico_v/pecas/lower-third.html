@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / lower-third (fatos: pessoa, lugar, item): discreto no canto inferior esquerdo.
+     Rotulo minusculo pessego + nome branco-creme bold com sombra. Sem caixa, sem escurecer. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #bloco { position: absolute; left: 150px; bottom: 170px; opacity: 0; }
+  #rot { font-family: var(--fonte-texto); font-weight: 600; font-size: 26px; letter-spacing: .06em;
+         text-transform: uppercase; color: var(--acento); margin: 0 0 8px 3px; line-height: 1; }
+  #nome { font-size: 72px; line-height: 1.06; }
+</style>
+</head>
+<body>
+<div id="bloco"><div id="rot" class="sombra"></div><div id="nome" class="bold sombra"></div></div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, $ = (s) => document.querySelector(s);
+  const bloco = $('#bloco'), rot = $('#rot'), nome = $('#nome');
+  let DUR = 3600;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3600;
+    const tipo = C.txt(d.tipo_item);
+    const r = C.txt(d.rotulo) || (tipo ? C.rot(d, tipo, '') : '');
+    rot.textContent = r;
+    rot.style.display = r ? '' : 'none';
+    nome.textContent = C.txt(d.nome || d.texto);
+    C.caber(nome, 1100, 160, 72, 44);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    // entrada mais rapida (220 ms) que a saida (350 ms): o nome fica legivel
+    // quase de imediato em vez de passar boa parte do inicio do card apagado
+    // (a saida continua suave). O rotulo acompanha, um pouco atras do nome.
+    const e = C.envelope(t, DUR, 220, 350);
+    bloco.style.opacity = String(e);
+    rot.style.opacity = String(C.sai(C.fase(t, 80, 260)));
+  };
+})();
+</script>
+</body>
+</html>

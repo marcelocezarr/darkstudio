@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: numero-impacto. Footage escurecido, numero grande vermelho (sans condensada)
+     no centro e rotulo datilografado espacado em creme logo abaixo (ref.: "8 / YEARS OF BATTERY WARRANTY"). -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #bloco { position: absolute; left: 192px; right: 192px; top: 0; height: 1080px; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; padding-top: 40px; }
+  #num { color: var(--vermelho); font-size: 262px; font-stretch: 87.5%; line-height: .82; white-space: nowrap; font-variant-numeric: tabular-nums;
+         text-shadow: 0 3px 14px rgba(0, 0, 0, .25); opacity: 0; }
+  #rot { margin-top: 0; -webkit-text-stroke: .9px currentColor; color: #efeae0; font-size: 35px; letter-spacing: .28em; text-align: center; max-width: 1400px;
+         line-height: 1.3; opacity: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, .35); padding-left: .28em; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="bloco"><div id="num" class="condensada"></div><div id="rot" class="maquina"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), num = document.getElementById('num'), rot = document.getElementById('rot');
+  let d = {}, DUR = 3600, alvo = 0, ehAno = false, conta = false, T_NUM = 160, T_ROT = 700;
+
+  function formatar(v) {
+    const dec = Number(d.decimais) || 0;
+    let [int, fr] = Math.abs(v).toFixed(dec).split('.');
+    if (!ehAno) int = int.replace(/\B(?=(\d{3})+(?!\d))/g, d.separador_milhar == null ? '.' : d.separador_milhar);
+    const s = fr ? int + (d.separador_decimal || ',') + fr : int;
+    return (v < 0 ? '-' : '') + (d.prefixo || '') + s + (d.sufixo || '');
+  }
+
+  window.montar = function (dados) {
+    d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 3600;
+    alvo = Number(d.numero) || 0;
+    ehAno = d.subtipo === 'ano' || (!!d.ano && Number.isInteger(alvo) && alvo > 1000 && alvo < 2200);
+    conta = !ehAno && Math.abs(alvo) >= 20;   // numeros pequenos entram direto (como na referencia)
+    num.textContent = formatar(alvo);
+    V.caberLinha(num, 262, 120, 1500);
+    num.style.minWidth = num.getBoundingClientRect().width + 'px';
+    num.style.textAlign = 'center';
+    const r = V.semPonto(d.legenda) || V.txt(d.unidade) || V.rot(d, 'numero');
+    rot.textContent = r;
+    V.caber(rot, 34, 24, 100);
+    T_ROT = Math.min(700, DUR * 0.2);
+    window.eventos = [{ evento: 'numero.impacto', ms: T_NUM }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 360);
+    esc.style.opacity = String(0.58 * V.eo(V.seg(t, 0, 220)) * s);
+    const kn = V.seg(t, T_NUM, 260);
+    num.style.opacity = String(V.eo(kn) * s);
+    num.style.transform = `scale(${(1.06 - 0.06 * V.eo(kn)).toFixed(4)})`;
+    if (conta) num.textContent = formatar(alvo * V.eo(V.seg(t, T_NUM, 700)));
+    const kr = V.seg(t, T_ROT, 320);
+    rot.style.opacity = String(V.eo(kr) * s);
+  };
+})();
+</script>
+</body>
+</html>

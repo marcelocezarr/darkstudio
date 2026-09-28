@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / barras (fatos: percentual). Grafico de barras horizontal com grade.
+     Um percentual -> barra do valor sobre trilho de 100%. Se vier dados.barras
+     [{rotulo, valor}] (2..5), desenha uma barra por item (escala pelo maior). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #card { position: absolute; right: 192px; top: 180px; width: 860px; }
+  #tagw { margin-left: 30px; margin-bottom: -1px; }
+  #p { padding: 30px 56px 30px 60px; }
+  #cab { display: flex; align-items: center; gap: 34px; margin-bottom: 28px; }
+  #big { font-weight: 700; font-size: 150px; line-height: .9; white-space: nowrap; flex: none; }
+  #big small { font-size: .5em; color: var(--acento); margin-left: 4px; font-weight: 600; }
+  #tit { font-weight: 600; font-size: 44px; line-height: 1.12; max-width: 740px; }
+  #graf { position: relative; width: 740px; padding-bottom: 38px; }
+  .grade { position: absolute; top: 0; bottom: 38px; width: 2px; background: rgba(255,255,255,.14); }
+  .grade span { position: absolute; bottom: -38px; transform: translateX(-50%); font-size: 24px; color: var(--texto2);
+                font-weight: 600; white-space: nowrap; }
+  .grade.zero { background: rgba(255,255,255,.55); }
+  .linha { position: relative; margin: 0 0 18px; }
+  .linha:last-of-type { margin-bottom: 14px; }
+  .rot { font-size: 28px; font-weight: 600; color: var(--texto2); text-transform: uppercase; letter-spacing: .06em;
+         margin-bottom: 6px; white-space: nowrap; }
+  .trilho { position: relative; height: 84px; background: rgba(255,255,255,.08); }
+  .enche { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--acento); transform-origin: left; }
+  .linha.sec .enche { background: rgba(255,255,255,.78); }
+  .val { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 700; font-size: 64px; line-height: 1;
+         white-space: nowrap; }
+  .val.dentro { color: var(--navy); }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="tagw"><div id="tag" class="tag"></div></div>
+  <div id="pw"><div id="p" class="painel-a corte-e sombra">
+    <div id="cab"><div id="big" class="num-tab"></div><div id="tit"></div></div>
+    <div id="graf"></div>
+  </div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, unica = true, DUR = 4200, linhas = [], T0 = 420, TC = 1100, escala = 100, pct = true;
+
+  function fmtVal(v) {
+    return pct ? BC.fmt({ ...d, ano: false }, v) + '%' : (BC.txt(d.prefixo) + BC.fmt({ ...d, ano: false }, v) + (d.sufixo || ''));
+  }
+
+  window.montar = function (dados) {
+    d = dados || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4200;
+    $('tag').textContent = BC.rot(d, 'dados');
+    const tit = BC.txt(d.legenda) || BC.txt(d.titulo);
+    let series = Array.isArray(d.barras) ? d.barras.filter((b) => b && isFinite(Number(b.valor))).slice(0, 5) : [];
+    const v = Number(d.percentual != null ? d.percentual : d.numero) || 0;
+    pct = series.length ? !!d.pct : true;
+    unica = !series.length;
+    if (unica) series = [{ rotulo: '', valor: v, principal: true }];
+    $('big').style.display = unica ? '' : 'none';
+    if (unica) { $('big').innerHTML = fmtVal(v).replace(/%$/, '') + '<small>%</small>'; BC.caber($('big'), 150, 80, 330, 0); $('big').style.minWidth = $('big').getBoundingClientRect().width + 'px'; }
+    const largTit = unica ? 740 - $('big').getBoundingClientRect().width - 34 : 740;
+    $('tit').style.display = tit ? '' : 'none';
+    if (tit) BC.caberTexto($('tit'), tit, 44, 28, largTit, 3 * 44 * 1.12 + 2);
+    if (!tit && !unica) $('cab').style.display = 'none';
+    const maior = Math.max(...series.map((s) => Math.abs(Number(s.valor))), 1);
+    escala = pct && maior <= 100 ? 100 : Math.ceil(maior / Math.pow(10, Math.floor(Math.log10(maior)))) * Math.pow(10, Math.floor(Math.log10(maior)));
+    const g = $('graf');
+    g.innerHTML = '';
+    for (let i = 0; i <= 4; i++) {
+      const e = document.createElement('div'); e.className = 'grade' + (i === 0 ? ' zero' : '');
+      e.style.left = (i * 25) + '%';
+      const s = document.createElement('span'); s.textContent = BC.fmt({ ...d, ano: false }, escala * i / 4, 0) + (pct && i === 4 ? '%' : '');
+      e.appendChild(s); g.appendChild(e);
+    }
+    const alto = series.length === 1 ? 84 : series.length <= 3 ? 64 : 48;
+    linhas = series.map((s, i) => {
+      const l = document.createElement('div'); l.className = 'linha' + (i > 0 && !s.principal && series.length > 1 && i !== 0 ? ' sec' : '');
+      if (BC.txt(s.rotulo)) { const r = document.createElement('div'); r.className = 'rot'; r.textContent = BC.encurtar(s.rotulo, 40); l.appendChild(r); }
+      const tr = document.createElement('div'); tr.className = 'trilho'; tr.style.height = alto + 'px';
+      const en = document.createElement('div'); en.className = 'enche';
+      const va = document.createElement('div'); va.className = 'val num-tab'; va.style.fontSize = Math.round(alto * 0.74) + 'px';
+      tr.appendChild(en); tr.appendChild(va); l.appendChild(tr); g.appendChild(l);
+      return { l, en, va, alvo: Number(s.valor), frac: BC.clamp(Math.abs(Number(s.valor)) / escala) };
+    });
+    // valor final medido para decidir se o rotulo cabe fora da barra
+    linhas.forEach((o) => {
+      o.va.textContent = fmtVal(o.alvo);
+      if (unica) o.va.style.display = 'none';
+      const w = o.va.getBoundingClientRect().width;
+      o.w = w;
+      o.fora = o.frac * 740 + 16 + w <= 740;
+      o.dentro = !o.fora && o.frac * 740 >= w + 32;
+      if (o.dentro) o.va.classList.add('dentro');
+    });
+    T0 = 420; TC = Math.min(1200, DUR * 0.33);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'barra.enche', ms: T0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('tagw'), BC.eo(BC.lin(t, 0, 280)), BC.ei(BC.lin(-S, -280, -80)), 20);
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 60, 480)), BC.ei(BC.lin(-S, -380, -20)));
+    if (unica && linhas[0]) {
+      const k0 = BC.eio(BC.lin(t, T0, T0 + TC));
+      $('big').firstChild.textContent = fmtVal(linhas[0].alvo * k0).replace(/%$/, '');
+    }
+    linhas.forEach((o, i) => {
+      const k = BC.eio(BC.lin(t, T0 + i * 140, T0 + i * 140 + TC));
+      const f = o.frac * k;
+      o.en.style.transform = `scaleX(${f.toFixed(4)})`;
+      o.va.textContent = fmtVal(o.alvo * k);
+      const x = f * 740;
+      if (o.dentro) { o.va.style.left = ''; o.va.style.right = (740 - x + 18) + 'px'; }
+      else { o.va.style.right = ''; o.va.style.left = (x + 16) + 'px'; }
+      const op = o.dentro ? BC.clamp((x - o.w - 32) / 60) : BC.lin(t, T0 + i * 140, T0 + i * 140 + 200);
+      o.va.style.opacity = String(op);
+    });
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / mapa (fatos: lugar com lat/lon; camada principal sobre o footage).
+     Referencia: footage escurecido (mais forte a esquerda); CONTORNO do pais desenhado em linha dourada
+     brilhante (traco que se desenha a partir do norte), a direita o rotulo pequeno "THE PLACE" em sans
+     dourado espacado, o nome grande serifado ("Britain") e um fio dourado que cresce embaixo.
+     Contornos simplificados proprios em comum/contornos.js; lugar fora deles -> mapa-mundi (terra.js)
+     recortado em volta do ponto, com ponto dourado. Cidade dentro de um pais conhecido -> contorno + ponto. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  /* veu desenhado num canvas pequeno ampliado (gradiente CSS vem com dithering -> PNG pesado) */
+  #veu { background: none; }
+  #veuCv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #mapa { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+  #zoom { transform-box: view-box; }
+  .contorno { fill: none; stroke: var(--acento-claro); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+  .brilho { fill: none; stroke: #f0b545; stroke-width: 12; stroke-linejoin: round; stroke-linecap: round; opacity: .2; }
+  .preench { fill: rgba(6,7,10,.28); stroke: none; }
+  .mundo { fill: none; stroke: var(--acento-claro); stroke-width: 2.6; stroke-linejoin: round; opacity: .8; }
+  #texto { position: absolute; left: 896px; top: 0; }
+  #lugar { position: absolute; left: 0; top: 340px; color: #d6a74c; font-size: 35px; font-weight: 500; letter-spacing: .3em; opacity: 0; }
+  #nome { position: absolute; left: -4px; top: 0; font-family: var(--fonte-titulo); font-weight: 600; color: var(--texto);
+          font-size: 112px; letter-spacing: .015em; line-height: 1; white-space: nowrap; opacity: 0; }
+  #fio { position: absolute; left: 0; top: 569px; height: 2px; width: 420px; transform: scaleX(0); }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"><canvas id="veuCv" width="48" height="27"></canvas></div>
+<svg id="mapa" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="gPonto"><stop offset="0" stop-color="#f3c566" stop-opacity=".9"/><stop offset="1" stop-color="#f3c566" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gMasc"><stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+    <mask id="recorte" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect id="recRect" x="0" y="0" width="0" height="0" fill="url(#gMasc)"/></mask>
+  </defs>
+  <g id="zoom">
+    <g id="gMundo" mask="url(#recorte)"></g>
+    <g id="gPreench"></g>
+    <g id="gBrilho"></g>
+    <g id="gTraco"></g>
+    <g id="gPino"></g>
+  </g>
+</svg>
+<div id="texto">
+  <div id="lugar" class="rotulo"></div>
+  <div id="nome"></div>
+  <div id="fio" class="fio"></div>
+</div>
+<script src="../comum/cv.js"></script>
+<script src="../comum/contornos.js"></script>
+<script src="../comum/terra.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const veu = $('#veu'), lugar = $('#lugar'), nome = $('#nome'), fio = $('#fio'), zoom = $('#zoom');
+  let DUR = 5000, tracos = [], preench = [], mundo = [], ponto = null, halo = null, cxZ = 520, cyZ = 512;
+
+  const el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+
+  function dentro(lon, lat, poli) {             // ponto no poligono (ray casting)
+    let r = false;
+    for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) {
+      const [xi, yi] = poli[i], [xj, yj] = poli[j];
+      if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) r = !r;
+    }
+    return r;
+  }
+
+  function acharPais(d) {
+    const cands = [d.nome, d.lugar, d.texto].map(C.norm).filter(Boolean);
+    for (const k in window.CONTORNOS) {
+      const nomes = window.CONTORNOS[k].nomes.split('|').map(C.norm);
+      // nome igual, ou nome que CONTEM o nome do pais como palavras ("verenigde staten van amerika")
+      const bate = (c) => nomes.some((n) => n === c || (n.length >= 4 && (' ' + c + ' ').includes(' ' + n + ' ')));
+      if (cands.some(bate)) return { pais: window.CONTORNOS[k], cidade: false };
+    }
+    const lat = Number(d.lat), lon = Number(d.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    for (const k in window.CONTORNOS) {
+      const p = window.CONTORNOS[k];
+      if (p.polis.some((pl) => dentro(lon, lat, pl))) return { pais: p, cidade: true };
+    }
+    return null;
+  }
+
+  /* comeca cada poligono no vertice mais ao norte (o traco "desce" como na referencia) */
+  function doNorte(pl) {
+    let k = 0;
+    pl.forEach((p, i) => { if (p[1] > pl[k][1]) k = i; });
+    return pl.slice(k).concat(pl.slice(0, k));
+  }
+
+  /* recorte de costa: subdivide cada segmento (em px) com deslocamento perpendicular pseudo-aleatorio
+     deterministico (hash das coordenadas) -> linha "recortada" como a da referencia, nao poligonal */
+  function hash(x, y) { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v); }
+  function recorta(a, b, nivel, out) {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (nivel <= 0 || L < 7) { out.push(b); return; }
+    const h = hash(a[0] + b[0] * 0.37, a[1] - b[1] * 0.61) - 0.5;
+    const nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L, amp = h * Math.min(L * 0.3, 20);
+    const m = [(a[0] + b[0]) / 2 + nx * amp, (a[1] + b[1]) / 2 + ny * amp];
+    recorta(a, m, nivel - 1, out); recorta(m, b, nivel - 1, out);
+  }
+  function caminho(pl, pj, detalhe = 3) {
+    const pts = pl.map((p) => pj(p[0], p[1])), out = [pts[0]];
+    for (let i = 0; i < pts.length; i++) recorta(pts[i], pts[(i + 1) % pts.length], detalhe, out);
+    return out.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('') + 'Z';
+  }
+
+  /* medido na referencia (quadro antes/depois): escurece ~65% a esquerda, ~35% no meio, quase nada a direita,
+     um pouco mais embaixo */
+  function pintarVeu() {
+    const cv = $('#veuCv'), g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const pontos = [[0, .7], [.14, .66], [.3, .55], [.5, .38], [.63, .22], [.75, .13], [.94, .05], [1, .05]];
+    const alfaX = (u) => { for (let i = 1; i < pontos.length; i++) if (u <= pontos[i][0]) {
+      const [a0, v0] = pontos[i - 1], [a1, v1] = pontos[i]; return v0 + (v1 - v0) * (u - a0) / (a1 - a0); } return .05; };
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = y / (H - 1), a = alfaX(x / (W - 1)), extra = Math.max(0, (v - .6) / .4) * .22;
+      g.fillStyle = `rgba(8,10,14,${Math.min(.85, a + extra * (1 - a)).toFixed(3)})`;
+      g.fillRect(x, y, 1, 1);
+    }
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    pintarVeu();
+    DUR = d.dur_ms || 5000;
+    const lat = Number(d.lat), lon = Number(d.lon);
+    const achado = acharPais(d);
+    let polis, cidade = false;
+    if (achado) { polis = achado.pais.polis.map(doNorte); cidade = achado.cidade; }
+
+    // --- enquadramento: caixa do mapa a esquerda (referencia: Reino Unido em x 350..690, y 194..830)
+    let lon0, lon1, lat0, lat1;
+    if (polis) {
+      lon0 = Infinity; lon1 = -Infinity; lat0 = Infinity; lat1 = -Infinity;
+      polis.forEach((pl) => pl.forEach(([x, y]) => { lon0 = Math.min(lon0, x); lon1 = Math.max(lon1, x); lat0 = Math.min(lat0, y); lat1 = Math.max(lat1, y); }));
+    } else {                                     // mundo recortado em volta do ponto
+      const la = Number.isFinite(lat) ? lat : 0, lo = Number.isFinite(lon) ? lon : 0;
+      lat0 = Math.max(-60, la - 16); lat1 = Math.min(80, la + 16); lon0 = lo - 30; lon1 = lo + 30;
+    }
+    const latc = (lat0 + lat1) / 2, kx = Math.cos(latc * Math.PI / 180);
+    const wG = (lon1 - lon0) * kx, hG = lat1 - lat0;
+    const MAXW = polis ? 700 : 760, MAXH = 636;
+    const esc = Math.min(MAXW / wG, MAXH / hG);
+    const W = wG * esc, H = hG * esc;
+    const left = Math.max(130, 520 - W / 2), top = 512 - H / 2;
+    const pj = (x, y) => [left + (x - lon0) * kx * esc, top + (lat1 - y) * esc];
+    cxZ = left + W / 2; cyZ = 512;
+
+    const gT = $('#gTraco'), gB = $('#gBrilho'), gP = $('#gPreench'), gM = $('#gMundo');
+    if (polis) {
+      polis.forEach((pl) => {
+        const dd = caminho(pl, pj);
+        const p = el('path', { d: dd, class: 'contorno', pathLength: '1', 'stroke-dasharray': '0 1' });
+        const b = el('path', { d: dd, class: 'brilho', pathLength: '1', 'stroke-dasharray': '0 1' });
+        const f = el('path', { d: dd, class: 'preench', opacity: '0' });
+        gP.appendChild(f); gB.appendChild(b); gT.appendChild(p);
+        tracos.push(p, b); preench.push(f);
+      });
+    } else {
+      const r = $('#recRect');
+      r.setAttribute('x', left); r.setAttribute('y', top); r.setAttribute('width', W); r.setAttribute('height', H);
+      const rx0 = lon0 - 5, rx1 = lon1 + 5, ry0 = lat0 - 5, ry1 = lat1 + 5;
+      (window.TERRA || []).forEach((pl) => {
+        if (!pl.some(([x, y]) => x >= rx0 && x <= rx1 && y >= ry0 && y <= ry1)) return;
+        const dd = caminho(pl, pj, 1);
+        const p = el('path', { d: dd, class: 'mundo', pathLength: '1', 'stroke-dasharray': '1 1', 'stroke-dashoffset': '1' });
+        gM.appendChild(p); mundo.push(p);
+      });
+      // borda suave do recorte (vinheta nas bordas do mapa)
+      cidade = true;
+    }
+    if (cidade && Number.isFinite(lat) && Number.isFinite(lon)) {
+      const [px, py] = pj(lon, lat);
+      halo = el('circle', { cx: px, cy: py, r: 34, fill: 'url(#gPonto)', opacity: 0 });
+      ponto = el('circle', { cx: px, cy: py, r: 9, fill: '#f3c566', stroke: 'rgba(10,10,12,.8)', 'stroke-width': 2, opacity: 0 });
+      $("#gPino").append(halo, ponto);
+    }
+
+    // --- texto a direita do mapa
+    const tx = Math.max(896, left + W + 190);
+    $('#texto').style.left = tx + 'px';
+    const rot = C.rot(d, 'cinema_v_o_lugar') || C.txt(d.rotulo);
+    lugar.textContent = rot;
+    lugar.style.display = rot ? '' : 'none';
+    nome.textContent = C.txt(d.nome || d.lugar || d.texto);
+    const maxW = 1920 - 150 - tx;
+    const s = C.caberLinha(nome, maxW, 112, 52, 2);
+    // topo do nome fixo (linha de base em y~514 no tamanho cheio, como na referencia); fio logo abaixo
+    nome.style.top = '424px';
+    fio.style.top = (424 + s + 33) + 'px';
+    fio.style.width = Math.min(maxW, Math.max(300, nome.getBoundingClientRect().width * 1.17)) + 'px';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'rota.traca', ms: 200 }, { evento: 'tique', ms: 1050 }];
+  };
+
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.2)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 500)), sai));
+    // traco se desenha (0,15 s -> 1,45 s), depois o preenchimento escuro
+    // o traco sai do ponto mais ao norte e desce pelos DOIS lados ao mesmo tempo (como na referencia)
+    const kd = C.io(C.fase(t, 80, 1050)), a = (kd / 2).toFixed(4), gap = Math.max(0, 1 - kd).toFixed(4);
+    tracos.forEach((p) => { p.setAttribute('stroke-dasharray', `${a} ${gap} ${a} 0`); });
+    mundo.forEach((p) => { p.setAttribute('stroke-dashoffset', (1 - kd).toFixed(4)); });
+    const kf = C.suave(C.fase(t, 1100, 700));
+    preench.forEach((f) => f.setAttribute('opacity', kf.toFixed(3)));
+    const zs = 1 + 0.025 * C.fase(t, 0, DUR);
+    zoom.style.opacity = String(Math.min(sai, C.fase(t, 80, 120)));
+    zoom.setAttribute('transform', `translate(${cxZ} ${cyZ}) scale(${zs.toFixed(5)}) translate(${-cxZ} ${-cyZ})`);
+    if (ponto) {
+      const kp = C.sai(C.fase(t, 1200, 500));
+      ponto.setAttribute('opacity', kp.toFixed(3));
+      const pul = 0.5 + 0.5 * Math.sin(Math.max(0, t - 1200) / 260);
+      halo.setAttribute('opacity', (kp * (0.55 + 0.35 * pul)).toFixed(3));
+    }
+    C.revela(lugar, Math.min(C.sai(C.fase(t, 250, 700)), sai), 8, 4);
+    C.revela(nome, Math.min(C.sai(C.fase(t, 950, 750)), sai), 14, 7);
+    const kl = C.io(C.fase(t, 1250, 900));
+    fio.style.transform = `scaleX(${kl.toFixed(4)})`;
+    fio.style.opacity = String(sai);
+  };
+})();
+</script>
+</body>
+</html>

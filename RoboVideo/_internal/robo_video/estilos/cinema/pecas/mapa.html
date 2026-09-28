@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / mapa-mundi e mapa-rota (fatos: lugar, camada FUNDO): mapa escuro minimalista
+     (terra pontilhada + contorno fino + graticula), camera aproxima devagar, pino dourado com
+     rotulo em versalete. Com origem_lat/origem_lon desenha a rota em arco entre os dois pontos.
+     Contornos simplificados em comum/terra.js (sem dados externos). -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  body { background: #0a0b0d; }
+  #mapa { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #terra { position: absolute; transform-origin: 50% 50%; }
+  #vinheta { position: absolute; inset: 0; pointer-events: none;
+             background: radial-gradient(ellipse 72% 72% at 50% 50%, rgba(10,11,13,0) 40%, rgba(6,6,8,.72) 85%, rgba(3,3,4,.95) 100%); }
+  .marca { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 18px; white-space: nowrap; }
+  .marca.esq { flex-direction: row-reverse; text-align: right; }
+  .marca .haste { width: 46px; height: 1px; background: var(--acento); transform-origin: left center; }
+  .marca.esq .haste { transform-origin: right center; }
+  .marca .r { font-size: 19px; letter-spacing: .42em; margin-bottom: 12px; }
+  .marca.esq .r { margin-right: -.42em; }
+  .marca .n { font-family: var(--fonte-titulo); color: var(--texto); font-size: 54px; line-height: 1.05; }
+  .marca .c { font-family: var(--fonte-numero); color: var(--suave); font-size: 22px; letter-spacing: .12em;
+              margin-top: 12px; font-variant-numeric: lining-nums; }
+  .marca.menor .n { font-size: 36px; }
+</style>
+</head>
+<body>
+<canvas id="terra"></canvas>
+<svg id="mapa" viewBox="0 0 100 56.25" preserveAspectRatio="xMidYMid slice">
+  <path id="rota" fill="none" stroke-linecap="round"/>
+  <g id="pinos"></g>
+</svg>
+<div id="vinheta"></div>
+<div id="marcas"></div>
+<script src="../comum/cine.js"></script>
+<script src="../comum/terra.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = $('#mapa'), rota = $('#rota'), terraCv = $('#terra');
+  let DUR = 4500, cx = 0, cy = 0, W = 64, H = 64 * 9 / 16, c = 1, u = 1, pinos = [], marcas = [], temRota = false,
+      lenRota = 0, T_ROTA = 900, D_ROTA = 1600;
+
+  const el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+  const proj = (lon, lat) => [lon * c, -lat];
+
+  function coordTxt(lat, lon, idioma) {
+    const dec = (v) => Math.abs(v).toFixed(2).replace('.', idioma === 'en' ? '.' : ',');
+    return `${dec(lat)}° ${lat >= 0 ? 'N' : 'S'}   ${dec(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
+  }
+
+  function marca(nome, rotulo, coords, menor) {
+    const m = document.createElement('div');
+    m.className = 'marca' + (menor ? ' menor' : '');
+    m.innerHTML = '<div class="haste"></div><div class="tx"><div class="r versal"></div><div class="n sombra"></div><div class="c"></div></div>';
+    m.querySelector('.r').textContent = rotulo;
+    m.querySelector('.r').style.display = rotulo ? '' : 'none';
+    m.querySelector('.n').textContent = nome;
+    m.querySelector('.c').textContent = coords;
+    m.querySelector('.c').style.display = coords ? '' : 'none';
+    $('#marcas').appendChild(m);
+    const n = m.querySelector('.n');
+    let s = menor ? 36 : 54;
+    while (s > 24 && n.getBoundingClientRect().width > 620) { s -= 2; n.style.fontSize = s + 'px'; }
+    return m;
+  }
+
+  const Z0 = 1.32;                                     // zoom inicial da camera
+  function desenharTerra() {
+    const cv = $('#terra'), CW = Math.ceil(1920 * Z0), CH = Math.ceil(1080 * Z0);
+    cv.width = CW; cv.height = CH;
+    cv.style.left = ((1920 - CW) / 2) + 'px'; cv.style.top = ((1080 - CH) / 2) + 'px';
+    const g = cv.getContext('2d');
+    const ox = cx - (CW * u) / 2, oy = cy - (CH * u) / 2;
+    const px = (lon, lat) => { const [x, y] = proj(lon, lat); return [(x - ox) / u, (y - oy) / u]; };
+    // graticula a cada 10 graus
+    g.strokeStyle = 'rgba(226,214,190,.06)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let lo = -180; lo <= 180; lo += 10) { const [x] = px(lo, 0); if (x > -2 && x < CW + 2) { g.moveTo(x, 0); g.lineTo(x, CH); } }
+    for (let la = -80; la <= 80; la += 10) { const [, y] = px(0, la); if (y > -2 && y < CH + 2) { g.moveTo(0, y); g.lineTo(CW, y); } }
+    g.stroke();
+    // contornos suavizados (Catmull-Rom fechado -> Bezier)
+    const terra = new Path2D();
+    for (const poly of window.TERRA || []) {
+      const P = poly.map(([lo, la]) => px(lo, la)), n = P.length;
+      terra.moveTo(P[0][0], P[0][1]);
+      for (let i = 0; i < n; i++) {
+        const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+        terra.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6,
+                            p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]);
+      }
+      terra.closePath();
+    }
+    g.fillStyle = 'rgba(226,214,190,.035)';
+    g.fill(terra);
+    // pontilhado so dentro da terra
+    const sp = 13, r = 2.3;
+    g.fillStyle = 'rgba(226,214,190,.42)';
+    g.beginPath();
+    for (let y = sp / 2; y < CH; y += sp) {
+      for (let x = sp / 2; x < CW; x += sp) {
+        if (g.isPointInPath(terra, x, y)) { g.moveTo(x + r, y); g.arc(x, y, r, 0, Math.PI * 2); }
+      }
+    }
+    g.fill();
+    g.strokeStyle = 'rgba(226,214,190,.2)'; g.lineWidth = 1.1; g.lineJoin = 'round';
+    g.stroke(terra);
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4500;
+    const lat = Number(d.lat), lon = Number(d.lon);
+    temRota = d.origem_lat != null && d.origem_lon != null && d.origem_lat !== '' && d.origem_lon !== '';
+    const olat = Number(d.origem_lat), olon = Number(d.origem_lon);
+    const lat0 = temRota ? (lat + olat) / 2 : lat;
+    c = Math.max(0.35, Math.cos(lat0 * Math.PI / 180));
+    const P = proj(lon, lat);
+    if (temRota) {
+      const O = proj(olon, olat);
+      const dx = Math.abs(P[0] - O[0]), dy = Math.abs(P[1] - O[1]);
+      W = Math.max(46, dx * 1.9, dy * 1.9 * 16 / 9);
+      cx = (P[0] + O[0]) / 2; cy = (P[1] + O[1]) / 2 - W * 0.02;
+    } else {
+      W = 64; cx = P[0] + W * 0.1; cy = P[1];
+    }
+    H = W * 9 / 16;
+    u = W / 1920;                                     // 1 px da tela (no enquadramento final) em unidades
+    desenharTerra();
+    // pinos e marcas
+    const pinosG = $('#pinos');
+    pinosG.innerHTML = '';
+    $('#marcas').innerHTML = '';
+    pinos = []; marcas = [];
+    const acento = getComputedStyle(document.documentElement).getPropertyValue('--acento').trim() || '#c9a45c';
+    const addPino = (x, y, tIn, grande) => {
+      const anel = el('circle', { cx: x, cy: y, r: 8 * u, fill: 'none', stroke: acento, 'stroke-width': 1.4 * u });
+      const nuc = el('circle', { cx: x, cy: y, r: (grande ? 7.5 : 5.5) * u, fill: acento });
+      const halo = el('circle', { cx: x, cy: y, r: (grande ? 16 : 11) * u, fill: acento, opacity: .18 });
+      pinosG.append(halo, anel, nuc);
+      pinos.push({ x, y, tIn, anel, nuc, halo });
+    };
+    const nomeD = C.txt(d.lugar || d.nome || d.texto);
+    if (temRota) {
+      const O = proj(olon, olat);
+      // arco: controle deslocado perpendicularmente (para o norte)
+      const mx = (O[0] + P[0]) / 2, my = (O[1] + P[1]) / 2;
+      let nx = -(P[1] - O[1]), ny = P[0] - O[0];
+      const L = Math.hypot(nx, ny) || 1;
+      nx /= L; ny /= L;
+      if (ny > 0) { nx = -nx; ny = -ny; }
+      const k = 0.22 * Math.hypot(P[0] - O[0], P[1] - O[1]);
+      rota.setAttribute('d', `M${O[0]} ${O[1]} Q${mx + nx * k} ${my + ny * k} ${P[0]} ${P[1]}`);
+      rota.setAttribute('stroke', acento);
+      rota.setAttribute('stroke-width', 2.2 * u);
+      lenRota = rota.getTotalLength();
+      rota.style.strokeDasharray = `${lenRota} ${lenRota}`;
+      D_ROTA = Math.min(1700, DUR * 0.38);
+      T_ROTA = Math.min(1000, DUR * 0.2);
+      addPino(O[0], O[1], T_ROTA - 350, false);
+      addPino(P[0], P[1], T_ROTA + D_ROTA - 150, true);
+      marcas.push({ m: marca(C.txt(d.origem), '', '', true), x: O[0], y: O[1], tIn: T_ROTA - 250 });
+      marcas.push({ m: marca(nomeD, C.rot(d, 'cinema_rota') || C.rot(d, 'lugar'), coordTxt(lat, lon, d.idioma), false),
+                    x: P[0], y: P[1], tIn: T_ROTA + D_ROTA });
+      // o rotulo da origem vai para o lado oposto do destino
+      marcas[0].lado = O[0] <= P[0] ? 'esq' : 'dir';
+      marcas[1].lado = O[0] <= P[0] ? 'dir' : 'esq';
+      window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'rota.traca', ms: Math.round(T_ROTA) },
+                        { evento: 'tique', ms: Math.round(T_ROTA + D_ROTA) }];
+    } else {
+      rota.setAttribute('d', '');
+      const tPin = Math.min(1250, DUR * 0.3);
+      addPino(P[0], P[1], tPin, true);
+      const r = C.txt(d.rotulo) || C.rot(d, 'lugar');
+      marcas.push({ m: marca(nomeD, r, coordTxt(lat, lon, d.idioma), false), x: P[0], y: P[1], tIn: tPin + 150, lado: 'dir' });
+      window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'tique', ms: Math.round(tPin) }];
+    }
+    marcas.forEach((mk) => {
+      mk.w = mk.m.getBoundingClientRect().width;
+      mk.h = mk.m.getBoundingClientRect().height;
+    });
+  };
+
+  // camera: aproxima de 1.32x para 1x (60% iniciais) e segue derivando devagar
+  function camera(t) {
+    const k = C.io(C.fase(t, 0, Math.min(2000, DUR * 0.55)));
+    const z = (1 + (Z0 - 1) * (1 - k)) * (1 - 0.025 * C.fase(t, 0, DUR));
+    return [cx - (W * z) / 2, cy - (H * z) / 2, W * z, H * z, z];
+  }
+
+  window.quadro = function (t) {
+    const [vx, vy, vw, vh, z] = camera(t);
+    terraCv.style.transform = `scale(${(1 / z).toFixed(5)})`;
+    terraCv.style.opacity = String(C.sai(C.fase(t, 0, 700)));
+    svg.setAttribute('viewBox', `${vx.toFixed(4)} ${vy.toFixed(4)} ${vw.toFixed(4)} ${vh.toFixed(4)}`);
+    const tela = (x, y) => [((x - vx) / vw) * 1920, ((y - vy) / vh) * 1080];
+    const saida = C.suave(C.fase(DUR - t, 0, Math.min(500, DUR * 0.12)));
+    svg.style.opacity = String(C.sai(C.fase(t, 0, 700)));
+    if (temRota) {
+      const k = C.io(C.fase(t, T_ROTA, D_ROTA));
+      rota.style.strokeDashoffset = String(lenRota * (1 - k));
+      rota.style.opacity = String(0.95 * saida);
+    }
+    pinos.forEach((p) => {
+      const k = C.sai(C.fase(t, p.tIn, 500));
+      p.nuc.style.opacity = String(k * saida);
+      p.halo.style.opacity = String(0.18 * k * saida);
+      // pulso periodico do anel (funcao pura de t)
+      const ciclo = ((Math.max(0, t - p.tIn)) % 1800) / 1800;
+      p.anel.setAttribute('r', ((8 + 30 * C.sai(ciclo)) * u * (vw / W)).toFixed(4));
+      p.anel.style.opacity = String((t < p.tIn ? 0 : (1 - ciclo) * 0.8) * saida);
+    });
+    marcas.forEach((mk) => {
+      const [sx, sy] = tela(mk.x, mk.y);
+      const k = C.sai(C.fase(t, mk.tIn, 700));
+      let esq = mk.lado === 'esq';
+      if (!esq && sx + 26 + mk.w > 1740) esq = true;
+      if (esq && sx - 26 - mk.w < 180) esq = false;
+      mk.m.classList.toggle('esq', esq);
+      const x = esq ? sx - 26 - mk.w : sx + 26;
+      const y = Math.max(170, Math.min(910 - mk.h, sy - mk.h / 2));
+      mk.m.style.transform = `translate(${(x + (1 - k) * (esq ? -12 : 12)).toFixed(2)}px, ${y.toFixed(2)}px)`;
+      mk.m.style.opacity = String(k * saida);
+      mk.m.querySelector('.haste').style.transform = `scaleX(${C.io(C.fase(t, mk.tIn - 100, 600)).toFixed(4)})`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

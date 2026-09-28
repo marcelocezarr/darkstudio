@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / comparacao (contrastes: versus, mas). Dois paineis que se encontram no
+     centro com corte diagonal; selo central com "VS" (rotulo) ou o conector falado ("MAS"). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #vs { position: absolute; left: 192px; right: 192px; top: 560px; height: 220px; }
+  .lado { position: absolute; top: 0; height: 100%; width: calc(50% + 30px); overflow: hidden; }
+  #la { left: 0; }
+  #lb { right: 0; }
+  .pan { position: absolute; inset: 0; display: flex; align-items: center; }
+  #pa { clip-path: polygon(0 0, 100% 0, calc(100% - 60px) 100%, 0 100%); padding: 0 120px 0 56px;
+        border-left: 12px solid var(--acento); }
+  #pb { clip-path: polygon(60px 0, 100% 0, 100% 100%, 0 100%); padding: 0 56px 0 120px; justify-content: flex-end;
+        background: var(--branco); color: var(--navy); border-right: 12px solid var(--acento); }
+  .t { font-weight: 700; font-size: 76px; line-height: 1.02; text-transform: uppercase; max-width: 100%; }
+  #tb { text-align: right; }
+  #selo { position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px;
+          display: flex; align-items: center; justify-content: center; }
+  #selo .fundo { position: absolute; inset: 0; background: var(--acento); transform: rotate(45deg) scale(.78);
+                 box-shadow: 0 10px 40px rgba(0,0,0,.4); border: 6px solid var(--navy); }
+  #selot { position: relative; color: var(--navy); font-weight: 700; font-size: 60px; line-height: 1;
+           text-transform: uppercase; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="vs">
+  <div class="lado" id="la"><div class="pan painel sombra" id="pa"><div class="t" id="ta"></div></div></div>
+  <div class="lado" id="lb"><div class="pan sombra" id="pb"><div class="t" id="tb"></div></div></div>
+  <div id="selo"><div class="fundo"></div><div id="selot"></div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 4200, T_CHOQUE = 460;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4200;
+    let a = BC.txt(d.a), b = BC.txt(d.b);
+    if (!a || !b) {
+      const partes = BC.txt(d.texto).split(/\s+(?:vs\.?|versus|x)\s+/i);
+      a = a || partes[0] || ''; b = b || partes[1] || '';
+    }
+    const larg = 1536 / 2 + 30 - 176 - 12;
+    BC.caberTexto($('ta'), a, 76, 40, larg, 2 * 76 * 1.02 + 4);
+    BC.caberTexto($('tb'), b, 76, 40, larg, 2 * 76 * 1.02 + 4);
+    // mesmo tamanho dos dois lados (o menor dos dois)
+    const fa = parseFloat($('ta').style.fontSize), fb = parseFloat($('tb').style.fontSize);
+    const f = Math.min(fa, fb);
+    if (fa !== f) BC.caberTexto($('ta'), a, f, 40, larg, 2 * f * 1.02 + 4);
+    if (fb !== f) BC.caberTexto($('tb'), b, f, 40, larg, 2 * f * 1.02 + 4);
+    const con = BC.txt(d.conector).toLowerCase();
+    const ehVs = !con || ['vs', 'vs.', 'versus', 'x', 'contra', 'tegen', 'gegen', 'contre'].includes(con);
+    $('selot').textContent = ehVs ? (BC.rot(d, 'versus') || 'VS') : con;
+    BC.caber($('selot'), 60, 26, 118, 0);
+    T_CHOQUE = Math.min(460, DUR * 0.22);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'versus.choque', ms: Math.round(T_CHOQUE) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const k = BC.expo(BC.lin(t, 0, T_CHOQUE));
+    const s = BC.ei(BC.lin(-S, -380, -40));
+    $('pa').style.transform = `translateX(${((-(1 - k) - s) * 105).toFixed(3)}%)`;
+    $('pb').style.transform = `translateX(${(((1 - k) + s) * 105).toFixed(3)}%)`;
+    const ks = BC.lin(t, T_CHOQUE - 60, T_CHOQUE + 260);
+    const ss = BC.ei(BC.lin(-S, -300, -140));
+    const esc = BC.back(ks) * (1 - ss);
+    $('selo').style.transform = `scale(${Math.max(0, esc).toFixed(4)})`;
+    const kt = BC.eo(BC.lin(t, T_CHOQUE - 100, T_CHOQUE + 300));
+    $('ta').style.opacity = $('tb').style.opacity = String(kt);
+  };
+})();
+</script>
+</body>
+</html>

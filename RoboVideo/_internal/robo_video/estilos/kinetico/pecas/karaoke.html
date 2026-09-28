@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / karaoke (karaoke): frase no terço inferior; cada palavra surge quando é dita e um
+     bloco de acento "pula" de palavra em palavra. A palavra de destaque fica maior e colorida. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #caixa { position: absolute; left: 210px; width: 1500px; bottom: 170px; }
+  #frase { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+           gap: .06em .26em; width: 1500px; font-family: var(--f-titulo); line-height: 1.08;
+           text-align: center; color: var(--texto); }
+  #cursor { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: var(--acento);
+            opacity: 0; will-change: transform, width, height; }
+  .w { position: relative; display: inline-block; white-space: nowrap; will-change: transform, opacity;
+       text-shadow: 0 .04em 0 rgba(0,0,0,.4), 0 .05em .25em rgba(0,0,0,.7); }
+  .w.destaque { color: var(--acento); }
+  .w.ativo { color: var(--tinta); text-shadow: none; }
+</style>
+</head>
+<body>
+<div id="caixa"><div id="frase"><div id="cursor"></div></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const frase = document.getElementById('frase'), cursor = document.getElementById('cursor');
+  let d = {}, DUR = 4000, ws = [], ent = [], rects = [], dest = -1, FS = 100;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4000;
+    const palavras = K.palavrasDe(d.texto);
+    ws.forEach((s) => s.remove());
+    // limpar qualquer nó de texto residual que possa causar desalinhamento
+    while (frase.firstChild && frase.firstChild.nodeType === Node.TEXT_NODE) {
+      frase.removeChild(frase.firstChild);
+    }
+    ws = palavras.map((p) => {
+      const s = document.createElement('span');
+      s.className = 'w';
+      s.textContent = K.maiusc(p, d.idioma);
+      frase.appendChild(s);
+      return s;
+    });
+    dest = Number.isInteger(d.destaque) && d.destaque >= 0 && d.destaque < ws.length ? d.destaque : -1;
+    if (dest >= 0) ws[dest].classList.add('destaque');
+    // cabe em 1500 x 290 (ate 3 linhas), sem palavra maior que a linha
+    FS = K.ajustar(frase, 1500, 290, 118, 54);
+    while (FS > 54 && !K.maiorPalavraCabe(ws, 1500)) { FS -= 4; frase.style.fontSize = FS + 'px'; }
+    rects = ws.map((s) => ({ x: s.offsetLeft, y: s.offsetTop, w: s.offsetWidth, h: s.offsetHeight }));
+    ent = K.alinhar(palavras, d.palavras, DUR, 260);
+    window.eventos = [{ evento: 'cena.abre', ms: Math.max(0, Math.round(ent[0] - 120)) }];
+    if (dest >= 0) window.eventos.push({ evento: 'karaoke.destaque', ms: Math.round(ent[dest]) });
+  };
+
+  const escDest = (t) => (dest >= 0 && t >= ent[dest] ? 1 + 0.12 * Math.exp(-(t - ent[dest]) / 220) : 1);
+  function ativoEm(t) {
+    let a = -1;
+    for (let i = 0; i < ent.length; i++) if (t >= ent[i]) a = i;
+    return a;
+  }
+
+  window.quadro = function (t) {
+    const tSai = DUR - 320;
+    const a = ativoEm(t);
+    // o cursor fica na ultima palavra dita; depois da fala, repousa no destaque
+    const fimFala = ent.length ? ent[ent.length - 1] + 650 : 0;
+    let alvo = a;
+    if (dest >= 0 && t >= fimFala) alvo = dest;
+    const pad = FS * 0.07;
+    let chegou = false;
+    if (alvo >= 0) {
+      // posicao interpolada entre a palavra anterior e a atual (salto rapido)
+      const tAlvo = (dest >= 0 && t >= fimFala) ? fimFala : ent[alvo];
+      const prev = (dest >= 0 && t >= fimFala) ? (ent.length - 1) : Math.max(0, alvo - 1);
+      const k = alvo === 0 && !(dest >= 0 && t >= fimFala) ? 1 : K.outExpo(K.prog(t, tAlvo, 130));
+      const r0 = rects[prev], r1 = rects[alvo];
+      // a palavra de destaque pulsa (escala): o cursor acompanha
+      const eD = alvo === dest ? escDest(t) : 1;
+      let w = K.lerp(r0.w, r1.w, k) * eD + pad * 2, h = (K.lerp(r0.h, r1.h, k) - FS * 0.04) * eD;
+      const x = K.lerp(r0.x + r0.w / 2, r1.x + r1.w / 2, k) - w / 2;
+      const y = K.lerp(r0.y + r0.h / 2, r1.y + r1.h / 2, k) + FS * 0.02 - h / 2 + FS * 0.0;
+      const kIn = K.outExpo(K.prog(t, ent[0], 160));
+      const ks = K.inExpo(K.prog(t, tSai, 260));
+      chegou = k >= 0.85 && kIn >= 0.85 && ks < 0.3;
+      cursor.style.opacity = '1';
+      cursor.style.width = (w * kIn * (1 - ks)).toFixed(1) + 'px';
+      cursor.style.height = h.toFixed(1) + 'px';
+      cursor.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    } else {
+      cursor.style.opacity = '0';
+    }
+    ws.forEach((s, i) => {
+      const k = K.prog(t, ent[i] - 40, 150);
+      const e = K.outExpo(k);
+      const ks = K.inExpo(K.prog(t, tSai + i * 18, 240));
+      const escD = i === dest ? escDest(t) : 1;
+      s.style.opacity = String(Math.min(1, k * 3) * (1 - ks));
+      s.style.transform = `translateY(${((1 - e) * FS * 0.35 + ks * FS * 0.5).toFixed(1)}px) scale(${escD.toFixed(4)})`;
+      s.classList.toggle('ativo', i === alvo && chegou);
+    });
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / letterbox (camada PERSISTENTE, o video todo): barras 2.39:1, vinheta suave e grao de
+     filme sutil. Periodica: quadro(0) == quadro(dur_ms) (o motor repete em loop). -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  .barra { position: absolute; left: 0; width: 1920px; height: 138px; background: #000; }
+  #cima { top: 0; }
+  #baixo { bottom: 0; }
+  #vinheta { position: absolute; left: 0; right: 0; top: 138px; bottom: 138px;
+             background: radial-gradient(ellipse 80% 90% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,.2) 82%, rgba(0,0,0,.38) 100%); }
+  #grao { position: absolute; left: 0; right: 0; top: 138px; bottom: 138px; background-repeat: repeat; }
+</style>
+</head>
+<body>
+<div id="vinheta"></div>
+<div id="grao"></div>
+<div id="cima" class="barra"></div>
+<div id="baixo" class="barra"></div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const grao = document.getElementById('grao');
+  const PASSOS = 24, TILES = 6, LADO = 320;
+  let DUR = 2000, tiles = [], offs = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    DUR = d.dur_ms || 2000;
+    // texturas de grao geradas uma vez (Math.random do motor e deterministico)
+    tiles = [];
+    for (let k = 0; k < TILES; k++) {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = LADO;
+      const g = cv.getContext('2d'), im = g.createImageData(LADO, LADO), px = im.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const r = Math.random();
+        const claro = r > 0.5;
+        const v = claro ? 235 : 10;
+        px[i] = px[i + 1] = px[i + 2] = v;
+        px[i + 3] = Math.random() < 0.55 ? Math.round(Math.abs(r - 0.5) * 2 * (claro ? 20 : 26)) : 0;
+      }
+      g.putImageData(im, 0, 0);
+      tiles.push(cv.toDataURL('image/png'));
+    }
+    offs = [];
+    for (let s = 0; s < PASSOS; s++) offs.push([Math.floor(Math.random() * LADO), Math.floor(Math.random() * LADO)]);
+    window.eventos = [];
+  };
+
+  window.quadro = function (t) {
+    // passo do grao ~12 fps, periodico em DUR
+    const s = ((Math.floor((t / DUR) * PASSOS) % PASSOS) + PASSOS) % PASSOS;
+    grao.style.backgroundImage = `url(${tiles[s % TILES]})`;
+    grao.style.backgroundPosition = `${offs[s][0]}px ${offs[s][1]}px`;
+  };
+})();
+</script>
+</body>
+</html>

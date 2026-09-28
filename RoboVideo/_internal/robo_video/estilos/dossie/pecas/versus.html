@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: versus (contrastes: versus | mas). Duas fichas entram pelos lados e o carimbo
+     vermelho com o conector ("VS", "MAS") bate entre elas. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  .card { top: 330px; width: 600px; min-height: 250px; padding: 46px 48px 44px; display: flex; align-items: center; justify-content: center; opacity: 0; }
+  #a { left: 200px; transform-origin: 100% 50%; }
+  #b { right: 200px; transform-origin: 0 50%; }
+  .txt { width: 504px; text-align: center; font-size: 92px; color: var(--tinta); }
+  .card .fita { top: -22px; left: 50%; margin-left: -85px; }
+  #carimbo { left: 960px; top: 455px; font-size: 120px; padding: 10px 30px 4px; border-width: 8px; background: rgba(235, 224, 200, .0); }
+  #fundoCar { left: 960px; top: 455px;
+              clip-path: polygon(0% 6%, 12% 0%, 30% 4%, 52% 0%, 74% 5%, 90% 0%, 100% 8%, 97% 35%, 100% 62%, 98% 92%, 84% 100%, 62% 96%, 40% 100%, 20% 95%, 4% 100%, 2% 70%, 0% 40%); }
+</style>
+</head>
+<body>
+<div id="a" class="papel card"><div class="fita"></div><div class="txt titulo" id="ta"></div></div>
+<div id="b" class="papel card"><div class="fita"></div><div class="txt titulo" id="tb"></div></div>
+<div id="fundoCar" class="papel"></div>
+<div id="carimbo" class="carimbo"></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const A = document.getElementById('a'), B = document.getElementById('b'), car = document.getElementById('carimbo');
+  const fc = document.getElementById('fundoCar');
+  let DUR = 3200, T_B = 240, T_CAR = 620, rA = -3, rB = 2.5;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3200;
+    const ta = document.getElementById('ta'), tb = document.getElementById('tb');
+    ta.textContent = Z.txt(d.a); tb.textContent = Z.txt(d.b);
+    // mesmo tamanho de fonte nos dois lados
+    const fa = Z.caber(ta, 92, 40, 300), fb = Z.caber(tb, 92, 40, 300);
+    const f = Math.min(fa, fb); ta.style.fontSize = tb.style.fontSize = f + 'px';
+    // cartoes com a mesma altura
+    const h = Math.max(A.getBoundingClientRect().height, B.getBoundingClientRect().height);
+    A.style.height = B.style.height = h + 'px';
+    const cy = 330 + h / 2;
+    car.style.top = cy + 'px'; fc.style.top = cy + 'px';
+    const con = Z.txt(d.conector) || Z.rot(d, 'versus');
+    car.textContent = con.toUpperCase();
+    if (con.length > 3) car.style.fontSize = '84px';
+    const cb = car.getBoundingClientRect();
+    fc.style.width = (cb.width + 60) + 'px'; fc.style.height = (cb.height + 50) + 'px';
+    rA = -2.5 - Z.rnd(d.a, 1) * 1.5; rB = 1.5 + Z.rnd(d.b, 1) * 1.5;
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'papel.desliza', ms: T_B },
+                      { evento: 'carimbo.bate', ms: T_CAR }];
+  };
+
+  window.quadro = function (t) {
+    const sai = Z.seg(t, DUR - 340, 340), s = Z.eio(sai);
+    const ka = Z.eo(Z.seg(t, 0, 420)), kb = Z.eo(Z.seg(t, T_B, 420));
+    A.style.opacity = String(Math.min(1, ka * 2.5) * (1 - sai));
+    B.style.opacity = String(Math.min(1, kb * 2.5) * (1 - sai));
+    A.style.transform = `translateX(${(1 - ka) * -900 - s * 200}px) rotate(${rA - (1 - ka) * 6}deg)`;
+    B.style.transform = `translateX(${(1 - kb) * 900 + s * 200}px) rotate(${rB + (1 - kb) * 6}deg)`;
+    const k = Z.seg(t, T_CAR - 140, 140);
+    const tremor = t > T_CAR ? Math.sin((t - T_CAR) / 18) * 3 * Math.exp(-(t - T_CAR) / 70) : 0;
+    car.style.opacity = String((k <= 0 ? 0 : 0.5 + 0.5 * k) * (1 - sai));
+    car.style.transform = `translate(-50%, -50%) translate(${tremor}px, 0) rotate(-9deg) scale(${(1 + (1 - Z.eio(k)) * 0.9).toFixed(4)})`;
+    fc.style.opacity = String(Z.seg(t, T_CAR - 200, 120) * (1 - sai));
+    fc.style.transform = 'translate(-50%, -50%) rotate(-5deg)';
+  };
+})();
+</script>
+</body>
+</html>

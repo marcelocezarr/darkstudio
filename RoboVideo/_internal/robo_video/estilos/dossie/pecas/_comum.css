@@ -1,0 +1,85 @@
+/* Dossie -- base comum das pecas (papel, fita, clipe, carimbo, caneta).
+   Tudo desenhado em CSS/SVG inline: nenhuma imagem externa, nenhuma rede. */
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+:root {
+  --papel: #ebe0c8; --papel-escuro: #d8c7a0; --kraft: #c39b62; --tinta: #1f1b16; --vermelho: #b3211b;
+  --fita: rgba(238, 230, 204, .80); --mesa: #2a2420;
+  --f-titulo: Bahnschrift, 'Arial Narrow', 'Franklin Gothic Medium', sans-serif;
+  --f-maquina: 'Courier New', Consolas, monospace;
+  --f-serif: Georgia, 'Times New Roman', serif;
+  --ruido: none; --gasto: none; --madeira: none;   /* gerados em canvas por _comum.js */
+  --manchas: radial-gradient(ellipse at 22% 18%, rgba(255, 252, 240, .55), rgba(255, 252, 240, 0) 55%),
+    radial-gradient(ellipse at 88% 92%, rgba(125, 88, 40, .24), rgba(125, 88, 40, 0) 50%),
+    radial-gradient(ellipse at 6% 96%, rgba(125, 88, 40, .16), rgba(125, 88, 40, 0) 38%);
+}
+
+/* ---------- papel envelhecido ---------- */
+.papel {
+  position: absolute;
+  background-color: var(--papel);
+  background-image:
+    var(--ruido),
+    radial-gradient(ellipse at 22% 18%, rgba(255, 252, 240, .55), rgba(255, 252, 240, 0) 55%),
+    radial-gradient(ellipse at 88% 92%, rgba(125, 88, 40, .24), rgba(125, 88, 40, 0) 50%),
+    radial-gradient(ellipse at 6% 96%, rgba(125, 88, 40, .16), rgba(125, 88, 40, 0) 38%);
+  box-shadow: inset 0 0 38px rgba(112, 78, 34, .30), 0 2px 3px rgba(0, 0, 0, .35), 0 18px 42px rgba(0, 0, 0, .45);
+  color: var(--tinta);
+}
+.papel.kraft { background-color: var(--kraft); box-shadow: inset 0 0 30px rgba(80, 50, 15, .35), 0 2px 3px rgba(0,0,0,.35), 0 18px 42px rgba(0,0,0,.45); }
+/* linhas de caderno/ficha */
+.papel.pautado {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 55px, rgba(70, 95, 140, .18) 55px, rgba(70, 95, 140, .18) 57px),
+    var(--ruido), var(--manchas);
+}
+
+/* ---------- tipografia ---------- */
+.maquina { font-family: var(--f-maquina); font-weight: 700; letter-spacing: .02em; }
+.titulo  { font-family: var(--f-titulo); font-weight: 700; font-stretch: 75%; text-transform: uppercase; line-height: .95; letter-spacing: .01em; text-wrap: balance; }
+.rotulo  { font-family: var(--f-maquina); font-weight: 700; font-size: 26px; letter-spacing: .22em; text-transform: uppercase; color: var(--vermelho); }
+.oculto  { visibility: hidden; }
+.cursor  { display: inline-block; width: 0; position: relative; }
+.cursor::after { content: ''; position: absolute; left: 2px; top: .08em; width: .55em; height: 1em; background: var(--vermelho); opacity: .85; }
+
+/* ---------- fita adesiva ---------- */
+.fita {
+  position: absolute; width: 170px; height: 46px; background: var(--fita);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  clip-path: polygon(0 6%, 4% 0, 8% 8%, 12% 0, 16% 6%, 20% 0, 80% 0, 84% 7%, 88% 0, 92% 8%, 96% 0, 100% 6%,
+                     100% 94%, 96% 100%, 92% 92%, 88% 100%, 84% 93%, 80% 100%, 20% 100%, 16% 94%, 12% 100%, 8% 92%, 4% 100%, 0 94%);
+  background-image: linear-gradient(100deg, rgba(255,255,255,.25), rgba(255,255,255,0) 40%, rgba(255,255,255,.18) 70%, rgba(255,255,255,0));
+}
+
+/* ---------- carimbo ---------- */
+.carimbo {
+  position: absolute; display: inline-block; color: var(--vermelho); border: 6px solid var(--vermelho); border-radius: 8px;
+  padding: 10px 26px 8px; font-family: var(--f-titulo); font-weight: 700; font-stretch: 75%; text-transform: uppercase;
+  letter-spacing: .08em; line-height: 1; white-space: nowrap;
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,0), inset 0 0 0 5px var(--vermelho);
+  -webkit-mask-image: var(--gasto); mask-image: var(--gasto); -webkit-mask-size: 256px 256px; mask-size: 256px 256px;
+}
+
+/* ---------- polaroide ---------- */
+.polaroide {
+  position: absolute; background: #f4f1ea; padding: 22px 22px 0;
+  box-shadow: 0 2px 3px rgba(0,0,0,.35), 0 22px 46px rgba(0,0,0,.5);
+  background-image: linear-gradient(160deg, rgba(255,255,255,.5), rgba(210,200,180,.25));
+}
+.polaroide .foto { width: 100%; background: #222; overflow: hidden; position: relative; }
+.polaroide .foto img { width: 100%; height: 100%; object-fit: cover; display: block; filter: sepia(.18) contrast(1.05) saturate(.9); }
+.polaroide .foto::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 60px rgba(0,0,0,.35); }
+.polaroide .leg { font-family: var(--f-maquina); font-weight: 700; color: var(--tinta); text-align: center;
+  display: flex; align-items: center; justify-content: center; line-height: 1.1; padding: 0 10px; }
+
+/* ---------- caneta (SVG) ---------- */
+svg.caneta { position: absolute; overflow: visible; pointer-events: none; }
+svg.caneta path { fill: none; stroke: var(--vermelho); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; opacity: .92; }
+
+/* ---------- mesa (camada fundo) ---------- */
+.mesa {
+  position: absolute; inset: 0; background-color: var(--mesa);
+  background-image:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 220, 160, .16), rgba(0, 0, 0, 0) 62%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .55) 100%),
+    var(--madeira);
+}

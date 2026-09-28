@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / palavra-gigante (impactos). Mesma linguagem do nome grande do mapa:
+     texto branco bold condensado em caixa alta no centro, com sombra suave, sobre leve
+     escurecimento do footage, e barra vermelha curta que varre por baixo. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #esc { position: absolute; left: 0; right: 0; top: 240px; height: 600px; background: linear-gradient(180deg, rgba(13,20,33,0) 0%, rgba(13,20,33,.5) 30%, rgba(13,20,33,.5) 70%, rgba(13,20,33,0) 100%); }
+  #bl { position: absolute; left: 192px; right: 192px; top: 0; bottom: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; }
+  #tx { font-size: 180px; line-height: .96; text-align: center; white-space: normal; text-shadow: 0 4px 12px rgba(0,0,0,.40); }
+  #tx span { display: inline-block; }
+  #br { margin-top: 28px; width: 180px; height: 9px; background: var(--acento); transform-origin: 0 50%; }
+</style>
+</head>
+<body>
+<div id="esc"></div>
+<div id="bl"><div id="tx" class="cond"></div><div id="br"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 2600, spans = [], tms = [];
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 2600;
+    const tx = BC.txt(d.texto);
+    BC.caberTexto($('tx'), tx, 180, 80, 1536, 420);
+    const px = $('tx').style.fontSize;
+    const pal = tx.split(' ');
+    $('tx').innerHTML = '';
+    spans = pal.map((w, i) => { const s = document.createElement('span'); s.textContent = w; $('tx').appendChild(s);
+      if (i < pal.length - 1) $('tx').appendChild(document.createTextNode(' ')); return s; });
+    $('tx').style.fontSize = px;
+    const ps = Array.isArray(d.palavras) ? d.palavras : [];
+    tms = pal.map((_, i) => Math.min(DUR * 0.4, ps[i] && isFinite(ps[i].ms) ? Math.max(0, ps[i].ms) : i * 140));
+    window.eventos = [{ evento: 'palavra.slam', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const ks = BC.ei(BC.lin(-S, -320, -30));
+    $('esc').style.opacity = (BC.lin(t, 0, 250) * (1 - ks)).toFixed(3);
+    spans.forEach((s, i) => {
+      const k = BC.eo(BC.lin(t, tms[i], tms[i] + 260));
+      s.style.opacity = (k * (1 - ks)).toFixed(3);
+      s.style.transform = `translateY(${((1 - k) * 40).toFixed(2)}px)`;
+    });
+    const kb = BC.expo(BC.lin(t, 200, 600));
+    $('br').style.transform = `scaleX(${(kb * (1 - ks)).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

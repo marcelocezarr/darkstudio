@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / karaoke (frase): frase em versal branca pesada (Segoe UI Black) embaixo, centralizada;
+     uma etiqueta limão salta de palavra em palavra conforme a fala (texto preto por cima); a palavra de
+     destaque fica limão depois de dita. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #linha { position: absolute; left: 160px; width: 1600px; top: 790px; text-align: center; font-family: var(--f-texto);
+           font-weight: 900; font-size: 60px; line-height: 1.3; letter-spacing: .02em; color: var(--texto);
+           text-transform: uppercase; display: flex; flex-wrap: wrap; justify-content: center; }
+  #caixa { position: absolute; left: 0; top: 0; background: var(--acento); }
+  .w { position: relative; display: inline-block; padding: 0 .16em; text-shadow: 0 3px 10px rgba(0,0,0,.75); will-change: transform; }
+  .w.on { color: var(--tinta); text-shadow: none; }
+  .w.dest { color: var(--acento); }
+</style>
+</head>
+<body>
+<div id="caixa"></div>
+<div id="linha"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 4000, ws = [], tempos = [], caixas = [], dest = -1;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4000;
+    const ps = K.palavrasDe(d.texto || '');
+    const l = $('linha');
+    l.innerHTML = '';
+    ws = ps.map((p) => { const s = document.createElement('span'); s.className = 'w'; s.textContent = K.maiusc(p, d.idioma);
+                        l.appendChild(s); return s; });
+    let fs = 60;
+    while (fs > 36 && l.offsetHeight > fs * 1.3 * 2 + 2) { fs -= 2; l.style.fontSize = fs + 'px'; }
+    // o bloco termina em ~930 px (acima da área dos botões do YouTube)
+    l.style.top = Math.round(930 - l.offsetHeight) + 'px';
+    caixas = ws.map((s) => { const r = s.getBoundingClientRect(); return { x: r.left, y: r.top + fs * 0.12, w: r.width, h: r.height - fs * 0.2 }; });
+    tempos = K.alinhar(ps, d.palavras, DUR, 220);
+    dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+    if (dest >= 0 && dest < tempos.length) window.eventos.push({ evento: 'karaoke.destaque', ms: Math.round(tempos[dest]) });
+  };
+
+  window.quadro = function (t) {
+    const s = K.saida(t, DUR, 220);
+    const ke = K.outExpo(K.prog(t, 0, 260));
+    $('linha').style.opacity = String(Math.min(K.prog(t, 0, 120), s));
+    $('linha').style.transform = `translateY(${((1 - ke) * 30).toFixed(1)}px)`;
+    // palavra atual
+    let atual = -1;
+    for (let i = 0; i < tempos.length; i++) if (t >= tempos[i]) atual = i;
+    const fimFala = tempos.length ? tempos[tempos.length - 1] + 500 : 0;
+    if (t > fimFala) atual = -1;
+    ws.forEach((w, i) => {
+      w.classList.toggle('on', i === atual);
+      w.classList.toggle('dest', i === dest && t >= tempos[i] && i !== atual);
+    });
+    const cx = $('caixa');
+    if (atual < 0) { cx.style.opacity = '0'; return; }
+    // a etiqueta desliza rapidamente da palavra anterior para a atual
+    const a = caixas[atual], p = caixas[Math.max(0, atual - 1)];
+    const k = atual === 0 ? 1 : K.outExpo(K.prog(t, tempos[atual], 90));
+    const x = K.lerp(p.x, a.x, k), w = K.lerp(p.w, a.w, k), y = K.lerp(p.y, a.y, k);
+    Object.assign(cx.style, { left: x + 'px', top: (y + ke * 0 + (1 - ke) * 30) + 'px', width: w + 'px', height: a.h + 'px',
+                              opacity: String(s) });
+  };
+})();
+</script>
+</body>
+</html>

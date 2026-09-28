@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: karaoke (frase). Deduzida: a fala e datilografada palavra a palavra em creme
+     (maquina de escrever, espacada) sobre footage escurecido; a palavra de destaque fica vermelha e
+     ganha um fio vermelho embaixo. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #bloco { position: absolute; left: 192px; right: 192px; top: 0; height: 1080px; display: flex; align-items: center;
+           justify-content: center; }
+  #frase { color: var(--creme); text-align: center; font-size: 64px; line-height: 1.45; letter-spacing: .06em;
+           max-width: 1400px; text-shadow: 0 2px 10px rgba(0, 0, 0, .45); text-wrap: balance; }
+  #frase span { opacity: 0; position: relative; }
+  #frase span.dest { color: #e0332f; }
+  #frase span.dest::after { content: ''; position: absolute; left: 0; right: var(--r, 100%); bottom: -4px; height: 5px;
+                            background: var(--vermelho); }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="bloco"><div id="frase" class="maquina"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), frase = document.getElementById('frase');
+  let DUR = 3400, sp = [], tempos = [], dest = -1;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 3400;
+    const lista = Array.isArray(d.palavras) && d.palavras.length ? d.palavras : V.txt(d.texto).split(' ').map((p, i) => ({ texto: p, ms: i * 280 }));
+    dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    frase.innerHTML = lista.map((p, i) => `<span${i === dest ? ' class="dest"' : ''}>${V.esc(V.txt(p.texto))}</span>`).join(' ');
+    V.caber(frase, 64, 36, 560);
+    sp = Array.from(frase.querySelectorAll('span'));
+    tempos = lista.map((p) => Math.max(0, Math.min(DUR - 600, Number(p.ms) || 0)));
+    window.eventos = tempos.slice(0, 12).map((ms) => ({ evento: 'maquina.tecla', ms: Math.round(ms) }));
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 300);
+    esc.style.opacity = String(0.42 * V.eo(V.seg(t, 0, 200)) * s);
+    sp.forEach((el, i) => {
+      const k = V.seg(t, tempos[i], 90);
+      el.style.opacity = String((k > 0 ? 0.35 + 0.65 * k : 0) * s);
+      if (i === dest) el.style.setProperty('--r', (100 * (1 - V.eo(V.seg(t, tempos[i] + 80, 300)))).toFixed(1) + '%');
+    });
+  };
+})();
+</script>
+</body>
+</html>

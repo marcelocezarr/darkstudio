@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Peca de referencia do contrato: numero-impacto (familia fatos).
+     Conta de 0 ate dados.numero e dispara o evento "numero.impacto". -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  /* safe area de titulo: 5% (96 x 54 px) -- a caixa fica no terco inferior esquerdo */
+  #caixa { position: absolute; left: 150px; bottom: 170px; padding: 34px 60px 38px 52px;
+           background: rgba(12, 12, 16, .82); border-left: 14px solid var(--acento); border-radius: 12px;
+           box-shadow: 0 16px 50px rgba(0,0,0,.45); opacity: 0; }
+  #num { font-family: var(--fonte-titulo); font-size: 140px; line-height: 1; color: var(--texto);
+         font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #leg { font-family: var(--fonte-texto); font-size: 44px; color: #e1e1e6; margin-top: 14px; max-width: 1200px; }
+  #rot { font-family: var(--fonte-texto); font-size: 26px; letter-spacing: 6px; color: var(--acento);
+         font-weight: 700; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="caixa"><div id="rot"></div><div id="num"></div><div id="leg"></div></div>
+<script>
+(() => {
+  const caixa = document.getElementById('caixa'), num = document.getElementById('num');
+  let d = {}, DUR = 3000, CONTA = 1400, alvo = 0;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+
+  function formatar(v) {
+    const dec = d.decimais || 0;
+    let [int, fr] = Math.abs(v).toFixed(dec).split('.');
+    int = int.replace(/\B(?=(\d{3})+(?!\d))/g, d.separador_milhar || '');
+    let s = fr ? int + (d.separador_decimal || ',') + fr : int;
+    if (d.ano) s = String(Math.round(v));  // ano nao leva separador
+    return (v < 0 ? '-' : '') + (d.prefixo || '') + s + (d.sufixo || '');
+  }
+
+  window.montar = function (dados) {
+    d = dados || {};
+    DUR = d.dur_ms || 3000;
+    CONTA = Math.min(1400, DUR * 0.5);
+    alvo = Number(d.numero) || 0;
+    const r = document.documentElement.style;
+    const pal = (d.estilo && d.estilo.paleta) || {}, fon = (d.estilo && d.estilo.fontes) || {};
+    r.setProperty('--texto', pal.texto || '#fff');
+    r.setProperty('--acento', pal.acento || '#e5252a');
+    r.setProperty('--fonte-titulo', fon.titulo || "'Arial Black', sans-serif");
+    r.setProperty('--fonte-texto', fon.texto || "'Segoe UI', sans-serif");
+    document.getElementById('leg').textContent = d.legenda || '';
+    // rotulo fixo vindo do i18n (dados.rotulos), nunca escrito no template
+    document.getElementById('rot').textContent = (d.rotulos && d.rotulos.numero) || '';
+    num.textContent = formatar(alvo);            // mede a largura final ...
+    num.style.minWidth = num.getBoundingClientRect().width + 'px';  // ... e trava (sem "pulos")
+    window.eventos = [{ evento: 'numero.impacto', ms: Math.round(CONTA) }];
+  };
+
+  window.quadro = function (t) {
+    const ent = clamp(t / 300, 0, 1), sai = clamp((DUR - t) / 300, 0, 1);
+    caixa.style.opacity = String(Math.min(ent, sai));
+    caixa.style.transform = `translateX(${(1 - easeOut(ent)) * -80}px)`;
+    const k = easeOut(clamp(t / CONTA, 0, 1));
+    num.textContent = formatar(d.ano ? alvo : alvo * k);
+    const pulso = t > CONTA ? 1 + 0.06 * Math.exp(-(t - CONTA) / 120) : 1;
+    num.style.transform = `scale(${pulso.toFixed(4)})`;
+    num.style.transformOrigin = 'left center';
+  };
+})();
+</script>
+</body>
+</html>

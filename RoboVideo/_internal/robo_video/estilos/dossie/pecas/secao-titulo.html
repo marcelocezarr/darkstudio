@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: secao-titulo (secoes). Uma pasta de arquivo (kraft) desliza da esquerda; a aba traz
+     "CAPITULO 02 / 06", o titulo e datilografado numa folha e o carimbo CONFIDENCIAL bate. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #pasta { position: absolute; left: 180px; top: 250px; width: fit-content; min-width: 820px; opacity: 0; transform-origin: 0 50%; }
+  #aba { position: absolute; left: 0; top: -58px; height: 66px; padding: 14px 38px 0 30px; border-radius: 14px 14px 0 0;
+         clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%); padding-right: 70px; white-space: nowrap;
+         font-size: 30px; letter-spacing: .2em; color: #2a1d0e; }
+  #corpo { position: relative; padding: 34px 40px 40px 40px; border-radius: 0 14px 14px 14px; min-height: 300px; }
+  #folha { position: relative; padding: 42px 60px 58px 56px; transform: rotate(-1deg); }
+  #tit { font-size: 112px; max-width: 960px; color: var(--tinta); }
+  svg.caneta { left: 0; top: 0; }
+  #carimbo { right: -34px; top: -62px; font-size: 44px; letter-spacing: .14em; padding: 8px 20px 6px; border-width: 5px; }
+  #clipe { position: absolute; left: 70px; top: 6px; width: 44px; height: 120px; overflow: visible; }
+  #clipe path { fill: none; stroke: #8d9196; stroke-width: 6; stroke-linecap: round; }
+</style>
+</head>
+<body>
+<div id="pasta">
+  <div id="aba" class="papel kraft maquina"></div>
+  <div id="corpo" class="papel kraft">
+    <div id="folha" class="papel">
+      <div id="tit" class="titulo"></div>
+      <svg class="caneta" id="svg" width="10" height="10"><path id="sub"/></svg>
+      <div id="carimbo" class="carimbo"></div>
+    </div>
+    <svg id="clipe" viewBox="0 0 44 120"><path d="M30 18 V96 a12 12 0 0 1 -24 0 V14 a8 8 0 0 1 16 0 V88"/></svg>
+  </div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const pasta = document.getElementById('pasta'), tit = document.getElementById('tit'), sub = document.getElementById('sub');
+  const car = document.getElementById('carimbo');
+  let DUR = 3200, T_DIG = 380, D_DIG = 700, T_CAR = 1300;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 3200;
+    const n = Number(d.numero) || 0, tot = Number(d.total) || 0;
+    const pad = (x) => String(x).padStart(2, '0');
+    const aba = [Z.rot(d, 'capitulo'), n ? pad(n) + (tot ? ' / ' + pad(tot) : '') : ''].filter(Boolean).join(' ');
+    document.getElementById('aba').textContent = aba;
+    if (!aba) document.getElementById('aba').style.display = 'none';
+    const texto = Z.txt(d.texto);
+    tit.textContent = texto;
+    tit.style.width = 'max-content';
+    if (tit.getBoundingClientRect().width > 960) { tit.style.width = '960px'; Z.caber(tit, 112, 52, 330); }
+    car.textContent = Z.rot(d, 'confidencial');
+    if (!car.textContent) car.style.display = 'none';
+    // sublinhado de caneta embaixo da ULTIMA linha do titulo
+    const r = document.createRange(); r.selectNodeContents(tit);
+    const linhas = Array.from(r.getClientRects());
+    const folha = document.getElementById('folha');
+    folha.style.transform = 'none';
+    const fb = folha.getBoundingClientRect();
+    const ult = linhas.length ? linhas[linhas.length - 1] : tit.getBoundingClientRect();
+    const x0 = Math.min(...linhas.filter((q) => Math.abs(q.bottom - ult.bottom) < 4).map((q) => q.left)) - fb.left - 6;
+    const x1 = Math.max(...linhas.filter((q) => Math.abs(q.bottom - ult.bottom) < 4).map((q) => q.right)) - fb.left + 10;
+    const y = ult.bottom - fb.top + 8;
+    const svg = document.getElementById('svg');
+    svg.setAttribute('width', fb.width); svg.setAttribute('height', fb.height);
+    sub.setAttribute('d', Z.sublinhadoMao(x0, Math.max(x0 + 120, x1), y, texto));
+    folha.style.transform = '';
+    Z.prepararDatilo(tit, texto);
+    D_DIG = Math.min(900, Math.max(350, texto.length * 22), DUR * 0.3);
+    T_CAR = Math.min(T_DIG + D_DIG + 250, DUR * 0.6);
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'maquina.digita', ms: T_DIG },
+                      { evento: 'carimbo.bate', ms: Math.round(T_CAR) }];
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 480), sai = Z.seg(t, DUR - 360, 360);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    pasta.style.opacity = String(Math.min(1, ent * 3) * (1 - sai));
+    pasta.style.transform = `translateX(${(1 - e) * -1300 - s * 400}px) rotate(${-1.5 + (1 - e) * -4 + s * -2}deg)`;
+    Z.datilo(tit, Z.seg(t, T_DIG, D_DIG));
+    Z.tracar(sub, Z.eio(Z.seg(t, T_DIG + D_DIG + 60, 360)));
+    const k = Z.seg(t, T_CAR - 140, 140);
+    car.style.opacity = String(k <= 0 ? 0 : 0.5 + k * 0.5);
+    car.style.transform = `rotate(8deg) scale(${(1 + (1 - Z.eio(k)) * 0.8).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

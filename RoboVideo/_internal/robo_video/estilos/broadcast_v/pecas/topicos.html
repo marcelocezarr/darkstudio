@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / topicos (listas: lista, ficha). Rotulo superior espacado com barra
+     vermelha (titulo da lista) e cartao azul-marinho com os itens entrando no tempo da fala,
+     cada um precedido de "//" vermelho (o separador do ticker). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 120px; top: 200px; padding: 34px 70px 36px 60px; min-width: 620px; }
+  .it { display: flex; align-items: baseline; gap: 22px; font-size: 56px; line-height: 1.32; }
+  .it .s { color: var(--acento); font-style: italic; flex: none; }
+  .it .v { white-space: nowrap; }
+  #tt.vazio { display: none; }
+</style>
+</head>
+<body>
+<div class="rotsup" id="tt"><div class="barra"></div><div class="t" id="ttt"></div></div>
+<div id="c" class="cartao"></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 6000, its = [], tms = [];
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 6000;
+    const tit = BC.txt(d.titulo);
+    $('ttt').textContent = BC.encurtar(tit, 44);
+    if (!tit) $('tt').className += ' vazio';
+    let itens = (Array.isArray(d.itens) ? d.itens : []).map(BC.txt).filter(Boolean).slice(0, 5);
+    if (!itens.length) itens = [BC.txt(d.texto)];
+    its = itens.map((s) => {
+      const e = document.createElement('div'); e.className = 'it cond';
+      e.innerHTML = '<span class="s">//</span><span class="v"></span>';
+      $('c').appendChild(e);
+      BC.caberTexto(e.querySelector('.v'), s, 56, 34, 1300, 0);
+      e.style.fontSize = e.querySelector('.v').style.fontSize;
+      return e;
+    });
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    const passo = Math.min(700, (DUR - 1600) / Math.max(1, its.length));
+    tms = its.map((_, i) => Math.max(350 + i * 150, Math.min(DUR - 1200, isFinite(ms[i]) ? Number(ms[i]) : 350 + i * passo)));
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(tms.map((m) => ({ evento: 'lista.item', ms: Math.round(m) })));
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const ks = BC.ei(BC.lin(-S, -380, -40));
+    const k = BC.expo(BC.lin(t, 0, 450)) * (1 - ks);
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 100).toFixed(3);
+    const kt = BC.lin(t, 0, 600);
+    $('ttt').style.clipPath = `inset(0 ${((1 - kt) * 100).toFixed(3)}% 0 0)`;
+    $('tt').style.opacity = (BC.lin(t, 0, 120) * (1 - ks)).toFixed(3);
+    its.forEach((e, i) => {
+      const ki = BC.eo(BC.lin(t, tms[i], tms[i] + 320));
+      e.style.opacity = ki.toFixed(3);
+      e.style.transform = `translateX(${((1 - ki) * -28).toFixed(2)}px)`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

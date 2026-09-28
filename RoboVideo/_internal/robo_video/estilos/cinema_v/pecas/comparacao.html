@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / comparacao (contrastes: versus, mas). Deduzido: veu escuro, os dois lados em
+     serifa grande, fio dourado vertical no centro que se desenha de cima para baixo, conector em
+     italico dourado sobre o fio; B surge quando e dito. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  .lado { position: absolute; top: 0; width: 700px; font-family: var(--fonte-titulo); font-weight: 500;
+          color: var(--texto); font-size: 92px; line-height: 1.08; opacity: 0; }
+  #a { right: 1080px; text-align: right; }
+  #b { left: 1080px; text-align: left; }
+  #linha { position: absolute; left: 959px; width: 2px; top: 330px; height: 420px; transform-origin: 50% 0;
+           background: linear-gradient(180deg, rgba(201,162,78,0) 0%, var(--acento) 20%, var(--acento) 80%, rgba(201,162,78,0) 100%);
+           transform: scaleY(0); }
+  #con { position: absolute; left: 0; width: 1920px; text-align: center; top: 0; font-family: var(--fonte-titulo);
+         font-style: italic; color: var(--acento-claro); font-size: 58px; line-height: 1; opacity: 0; }
+  #con span { background: none; padding: 10px 18px; text-shadow: 0 0 18px rgba(8,10,14,.95), 0 0 6px rgba(8,10,14,.95); }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"></div>
+<div id="linha"></div>
+<div id="a" class="lado"></div>
+<div id="b" class="lado"></div>
+<div id="con"><span></span></div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), a = $('#a'), b = $('#b'), con = $('#con'), linha = $('#linha');
+  let DUR = 4500, tB = 1400;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4500;
+    a.textContent = C.txt(d.a);
+    b.textContent = C.txt(d.b);
+    const c = C.txt(d.conector) || C.rot(d, 'versus');
+    con.querySelector('span').textContent = c;
+    [a, b].forEach((el) => C.caber(el, 700, 92 * 1.08 * 3 + 2, 92, 44));
+    [a, b].forEach((el) => { el.style.top = (540 - el.getBoundingClientRect().height / 2) + 'px'; });
+    con.style.top = (540 - 29) + 'px';
+    const alto = Math.max(a.getBoundingClientRect().height, b.getBoundingClientRect().height);
+    linha.style.top = (540 - alto / 2 - 80) + 'px';
+    linha.style.height = (alto + 160) + 'px';
+    // B entra quando a primeira palavra de B e falada (se houver palavras), senao a ~40% da peca
+    const pb = C.txt(d.b).split(' ')[0] || '';
+    const fs = Array.isArray(d.palavras) ? d.palavras : [];
+    const hit = fs.find((p) => C.norm(p.texto) === C.norm(pb));
+    tB = Math.min(DUR * 0.55, Math.max(900, hit ? Number(hit.ms) + 150 : DUR * 0.38));
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'versus.choque', ms: Math.round(tB) }];
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.2)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 600)), sai));
+    C.revela(a, Math.min(C.sai(C.fase(t, 250, 800)), sai), 14, 7);
+    linha.style.transform = `scaleY(${C.io(C.fase(t, 450, 900)).toFixed(4)})`;
+    linha.style.opacity = String(sai);
+    C.revela(con, Math.min(C.sai(C.fase(t, tB - 350, 600)), sai), 6, 4);
+    C.revela(b, Math.min(C.sai(C.fase(t, tB, 800)), sai), 14, 7);
+  };
+})();
+</script>
+</body>
+</html>

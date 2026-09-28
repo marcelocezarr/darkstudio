@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / citacao (citacoes). Deduzido: veu escuro, aspa dourada grande e fina,
+     texto em serifa italica centralizado que surge palavra a palavra conforme a fala, fio dourado
+     e autor em sans dourado espacado. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #aspa { position: absolute; left: 0; width: 1920px; text-align: center; top: 0; font-family: var(--fonte-titulo);
+          color: var(--acento); font-size: 220px; line-height: 1; height: 120px; opacity: 0; }
+  #txt { position: absolute; left: 310px; width: 1300px; text-align: center; top: 0; font-family: var(--fonte-titulo);
+         font-style: italic; font-weight: 400; color: var(--texto); font-size: 66px; line-height: 1.22; }
+  #txt .w { opacity: .0; }
+  #fio { position: absolute; left: 900px; width: 120px; top: 0; height: 2px; transform: scaleX(0); }
+  #autor { position: absolute; left: 0; width: 1920px; text-align: center; top: 0; color: var(--acento);
+           font-size: 28px; letter-spacing: .34em; text-indent: .34em; opacity: 0; }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"></div>
+<div id="aspa">&ldquo;</div>
+<div id="txt"></div>
+<div id="fio" class="fio centro"></div>
+<div id="autor" class="rotulo"></div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), aspa = $('#aspa'), txt = $('#txt'), fio = $('#fio'), autor = $('#autor');
+  let DUR = 5000, ws = [], ts = [];
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 5000;
+    ws = C.palavrasEm(txt, C.txt(d.texto).replace(/^["“”«»„']+|["“”«»„']+$/g, ''));
+    C.caber(txt, 1300, 66 * 1.22 * 4 + 4, 66, 38);
+    const r = txt.getBoundingClientRect();
+    const temAutor = !!C.txt(d.autor);
+    const total = 120 + 20 + r.height + (temAutor ? 110 : 0);
+    const topo = 540 - total / 2;
+    aspa.style.top = topo + 'px';
+    txt.style.top = (topo + 140) + 'px';
+    fio.style.top = (topo + 140 + r.height + 44) + 'px';
+    autor.textContent = C.txt(d.autor);
+    autor.style.top = (topo + 140 + r.height + 76) + 'px';
+    autor.style.display = temAutor ? '' : 'none';
+    fio.style.display = temAutor ? '' : 'none';
+    ts = C.temposFala(ws.map((w) => w.textContent), d.palavras, 200, Math.max(0, DUR * 0.6)).map((m) => m + 300);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.2)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 600)), sai));
+    C.revela(aspa, Math.min(C.sai(C.fase(t, 150, 800)), sai), 10, 6);
+    ws.forEach((w, i) => { w.style.opacity = String(Math.min(0.12 + 0.88 * C.sai(C.fase(t, ts[i], 450)), sai)); });
+    const ult = ts.length ? ts[ts.length - 1] : 0;
+    fio.style.transform = `scaleX(${C.io(C.fase(t, ult + 200, 700)).toFixed(4)})`;
+    fio.style.opacity = String(sai);
+    C.revela(autor, Math.min(C.sai(C.fase(t, ult + 450, 700)), sai), 8, 4);
+  };
+})();
+</script>
+</body>
+</html>

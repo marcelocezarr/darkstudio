@@ -1,0 +1,15 @@
+/* Estilo Classico (validado) -- base comum. Minimalista, sobre o footage SEM escurecer. */
+html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: transparent; }
+body { position: relative; font-family: var(--fonte-texto); color: var(--texto);
+       -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+:root { --texto: #f1ede3; --acento: #eabd85; --caixa: rgba(30,32,26,.93); --sombra: rgba(0,0,0,.55);
+        --fonte-titulo: 'Segoe UI', 'Open Sans', Arial, sans-serif;
+        --fonte-texto: 'Segoe UI', 'Open Sans', Arial, sans-serif; }
+/* texto branco-creme bold com sombra suave (a "palavra" da referencia) */
+.sombra { text-shadow: 0 2px 3px rgba(0,0,0,.45), 0 3px 14px var(--sombra); }
+.bold { font-family: var(--fonte-titulo); font-weight: 700; color: var(--texto); letter-spacing: -.005em; }
+/* selo escuro arredondado (numero + rotulo minusculo) */
+.selo { position: absolute; background: var(--caixa); border-radius: 9px; box-sizing: border-box;
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+        box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.acento { color: var(--acento); }

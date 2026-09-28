@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: mapa-mundi (fatos/lugar, exige lat/lon). Footage bem escurecido, mapa-mundi em traco
+     claro (continentes + fronteiras, textura mapa-mundo.png gerada por ../gerar_mapa.py) que assenta e
+     aproxima do lugar; ponto vermelho com o nome datilografado pequeno ao lado e o nome grande em sans
+     condensada creme embaixo (ref.: "BRITAIN"). -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #cena { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #mapa { position: absolute; left: 132px; top: 124px; width: 1656px; height: 653px; opacity: 0; }
+  #ponto { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; background: #d42a26;
+           box-shadow: 0 0 0 3px rgba(212, 42, 38, .22); opacity: 0; }
+  #rotp { position: absolute; color: var(--creme); font-size: 30px; letter-spacing: .22em; -webkit-text-stroke: .6px currentColor; white-space: nowrap; line-height: 1;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
+  #nome { position: absolute; left: 192px; right: 192px; top: 890px; -webkit-text-stroke: 1.5px currentColor; transform-origin: 50% 100%; text-align: center; color: var(--creme);
+          font-size: 116px; white-space: nowrap; opacity: 0; text-shadow: 0 3px 16px rgba(0, 0, 0, .35); }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="cena"><img id="mapa" src="mapa-mundo.png"><div id="ponto"></div><div id="rotp" class="maquina"></div></div>
+<div id="nome" class="condensada"></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  // mesma projecao do gerar_mapa.py: equiretangular, 4.6 px/grau, lat 84 no topo do png
+  const ESC = 4.6, LAT_N = 84, MX = 132, MY = 124;
+  const esc = document.getElementById('escuro'), cena = document.getElementById('cena'), mapa = document.getElementById('mapa');
+  const ponto = document.getElementById('ponto'), rotp = document.getElementById('rotp'), nome = document.getElementById('nome');
+  let DUR = 4500, px = 960, py = 400, T_PONTO = 1150, T_ROT = 1300, T_NOME = 2000;
+
+  function vista(z) {
+    // escala z em torno do ponto, sem deixar o mapa sair do quadro mais do que o necessario
+    return `translate(${(px - px * z).toFixed(2)}px, ${(py - py * z).toFixed(2)}px) scale(${z.toFixed(4)})`;
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 4500;
+    const lat = Math.max(-56, Math.min(82, Number(d.lat) || 0)), lon = Number(d.lon) || 0;
+    px = MX + (lon + 180) * ESC; py = MY + (LAT_N - lat) * ESC;
+    ponto.style.left = px + 'px'; ponto.style.top = py + 'px';
+    const n = V.semPonto(d.nome || d.lugar || d.texto);
+    V.prepararDatilo(rotp, n);
+    rotp.style.fontSize = (n.length > 18 ? 22 : 30) + 'px';
+    const w = rotp.getBoundingClientRect().width;
+    if (px + 24 + w > 1880) rotp.style.left = (px - 24 - w) + 'px'; else rotp.style.left = (px + 24) + 'px';
+    rotp.style.top = (py - 36) + 'px';
+    nome.textContent = n;
+    V.caberLinha(nome, 116, 60, 1536);
+    T_PONTO = Math.min(1150, DUR * 0.26); T_ROT = T_PONTO + 150; T_NOME = Math.min(DUR * 0.45, 2600);
+    window.eventos = [{ evento: 'mapa.abre', ms: 0 }, { evento: 'mapa.ponto', ms: Math.round(T_PONTO) },
+                      { evento: 'maquina.digita', ms: Math.round(T_ROT) }, { evento: 'palavra.slam', ms: Math.round(T_NOME) }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 380);
+    esc.style.opacity = String(0.56 * V.eo(V.seg(t, 0, 260)) * s);
+    mapa.style.opacity = String(V.eo(V.seg(t, 60, 420)) * s);
+    // assenta (1,12 -> 1) e depois aproxima devagar do lugar (1 -> 1,03)
+    const z = 1.12 - 0.12 * V.eo(V.seg(t, 0, 1000)) + 0.03 * V.eio(V.seg(t, 1000, DUR - 1000));
+    cena.style.transform = vista(z);
+    const kp = V.seg(t, T_PONTO, 180);
+    ponto.style.opacity = String((kp > 0 ? 1 : 0) * s);
+    ponto.style.transform = `scale(${(1.8 - 0.8 * V.eo(kp)).toFixed(3)})`;
+    V.datilo(rotp, V.seg(t, T_ROT, V.tempoDatilo(rotp._dv.texto.join(''), 600)));
+    rotp.style.opacity = String(s);
+    const kn = V.seg(t, T_NOME, 360);
+    nome.style.opacity = String(V.eo(kn) * s);
+    nome.style.transform = `translateY(${(14 * (1 - V.eo(kn))).toFixed(1)}px) scaleY(1.16)`;
+  };
+})();
+</script>
+</body>
+</html>

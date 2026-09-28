@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / contador (fatos: numero, moeda, ano). Barra inferior esquerda com o
+     numero contando ate o valor e uma regua de progresso que acompanha a contagem. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #box { position: absolute; left: 192px; bottom: 190px; display: flex; align-items: stretch; }
+  #lado { width: 14px; background: var(--acento); }
+  #corpo { padding: 22px 76px 24px 34px; min-width: 620px; position: relative; }
+  #cab { display: flex; align-items: center; gap: 16px; font-weight: 600; font-size: 28px; letter-spacing: .14em;
+         text-transform: uppercase; color: var(--acento); white-space: nowrap; }
+  #cab .p { width: 12px; height: 12px; background: var(--acento); transform: rotate(45deg); }
+  #num { margin-top: 6px; display: flex; align-items: baseline; gap: 0 12px; white-space: nowrap;
+         font-weight: 700; font-size: 150px; line-height: 1.0; }
+  #num .pre, #num .suf { color: var(--acento); font-size: .5em; font-weight: 600; }
+  #num .suf.longo { font-size: .34em; }
+  #regua { position: relative; margin-top: 14px; height: 18px; }
+  #trilho { position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: rgba(255,255,255,.25); }
+  #enche { position: absolute; left: 0; top: 6px; height: 6px; background: var(--acento); width: 100%; transform-origin: left; }
+  .marca { position: absolute; top: 2px; width: 2px; height: 14px; background: rgba(255,255,255,.4); }
+  #leg { margin-top: 14px; font-family: var(--fx); font-weight: 600; font-size: 36px; line-height: 1.2;
+         color: var(--texto2); max-width: 900px; }
+</style>
+</head>
+<body>
+<div id="box">
+  <div id="lado"></div>
+  <div id="cw"><div id="corpo" class="painel-a corte-d sombra">
+    <div id="cab"><div class="p"></div><span id="cabt"></span></div>
+    <div id="num" class="num-tab"><span class="pre" id="pre"></span><span id="val"></span><span class="suf" id="suf"></span></div>
+    <div id="regua"><div id="trilho"></div><div id="enche"></div></div>
+    <div id="leg"></div>
+  </div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 3600, CONTA = 1400, alvo = 0, inicio = 0;
+
+  window.montar = function (dados) {
+    d = dados || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 3600;
+    CONTA = Math.min(1500, DUR * 0.42);
+    alvo = Number(d.numero) || 0;
+    inicio = d.ano ? Math.round(alvo) - 30 : 0;   // ano conta a partir de 30 anos antes
+    $('cabt').textContent = BC.rot(d, 'dados') || BC.rot(d, 'numero');
+    const { pre, suf } = BC.partes(d);
+    $('pre').textContent = pre; $('pre').style.display = pre ? '' : 'none';
+    const sufT = suf.trim();
+    $('suf').textContent = sufT; $('suf').style.display = sufT ? '' : 'none';
+    if (sufT.length > 3) $('suf').classList.add('longo');
+    // mede com o valor final e trava a largura (sem "pulos" durante a contagem)
+    $('val').textContent = BC.fmt(d, alvo);
+    $('val').style.display = 'inline-block';
+    BC.caber($('num'), 150, 76, 1000, 0);
+    $('val').style.minWidth = $('val').getBoundingClientRect().width + 'px';
+    $('val').style.textAlign = 'right';
+    const leg = BC.txt(d.legenda);
+    $('leg').style.display = leg ? '' : 'none';
+    if (leg) BC.caberTexto($('leg'), leg, 36, 28, 900, 2 * 36 * 1.2 + 2);
+    // marcas da regua
+    const r = $('regua');
+    for (let i = 1; i < 10; i++) { const m = document.createElement('div'); m.className = 'marca'; m.style.left = (i * 10) + '%'; r.appendChild(m); }
+    const ev = [{ evento: 'cena.abre', ms: 0 }];
+    const T0 = 260;
+    for (let i = 0; i < 6; i++) ev.push({ evento: 'tique', ms: Math.round(T0 + (CONTA * i) / 6) });
+    ev.push({ evento: 'numero.impacto', ms: Math.round(T0 + CONTA) });
+    window.eventos = ev;
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t, T0 = 260;
+    BC.wipeV($('lado'), BC.eo(BC.lin(t, 0, 240)), BC.ei(BC.lin(-S, -140, 0)));
+    BC.wipe($('cw'), BC.eo(BC.lin(t, 60, 460)), BC.ei(BC.lin(-S, -380, -60)));
+    const k = BC.eo(BC.lin(t, T0, T0 + CONTA));
+    const v = inicio + (alvo - inicio) * k;
+    $('val').textContent = BC.fmt(d, d.ano ? Math.round(v) : v);
+    $('enche').style.transform = `scaleX(${k.toFixed(4)})`;
+    const fim = t >= T0 + CONTA;
+    const pulso = fim ? 1 + 0.05 * Math.exp(-(t - T0 - CONTA) / 120) : 1;
+    $('num').style.transform = `scale(${pulso.toFixed(4)})`;
+    $('num').style.transformOrigin = 'left bottom';
+    $('val').style.color = fim ? '' : 'rgba(255,255,255,.92)';
+    const kl = BC.eo(BC.lin(t, T0 + CONTA * 0.6, T0 + CONTA + 300));
+    $('leg').style.opacity = String(kl);
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+{
+  "nome": "Broadcast",
+  "grupo": "teste",
+  "descricao": "Notícias, dados e informação.",
+  "paleta": {"fundo": "#07152b", "painel": "#0e2a52", "texto": "#ffffff", "texto2": "#b8c6dc", "acento": "#22c4ee"},
+  "fontes": {"titulo": "Bahnschrift, 'Arial Narrow', 'Segoe UI Semibold', 'Segoe UI', sans-serif",
+             "texto": "'Segoe UI', Bahnschrift, Arial, sans-serif"},
+  "trilha_mood": "jornalistica",
+  "ritmo": {"distancia_min_ms": 5000, "teto_por_min": 6, "leitura_min_ms": 1600},
+  "sfx_volume_db": -15,
+  "sfx": {
+    "cena.abre": {"arquivo": "sfx/whoosh.wav", "volume_db": -18},
+    "secao.abre": {"arquivo": "sfx/swell.wav", "volume_db": -16},
+    "numero.impacto": {"arquivo": "sfx/impacto.wav", "volume_db": -14},
+    "tique": {"arquivo": "sfx/tique.wav", "volume_db": -20},
+    "lista.item": {"arquivo": "sfx/clique.wav", "volume_db": -16},
+    "rank.revela": {"arquivo": "sfx/impacto.wav", "volume_db": -14},
+    "versus.choque": {"arquivo": "sfx/impacto.wav", "volume_db": -14},
+    "palavra.slam": {"arquivo": "sfx/whoosh.wav", "volume_db": -15},
+    "barra.enche": {"arquivo": "sfx/swell.wav", "volume_db": -19},
+    "foto.entra": {"arquivo": "sfx/whoosh.wav", "volume_db": -15},
+    "foto.desliza": {"arquivo": "sfx/whoosh.wav", "volume_db": -19},
+    "mapa.ponto": {"arquivo": "sfx/pop.wav", "volume_db": -14}
+  },
+  "pecas": {
+    "secao-titulo": {
+      "arquivo": "pecas/secao-titulo.html", "familia": "secoes", "camada": "principal",
+      "subtipos": ["capitulo"], "dur_ms_padrao": 4000, "minimo_ms": 2400,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "O motor que mudou tudo", "numero": 2, "total": 6, "subtipo": "capitulo"}
+    },
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["numero", "moeda", "ano"], "dur_ms_padrao": 3600, "minimo_ms": 2000,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "€70.000", "numero": 70000, "numero_texto": "€70.000", "prefixo": "€", "sufixo": "",
+                  "decimais": 0, "separador_milhar": ".", "separador_decimal": ",", "legenda": "pelo Porsche 911 de 1973",
+                  "subtipo": "moeda", "moeda": true}
+    },
+    "contador": {
+      "arquivo": "pecas/contador.html", "familia": "fatos", "camada": "principal", "zona": "inferior", "zona_topo": 0.51,
+      "subtipos": ["numero", "moeda", "ano"], "dur_ms_padrao": 3800, "minimo_ms": 2400,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "1.200 cavalos", "numero": 1200, "numero_texto": "1.200 cavalos", "prefixo": "", "sufixo": " cavalos",
+                  "unidade": "cavalos", "decimais": 0, "separador_milhar": ".", "separador_decimal": ",",
+                  "legenda": "de potência no motor elétrico", "subtipo": "numero"}
+    },
+    "barras": {
+      "arquivo": "pecas/barras.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["percentual"], "dur_ms_padrao": 4200, "minimo_ms": 2600,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "38%", "numero": 38, "percentual": 38, "numero_texto": "38%", "prefixo": "", "sufixo": "%",
+                  "decimais": 0, "separador_milhar": ".", "separador_decimal": ",", "pct": true,
+                  "legenda": "dos carros vendidos na Noruega já são elétricos", "subtipo": "percentual"}
+    },
+    "donut": {
+      "arquivo": "pecas/donut.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["percentual"], "dur_ms_padrao": 4200, "minimo_ms": 2600,
+      "variaveis_exigidas": ["numero"], "usa_midia": false,
+      "exemplo": {"texto": "72%", "numero": 72, "percentual": 72, "numero_texto": "72%", "prefixo": "", "sufixo": "%",
+                  "decimais": 0, "separador_milhar": ".", "separador_decimal": ",", "pct": true,
+                  "legenda": "das peças do Fusca eram compartilhadas", "subtipo": "percentual"}
+    },
+    "lower-third": {
+      "arquivo": "pecas/lower-third.html", "familia": "fatos", "camada": "principal", "zona": "inferior", "zona_topo": 0.68,
+      "subtipos": ["pessoa", "item", "lugar"], "dur_ms_padrao": 4000, "minimo_ms": 2200,
+      "variaveis_exigidas": ["nome"], "usa_midia": false,
+      "exemplo": {"texto": "Ferdinand Porsche", "nome": "Ferdinand Porsche", "tipo_item": "pessoa", "rotulo": "PESSOA", "subtipo": "pessoa"}
+    },
+    "topicos": {
+      "arquivo": "pecas/topicos.html", "familia": "listas", "camada": "principal",
+      "subtipos": ["lista"], "dur_ms_padrao": 6000, "minimo_ms": 3000,
+      "variaveis_exigidas": ["itens"], "usa_midia": false,
+      "exemplo": {"titulo": "Três motivos", "itens": ["preço", "potência", "design"], "itens_ms": [0, 700, 1400],
+                  "texto": "preço, potência, design", "subtipo": "lista"}
+    },
+    "rank": {
+      "arquivo": "pecas/rank.html", "familia": "rankings", "camada": "principal",
+      "subtipos": ["rank"], "dur_ms_padrao": 3800, "minimo_ms": 2200,
+      "variaveis_exigidas": ["posicao"], "usa_midia": false,
+      "exemplo": {"posicao": 3, "numero": 3, "texto": "Ferrari F40", "subtipo": "rank"}
+    },
+    "comparacao": {
+      "arquivo": "pecas/comparacao.html", "familia": "contrastes", "camada": "principal", "zona": "inferior", "zona_topo": 0.51,
+      "subtipos": ["versus", "mas"], "dur_ms_padrao": 4200, "minimo_ms": 2400,
+      "variaveis_exigidas": ["a", "b"], "usa_midia": false,
+      "exemplo": {"a": "motor a gasolina", "b": "motor elétrico", "conector": "vs",
+                  "texto": "motor a gasolina vs motor elétrico", "subtipo": "versus"}
+    },
+    "citacao": {
+      "arquivo": "pecas/citacao.html", "familia": "citacoes", "camada": "principal",
+      "subtipos": ["citacao"], "dur_ms_padrao": 6000, "minimo_ms": 3000,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Ninguém compra um carro, compra um sonho.", "autor": "Enzo Ferrari", "subtipo": "citacao"}
+    },
+    "karaoke": {
+      "arquivo": "pecas/karaoke.html", "familia": "karaoke", "camada": "principal",
+      "subtipos": ["frase"], "dur_ms_padrao": 4000, "minimo_ms": 2200,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Ele dirigiu a noite inteira sem parar", "destaque": 3, "subtipo": "frase",
+                  "palavras": [{"texto": "Ele", "ms": 200}, {"texto": "dirigiu", "ms": 460}, {"texto": "a", "ms": 800},
+                               {"texto": "noite", "ms": 900}, {"texto": "inteira", "ms": 1250}, {"texto": "sem", "ms": 1650},
+                               {"texto": "parar", "ms": 1850}]}
+    },
+    "mapa-mundi": {
+      "arquivo": "pecas/mapa-mundi.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["lugar"], "dur_ms_padrao": 4800, "minimo_ms": 2800,
+      "variaveis_exigidas": ["lat", "lon"], "usa_midia": false,
+      "exemplo": {"texto": "Stuttgart", "nome": "Stuttgart", "lugar": "Stuttgart", "tipo_item": "lugar", "rotulo": "LOCAL",
+                  "lat": 48.78, "lon": 9.18, "subtipo": "lugar"}
+    },
+    "foto-destaque": {
+      "arquivo": "pecas/foto-destaque.html", "familia": "foto_destaque", "camada": "fundo",
+      "subtipos": ["foto"], "dur_ms_padrao": 5000, "minimo_ms": 2600,
+      "variaveis_exigidas": ["midia_url"], "usa_midia": true,
+      "exemplo": {"texto": "Porsche 911", "legenda": "O primeiro 911 saiu da fábrica de Stuttgart em 1964", "tipo_item": "produto", "subtipo": "foto"}
+    },
+    "carrossel": {
+      "arquivo": "pecas/carrossel.html", "familia": "foto_destaque", "camada": "fundo",
+      "subtipos": ["fotos"], "dur_ms_padrao": 6000, "minimo_ms": 3200,
+      "variaveis_exigidas": ["midias"], "usa_midia": true,
+      "exemplo": {"texto": "Fusca", "legenda": "O Fusca em três gerações", "tipo_item": "produto", "subtipo": "fotos"}
+    },
+    "ticker": {
+      "arquivo": "pecas/ticker.html", "familia": "persistente", "camada": "persistente", "zona": "inferior", "zona_topo": 0.885,
+      "dur_ms_padrao": 30000, "minimo_ms": 10000,
+      "variaveis_exigidas": ["itens"], "usa_midia": false,
+      "exemplo": {"itens": ["Porsche 911", "Fusca", "Ferrari F40", "Stuttgart", "Ferdinand Porsche", "Motor boxer"],
+                  "texto": "Porsche 911 • Fusca • Ferrari F40 • Stuttgart • Ferdinand Porsche • Motor boxer", "loop": true}
+    },
+    "palavra-gigante": {
+      "arquivo": "pecas/palavra-gigante.html", "familia": "impactos", "camada": "principal",
+      "subtipos": ["palavra"], "dur_ms_padrao": 2600, "minimo_ms": 1600,
+      "variaveis_exigidas": ["texto"], "usa_midia": false,
+      "exemplo": {"texto": "Ninguém acreditou!", "subtipo": "palavra",
+                  "palavras": [{"texto": "Ninguém", "ms": 0}, {"texto": "acreditou!", "ms": 380}]}
+    }
+  }
+}

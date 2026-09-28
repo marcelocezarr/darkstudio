@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-dossie-duplo (camada FUNDO). Duas fichas de caso (visual tecnico neutro, na paleta
+     do estilo do video): cabecalho com codigo A/B, foto com Ken Burns, marcadores de mira com linha
+     de chamada e cota, e um fio tracejado que LIGA as duas fichas. Titulo na ficha A, frase na B. -->
+<link rel="stylesheet" href="../comum/takes-c.css">
+<style>
+  #pontos { position: absolute; inset: 0; opacity: .5;
+    background-image: radial-gradient(var(--tc-linha) 1.4px, transparent 1.6px); background-size: 36px 36px; }
+  #cena { position: absolute; inset: 0; transform-origin: 50% 50%; }
+  .ficha { position: absolute; background: var(--tc-sup); transform-origin: 50% 50%;
+           box-shadow: 0 26px 54px rgba(0,0,0,.5), 0 0 0 1px var(--tc-linha); }
+  .cab { position: absolute; left: 0; right: 0; top: 0; height: 64px; display: flex; align-items: center; gap: 16px;
+         padding: 0 22px; border-bottom: 1px solid var(--tc-linha); background: var(--tc-bg-claro); }
+  .cab b { font-family: var(--tc-ft); font-size: 34px; line-height: 44px; width: 46px; height: 44px; text-align: center;
+           background: var(--tc-ac); color: var(--tc-ac-tx); font-weight: 700; }
+  .cab .tc-rot { font-size: 19px; }
+  .cab .cod { margin-left: auto; display: flex; gap: 3px; height: 26px; align-items: stretch; opacity: .55; }
+  .cab .cod i { display: block; background: var(--tc-tx); }
+  .ficha .tc-mid { left: 22px; top: 86px; }
+  .pe { position: absolute; left: 22px; right: 22px; }
+  .pe .tc-rot { font-size: 17px; margin-bottom: 10px; display: block; }
+  .pe .v { color: var(--tc-tx); line-height: 1.2; }
+  .pe .v.t { font-family: var(--tc-ft); }
+  .pe .v.x { font-family: var(--tc-fx); color: var(--tc-tx2); line-height: 1.34; }
+  .linhas { position: absolute; left: 22px; right: 22px; }
+  .linhas i { display: block; height: 1px; background: var(--tc-linha); margin-bottom: 40px; transform-origin: 0 50%; }
+  svg.ann { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  svg.ann .l { fill: none; stroke: var(--tc-ac); stroke-width: 2.5; }
+  svg.ann .c { fill: none; stroke: var(--tc-ac); stroke-width: 3; }
+  svg.ann .p { fill: var(--tc-ac); }
+  svg.ann .cota { fill: none; stroke: var(--tc-tx); stroke-width: 1.6; opacity: .75; }
+  .rot-ann { position: absolute; font-family: var(--tc-fr); font-size: 20px; letter-spacing: .14em; padding: 5px 10px 4px;
+             background: var(--tc-bg-escuro); color: var(--tc-tx); border: 1.5px solid var(--tc-ac); white-space: nowrap; }
+  #fio { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+  #fio path { fill: none; stroke: var(--tc-ac); stroke-width: 3; stroke-dasharray: 14 10; }
+  #fio circle { fill: var(--tc-ac); }
+</style>
+</head>
+<body>
+<div class="tc-fundo"></div><div id="pontos"></div>
+<div id="cena">
+  <div id="fa" class="ficha"></div>
+  <div id="fb" class="ficha"></div>
+  <svg id="fio" viewBox="0 0 1920 1080"><defs><mask id="mk" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><path id="fm" stroke="#fff" stroke-width="14" fill="none"/></mask></defs><path id="fp" mask="url(#mk)"/><circle id="c1" r="7"/><circle id="c2" r="7"/></svg>
+</div>
+<script src="../comum/takes-c.js"></script>
+<script>
+(() => {
+  const Z = window.TC, $ = (s) => document.querySelector(s);
+  const cena = $('#cena'), fp = $('#fp'), fm = $('#fm'), c1 = $('#c1'), c2 = $('#c2');
+  const W = 780, H = 800, FW = 736, FH = 440;
+  let DUR = 4500, F = [], L = 0;
+
+  function ficha(el, x, y, rot, letra, slot, rotulo, valor, tipo, sem, lado, rotPe) {
+    Object.assign(el.style, { left: x + 'px', top: y + 'px', width: W + 'px', height: H + 'px' });
+    // cabecalho: letra + rotulo + "codigo" de barras decorativo (deterministico)
+    const cab = document.createElement('div'); cab.className = 'cab';
+    let cod = '';
+    for (let i = 0; i < 22; i++) cod += `<i style="width:${1 + Math.floor(Z.rnd(sem + letra, i) * 4)}px"></i>`;
+    cab.innerHTML = `<b>${letra}</b><span class="tc-rot">${Z.esc(rotulo)}</span><span class="cod">${cod}</span>`;
+    el.appendChild(cab);
+    const box = Z.criarMidia(el, slot);
+    box.style.width = FW + 'px'; box.style.height = FH + 'px';
+    // anotacoes sobre a foto: mira + chamada + cota
+    const px = 22 + FW * (lado < 0 ? 0.56 + Z.rnd(sem, 3) * 0.18 : 0.26 + Z.rnd(sem, 4) * 0.18);
+    const py = 86 + FH * (0.4 + Z.rnd(sem + letra, 5) * 0.22);
+    const lx = lado < 0 ? px - 170 : px + 170, ly = 86 + 64;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'ann'); svg.setAttribute('width', W); svg.setAttribute('height', H);
+    const yc = 86 + FH + 26;
+    svg.innerHTML = `<circle class="c" cx="${px}" cy="${py}" r="34"/><circle class="p" cx="${px}" cy="${py}" r="5"/>` +
+      `<path class="l" d="M${px + (lado < 0 ? -24 : 24)} ${py - 24} L${lx} ${ly + 22} L${lx + (lado < 0 ? -40 : 40)} ${ly + 22}"/>` +
+      `<path class="cota" d="M22 ${yc - 9} L22 ${yc + 9} M22 ${yc} L${22 + FW} ${yc} M${22 + FW} ${yc - 9} L${22 + FW} ${yc + 9}"/>`;
+    el.appendChild(svg);
+    const ra = document.createElement('div'); ra.className = 'rot-ann'; ra.textContent = letra + '.1';
+    el.appendChild(ra);
+    ra.style.top = (ly + 4) + 'px';
+    const wra = ra.getBoundingClientRect().width;
+    ra.style.left = (lado < 0 ? lx - 40 - wra : lx + 40) + 'px';
+    // rodape: valor (titulo/frase) ou linhas de anotacao vazias
+    const pe = document.createElement('div'); pe.className = 'pe';
+    const topo = yc + 34, alt = H - topo - 26;
+    pe.style.top = topo + 'px'; pe.style.height = alt + 'px';
+    let v = null;
+    if (valor) {
+      pe.innerHTML = `<span class="tc-rot">${Z.esc(rotPe)}</span>`;
+      v = document.createElement('div'); v.className = 'v ' + tipo; v.style.width = (W - 44) + 'px';
+      pe.appendChild(v);
+      el.appendChild(pe);
+      const hR = pe.firstChild.getBoundingClientRect().height + 10;
+      Z.caberTexto(v, valor, tipo === 't' ? 58 : 36, tipo === 't' ? 30 : 22, alt - hR);
+      Z.palavras(v);
+    } else {
+      const ln = document.createElement('div'); ln.className = 'linhas'; ln.style.top = (topo + 40) + 'px';
+      ln.innerHTML = '<i></i><i></i><i style="width:60%"></i>';
+      el.appendChild(ln); pe._ln = ln;
+    }
+    // ponto da mira em coordenadas da tela (ficha gira em torno do centro)
+    const a = rot * Math.PI / 180, dx = px - W / 2, dy = py - H / 2;
+    const tela = [x + W / 2 + dx * Math.cos(a) - dy * Math.sin(a), y + H / 2 + dx * Math.sin(a) + dy * Math.cos(a)];
+    return { el, box, rot, svg, ra, v, ln: pe._ln, tela, circ: svg.querySelectorAll('.c, .p'), lin: svg.querySelector('.l'),
+             cota: svg.querySelector('.cota'), lado };
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    Z.tema(d);
+    DUR = d.dur_ms || 4500;
+    const sem = Z.midias(d).join('|') + Z.txt(d.texto);
+    const s = Z.slots(d, 2);
+    let titulo = Z.txt(d.titulo || d.nome), texto = Z.txt(d.texto);
+    if (texto && texto.toLowerCase() === titulo.toLowerCase()) texto = '';
+    const ra = -1.6 - Z.rnd(sem, 1), rb = 1.1 + Z.rnd(sem, 2);
+    const arq = Z.rot(d, 'arquivo');
+    const k0 = Math.floor(Z.rnd(sem, 7) * 4);
+    F = [ficha($('#fa'), 150, 138, ra, 'A', s[0], arq, titulo, 't', sem, 1, Z.rot(d, 'destaque') || arq),
+         ficha($('#fb'), 990, 142, rb, 'B', s[1], arq, texto, 'x', sem, -1, Z.rot(d, 'evidencia') || arq)];
+    F[0].mov = Z.MOVS[k0]; F[1].mov = Z.MOVS[(k0 + 2) % 4];
+    const [a, b] = [F[0].tela, F[1].tela];
+    const mx = (a[0] + b[0]) / 2, my = Math.max(a[1], b[1]) + 120;
+    fp.setAttribute('d', `M${Z.f(a[0], 1)} ${Z.f(a[1], 1)} Q${Z.f(mx, 1)} ${Z.f(my, 1)} ${Z.f(b[0], 1)} ${Z.f(b[1], 1)}`);
+    fm.setAttribute('d', fp.getAttribute('d'));
+    L = fp.getTotalLength();
+    c1.setAttribute('cx', a[0]); c1.setAttribute('cy', a[1]); c2.setAttribute('cx', b[0]); c2.setAttribute('cy', b[1]);
+    window.eventos = [{ evento: 'take.entra', ms: 0 }, { evento: 'foto.entra', ms: 40 }, { evento: 'foto.entra', ms: 300 },
+                      { evento: 'tique', ms: 1150 }, { evento: 'tique', ms: 1350 }, { evento: 'linha.liga', ms: 1650 }];
+  };
+
+  window.quadro = function (t) {
+    const k = t / DUR;
+    const sai = Z.eio(Z.seg(t, DUR - 400, 400));
+    cena.style.transform = `scale(${Z.f(1.0 + 0.03 * Z.sine(k), 4)})`;
+    F.forEach((c, i) => {
+      const a = Z.eo5(Z.seg(t, 40 + i * 260, 800));
+      const dir = i === 0 ? -1 : 1;
+      c.el.style.opacity = Z.f(Math.min(1, a * 3), 3);
+      c.el.style.transform = `translate(${Z.f(dir * ((1 - a) * 1000 + sai * 1100), 1)}px, ${Z.f((1 - a) * 40, 1)}px) rotate(${Z.f(c.rot + dir * (1 - a) * 8, 3)}deg)`;
+      Z.kb(c.box, k, c.mov, 1);
+      const km = Z.back(Z.seg(t, 1150 + i * 200, 360));
+      const km0 = Z.seg(t, 1150 + i * 200, 120);
+      c.circ.forEach((e) => { e.style.opacity = Z.f(km0, 3); e.style.transformOrigin = 'center'; e.style.transformBox = 'fill-box';
+                              e.style.transform = `scale(${Z.f(1.8 - 0.8 * km, 4)})`; });
+      Z.tracar(c.lin, Z.eio(Z.seg(t, 1300 + i * 200, 420)));
+      Z.tracar(c.cota, Z.eio(Z.seg(t, 900 + i * 200, 600)));
+      const kr = Z.eo(Z.seg(t, 1600 + i * 200, 300));
+      c.ra.style.opacity = Z.f(kr, 3);
+      c.ra.style.transform = `translateX(${Z.f(c.lado * (1 - kr) * -14, 2)}px)`;
+      if (c.v) Z.revelar(c.v, t, 800 + i * 350, c.v._ws.length > 8 ? 1400 : 700, 280);
+      if (c.ln) [...c.ln.children].forEach((e, j) => { e.style.transform = `scaleX(${Z.f(Z.eio(Z.seg(t, 1000 + j * 160, 500)), 4)})`; });
+    });
+    // fio tracejado liga as miras das duas fichas (dash animado por mascara de comprimento)
+    const kl = Z.eio(Z.seg(t, 1650, 700));
+    Z.tracar(fm, kl);
+    const of = Z.f((kl > 0 ? 0.9 : 0) * (1 - Math.min(1, sai * 3)), 3);
+    fp.style.opacity = of;
+    c1.style.opacity = Z.f(kl > 0 ? of : 0, 3); c2.style.opacity = Z.f(kl >= 1 ? of : 0, 3);
+  };
+})();
+</script>
+</body>
+</html>

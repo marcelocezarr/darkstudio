@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / mapa-mundi (fatos: lugar; exige lat/lon). Footage escurecido em
+     azul-marinho; mapa-mundi (Mercator) em contorno branco fino com preenchimento pontilhado,
+     ponto vermelho no lugar + rotulo pequeno espacado; aproximacao lenta ate o lugar e o nome
+     grande em sans condensada bold embaixo, no centro. Contornos: comum/mundo.js (a mao). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #esc { position: absolute; inset: 0; background: rgba(17, 25, 41, .80); }
+  #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #cv { position: absolute; left: 0; top: 0; }
+  #pt { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; background: var(--acento); border-radius: 2px; }
+  #anel { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid var(--acento); border-radius: 2px; }
+  #pr { position: absolute; font-size: 32px; letter-spacing: .2em; color: #fff; }
+  #nome { position: absolute; left: 0; right: 0; top: 792px; text-align: center; font-size: 104px; line-height: 1; }
+</style>
+</head>
+<body>
+<div id="esc"></div>
+<div id="cam"><canvas id="cv" width="1920" height="1080"></canvas></div>
+<div id="anel"></div><div id="pt"></div>
+<div id="pr" class="esp"></div>
+<div id="nome" class="cond"></div>
+<script src="../comum/bv.js"></script>
+<script src="../comum/mundo.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  // Mercator medido na referencia (1920x1080): lon -180..180 -> x 198..1724; equador y=537
+  const X0 = 198, MW = 1526, R = MW / (2 * Math.PI), EQ = 537, LAT_MAX = 73, LAT_MIN = -57;
+  const X = (lon) => X0 + (lon + 180) / 360 * MW;
+  const Y = (lat) => EQ - R * Math.log(Math.tan(Math.PI / 4 + BC.clamp(lat, -85, 85) * Math.PI / 360));
+  const YT = Y(LAT_MAX), YB = Y(LAT_MIN);
+  let DUR = 4800, px = 960, py = 540, T_PT = 700, T_NOME = 2000, ZMAX = 1.07;
+
+  function desenhar() {
+    const W = 1920, H = 1080;
+    const m = document.createElement('canvas'); m.width = W; m.height = H;
+    const g = m.getContext('2d');
+    const poli = (ctx, lista, fn) => lista.forEach((p) => {
+      ctx.beginPath(); p.forEach(([lo, la], i) => (i ? ctx.lineTo(X(lo), Y(la)) : ctx.moveTo(X(lo), Y(la))));
+      ctx.closePath(); fn(ctx);
+    });
+    g.fillStyle = '#fff'; poli(g, window.MUNDO_TERRA || [], (c) => c.fill());
+    g.globalCompositeOperation = 'destination-out'; poli(g, window.MUNDO_AGUA || [], (c) => c.fill());
+    const px_ = g.getImageData(0, 0, W, H).data;
+    const terra = (x, y) => px_[(Math.floor(y) * W + Math.floor(x)) * 4 + 3] > 127;
+    const cv = $('cv'), c = cv.getContext('2d');
+    c.clearRect(0, 0, W, H);
+    c.save(); c.beginPath(); c.rect(0, YT, W, YB - YT); c.clip();
+    // pontilhado interno
+    const passo = 9, r = 1.35;
+    c.fillStyle = 'rgba(226,232,242,.24)';
+    c.beginPath();
+    for (let y = YT + passo / 2; y < YB; y += passo)
+      for (let x = passo / 2; x < W; x += passo)
+        if (terra(x, y)) { c.moveTo(x + r, y); c.arc(x, y, r, 0, Math.PI * 2); }
+    c.fill();
+    // contorno fino
+    c.strokeStyle = 'rgba(236,240,246,.88)'; c.lineWidth = 1.5; c.lineJoin = 'round';
+    poli(c, window.MUNDO_TERRA || [], (k) => k.stroke());
+    poli(c, window.MUNDO_AGUA || [], (k) => k.stroke());
+    c.restore();
+    // borda reta superior onde a terra e cortada (como na referencia)
+    c.fillStyle = 'rgba(236,240,246,.88)';
+    for (let x = 0; x < W; x++) if (terra(x, YT + 1)) c.fillRect(x, Math.round(YT), 1, 1.5);
+  }
+
+  function cam(t) {
+    const k = BC.eio(BC.lin(t, 300, DUR));
+    const s = 1 + (ZMAX - 1) * k;
+    // aproxima em torno do lugar, puxando-o um pouco para o centro
+    const sx = px + (960 - px) * 0.15 * k, sy = py + (470 - py) * 0.15 * k;   // onde o lugar fica na tela
+    return { s, tx: sx - px * s, ty: sy - py * s };
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4800;
+    const lat = Number(d.lat), lon = Number(d.lon);
+    px = X(isFinite(lon) ? lon : 0); py = Y(isFinite(lat) ? BC.clamp(lat, LAT_MIN, LAT_MAX) : 0);
+    const nome = BC.txt(d.nome || d.lugar || d.texto);
+    $('pr').textContent = BC.encurtar(nome, 28);
+    BC.caberTexto($('nome'), nome, 104, 60, 1500, 0);
+    desenhar();
+    T_PT = Math.min(700, DUR * 0.16);
+    T_NOME = Math.min(DUR * 0.45, 2200);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'mapa.ponto', ms: Math.round(T_PT) },
+                      { evento: 'palavra.slam', ms: Math.round(T_NOME) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const ks = BC.ei(BC.lin(-S, -420, -40));
+    $('esc').style.opacity = (BC.eo(BC.lin(t, 0, 380)) * (1 - ks)).toFixed(3);
+    const km = BC.eo(BC.lin(t, 80, 620)) * (1 - ks);
+    const c = cam(t);
+    $('cam').style.opacity = km.toFixed(3);
+    $('cam').style.transform = `translate(${c.tx.toFixed(2)}px, ${c.ty.toFixed(2)}px) scale(${c.s.toFixed(5)})`;
+    const sx = c.tx + px * c.s, sy = c.ty + py * c.s;
+    const kp = BC.lin(t, T_PT, T_PT + 220);
+    ['pt', 'anel'].forEach((id) => { $(id).style.left = sx.toFixed(1) + 'px'; $(id).style.top = sy.toFixed(1) + 'px'; });
+    $('pt').style.transform = `scale(${Math.max(0, BC.back(kp)).toFixed(4)})`;
+    $('pt').style.opacity = (kp > 0 ? 1 - ks : 0).toFixed(3);
+    // anel: pulso periodico
+    const tt = t - T_PT - 150, f = tt < 0 ? -1 : (tt % 1100) / 1100;
+    $('anel').style.opacity = f < 0 ? '0' : ((1 - f) * 0.8 * (1 - ks)).toFixed(3);
+    $('anel').style.transform = `scale(${(1 + 2.6 * Math.max(0, f)).toFixed(3)})`;
+    // rotulo pequeno a direita do ponto
+    const kr = BC.eo(BC.lin(t, T_PT + 150, T_PT + 550));
+    const pr = $('pr');
+    pr.style.left = (sx + 24).toFixed(1) + 'px'; pr.style.top = (sy - 44).toFixed(1) + 'px';
+    pr.style.opacity = (kr * (1 - ks)).toFixed(3);
+    pr.style.clipPath = `inset(0 ${((1 - kr) * 100).toFixed(3)}% 0 0)`;
+    // nome grande
+    const kn = BC.eo(BC.lin(t, T_NOME, T_NOME + 380));
+    $('nome').style.opacity = (kn * (1 - ks)).toFixed(3);
+    $('nome').style.transform = `translateY(${((1 - kn) * 30).toFixed(2)}px)`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / foto-destaque (camada fundo): fundo escuro quadriculado, foto grande com
+     sombra e zoom lento, fio limão de progresso na base da foto e etiqueta limão (Impact preto)
+     embaixo à esquerda. Várias mídias: a próxima foto EMPURRA a anterior para a esquerda. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #fundo { position: absolute; inset: 0; background-color: var(--fundo); }
+  #trilho { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; will-change: transform; }
+  .quadro { position: absolute; top: 110px; width: 1628px; height: 800px; overflow: hidden; background: #111;
+            box-shadow: 0 14px 40px rgba(0,0,0,.65); }
+  .quadro img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: 50% 50%; will-change: transform; }
+  #fio { position: absolute; left: 184px; top: 900px; height: 10px; width: 0; background: var(--acento); }
+  #etq { position: absolute; left: 184px; top: 934px; height: 80px; padding: 0 26px; font-family: var(--f-rotulo);
+         font-size: 52px; line-height: 80px; text-transform: uppercase; letter-spacing: .005em; }
+</style>
+</head>
+<body>
+<div id="fundo"></div>
+<div id="trilho"></div>
+<div id="fio"></div>
+<div id="etq" class="etq"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const PASSO = 1920;          // distância entre fotos no trilho (empurrão)
+  const EMP = 420;             // duração do empurrão
+  let d = {}, DUR = 5000, REAL = 5000, fotos = [], trocas = [], T_ETQ = 380;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 5000;
+    REAL = d.dur_ms_real || DUR;
+    K.grade($('fundo'), 96, 'var(--grade)', 2, 0, 22);
+    let urls = Array.isArray(d.midias) && d.midias.length ? d.midias.slice(0, 4) : [];
+    if (!urls.length && d.midia_url) urls = [d.midia_url];
+    // cada foto precisa de ~1,6 s na tela
+    const maxN = Math.max(1, Math.floor(REAL / 1600));
+    urls = urls.slice(0, maxN);
+    const tr = $('trilho');
+    fotos = urls.map((u, i) => {
+      const q = document.createElement('div'); q.className = 'quadro';
+      q.style.left = (184 + i * PASSO) + 'px';
+      const im = document.createElement('img'); im.src = u; q.appendChild(im); tr.appendChild(q);
+      return im;
+    });
+    const n = fotos.length;
+    trocas = [];
+    for (let i = 1; i < n; i++) trocas.push(Math.round(REAL * i / n - EMP / 2));
+    $('etq').textContent = K.maiusc(d.texto || d.legenda || '', d.idioma);
+    K.ajustar($('etq'), 1400, 80, 52, 30);
+    if (!$('etq').textContent) $('etq').style.display = 'none';
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }, { evento: 'etiqueta.entra', ms: T_ETQ }]
+      .concat(trocas.map((ms) => ({ evento: 'foto.desliza', ms })));
+  };
+
+  window.quadro = function (t) {
+    // posição do trilho: soma dos empurrões já iniciados
+    let pos = 0;
+    trocas.forEach((ms) => { pos += K.outQuint(K.prog(t, ms, EMP)); });
+    $('trilho').style.transform = `translateX(${(-pos * PASSO).toFixed(1)}px)`;
+    const n = fotos.length;
+    fotos.forEach((im, i) => {
+      const ini = i === 0 ? 0 : trocas[i - 1];
+      const z = 1.0 + 0.05 * K.prog(t, ini, REAL / n + EMP);
+      im.style.transform = `scale(${z.toFixed(4)})`;
+    });
+    // fio de progresso limão (base da foto): avança devagar ao longo da peça inteira
+    const kf = K.prog(t, 250, REAL - 250);
+    $('fio').style.width = (1628 * (0.015 + 0.985 * kf)).toFixed(1) + 'px';
+    $('fio').style.opacity = t < 250 ? '0' : '1';
+    // etiqueta: aparece de estalo
+    const ke = K.outExpo(K.prog(t, T_ETQ, 90));
+    $('etq').style.clipPath = K.cortina(ke);
+  };
+})();
+</script>
+</body>
+</html>

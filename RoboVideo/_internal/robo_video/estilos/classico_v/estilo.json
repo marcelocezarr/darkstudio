@@ -1,0 +1,98 @@
+{
+  "nome": "Clássico",
+  "grupo": "validado",
+  "descricao": "Minimalista sobre o footage, sem escurecer: selo escuro pequeno com número e rótulo, palavra em branco com sombra, poucas peças.",
+  "paleta": {"fundo": "#1e201a", "texto": "#f1ede3", "acento": "#eabd85", "caixa": "rgba(30,32,26,.93)",
+             "sombra": "rgba(0,0,0,.55)"},
+  "fontes": {"titulo": "'Segoe UI', 'Open Sans', Arial, sans-serif",
+             "texto": "'Segoe UI', 'Open Sans', Arial, sans-serif"},
+  "trilha_mood": "neutra",
+  "ritmo": {"distancia_min_ms": 9000, "teto_por_min": 4, "leitura_min_ms": 1800},
+  "sfx_volume_db": -22,
+  "sfx": {
+    "numero.impacto": {"arquivo": "sfx/pop.wav", "volume_db": -24},
+    "palavra.slam": {"arquivo": "sfx/whoosh.wav", "volume_db": -26},
+    "cena.abre": {"arquivo": "sfx/whoosh.wav", "volume_db": -27},
+    "secao.abre": {"arquivo": "sfx/swell.wav", "volume_db": -24},
+    "tique": {"arquivo": "sfx/tique.wav", "volume_db": -26}
+  },
+  "pecas": {
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html",
+      "familia": ["fatos", "rankings"],
+      "camada": "principal",
+      "subtipos": ["numero", "percentual", "moeda", "ano", "rank"],
+      "dur_ms_padrao": 4500,
+      "minimo_ms": 2400,
+      "variaveis_exigidas": ["numero"],
+      "usa_midia": false,
+      "exemplo": {"texto": "8 years", "numero": 8, "numero_texto": "8 years", "prefixo": "", "sufixo": " years",
+                  "unidade": "years", "decimais": 0, "separador_milhar": ",", "separador_decimal": ".",
+                  "legenda": "of battery warranty", "subtipo": "numero", "ano": false, "moeda": false, "pct": false}
+    },
+    "palavra": {
+      "arquivo": "pecas/palavra.html",
+      "familia": "impactos",
+      "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.62,
+      "subtipos": ["palavra"],
+      "dur_ms_padrao": 2800,
+      "minimo_ms": 1800,
+      "variaveis_exigidas": ["texto"],
+      "usa_midia": false,
+      "exemplo": {"texto": "Maxus.", "palavras": [{"texto": "Maxus.", "ms": 0}]}
+    },
+    "lower-third": {
+      "arquivo": "pecas/lower-third.html",
+      "familia": "fatos",
+      "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.68,
+      "subtipos": ["pessoa", "lugar", "item"],
+      "dur_ms_padrao": 3600,
+      "minimo_ms": 2200,
+      "variaveis_exigidas": ["nome"],
+      "usa_midia": false,
+      "exemplo": {"texto": "Maxus Deliver 9", "nome": "Maxus Deliver 9", "tipo_item": "produto", "rotulo": "PRODUTO",
+                  "subtipo": "item"}
+    },
+    "secao-titulo": {
+      "arquivo": "pecas/secao-titulo.html",
+      "familia": "secoes",
+      "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.6,
+      "subtipos": ["capitulo"],
+      "dur_ms_padrao": 3800,
+      "minimo_ms": 2400,
+      "variaveis_exigidas": ["texto"],
+      "usa_midia": false,
+      "exemplo": {"texto": "Battery health", "numero": 2, "total": 5, "subtipo": "capitulo"}
+    },
+    "citacao": {
+      "arquivo": "pecas/citacao.html",
+      "familia": "citacoes",
+      "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.56,
+      "subtipos": ["citacao"],
+      "dur_ms_padrao": 5000,
+      "minimo_ms": 2800,
+      "variaveis_exigidas": ["texto"],
+      "usa_midia": false,
+      "exemplo": {"texto": "Not a criticism, just the honest summary of what these vans are.", "autor": "Trade press"}
+    },
+    "karaoke": {
+      "arquivo": "pecas/karaoke.html",
+      "familia": "karaoke",
+      "camada": "principal",
+      "zona": "inferior", "zona_topo": 0.6,
+      "subtipos": ["frase"],
+      "dur_ms_padrao": 3400,
+      "minimo_ms": 2000,
+      "variaveis_exigidas": ["texto"],
+      "usa_midia": false,
+      "exemplo": {"texto": "The fall in value makes better used buys", "destaque": 1,
+                  "palavras": [{"texto": "The", "ms": 0}, {"texto": "fall", "ms": 220}, {"texto": "in", "ms": 520},
+                               {"texto": "value", "ms": 640}, {"texto": "makes", "ms": 1000}, {"texto": "better", "ms": 1300},
+                               {"texto": "used", "ms": 1620}, {"texto": "buys", "ms": 1880}]}
+    }
+  }
+}

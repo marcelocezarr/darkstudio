@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / palavra-gigante (impactos: palavra). Manchete: selo (URGENTE quando a
+     frase e exclamativa, senao DESTAQUE) + palavras gigantes sobre placa marinho inclinada.
+     Cada palavra entra no instante em que e falada (dados.palavras[].ms). -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #palco { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; padding-bottom: 60px; }
+  #selow { margin-bottom: 18px; }
+  #selo { font-size: 40px; padding: 11px 40px 10px 24px; }
+  #selo .ponto { background: var(--navy); }
+  #caixa { position: relative; padding: 18px 70px 24px; }
+  #placa { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,42,82,.93), rgba(7,21,43,.93));
+           transform: skewX(-12deg); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  #faixa { position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: var(--acento);
+           transform: skewX(-12deg); transform-origin: left; }
+  #frase { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .24em;
+           max-width: 1320px; font-weight: 700; font-size: 160px; line-height: 1.04; text-transform: uppercase;
+           text-align: center; letter-spacing: .005em; }
+  .pm { display: inline-block; overflow: hidden; padding: .16em .02em 0; margin-top: -.16em; }
+  .p { display: inline-block; }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div id="selow"><div id="selo" class="tag"><span class="ponto"></span><span id="selot"></span></div></div>
+  <div id="caixa"><div id="placa"></div><div id="faixa"></div><div id="frase"></div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 2600, spans = [], entradas = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 2600;
+    const texto = BC.txt(d.texto);
+    const exclama = /[!¡]/.test(texto);
+    $('selot').textContent = exclama ? BC.rot(d, 'urgente') : BC.rot(d, 'destaque');
+    const palavras = texto.split(' ').filter(Boolean);
+    const fr = $('frase');
+    fr.innerHTML = '';
+    spans = palavras.map((w) => {
+      const m = document.createElement('span'); m.className = 'pm';
+      const s = document.createElement('span'); s.className = 'p'; s.textContent = w;
+      m.appendChild(s); fr.appendChild(m); return s;
+    });
+    // prefere 1 linha (ate 112 px); senao 2 linhas dentro de 1320 px
+    const cabe = (px, linhas) => {
+      fr.style.fontSize = px + 'px';
+      const h = fr.getBoundingClientRect().height;
+      return h <= linhas * px * 1.04 + 4 && !spans.some((s) => s.getBoundingClientRect().width > 1320);
+    };
+    let px = 160;
+    while (px > 112 && !cabe(px, 1)) px -= 4;
+    if (!cabe(px, 1)) { px = 140; while (px > 64 && !cabe(px, 2)) px -= 4; cabe(px, 2); }
+    const falas = Array.isArray(d.palavras) ? d.palavras : [];
+    entradas = spans.map((_, i) => {
+      const f = falas[i];
+      const ms = (f && f.ms != null) ? Number(f.ms) : i * 120;
+      return BC.clamp(ms, 120, Math.max(120, DUR * 0.55)) + 60;
+    });
+    for (let i = 1; i < entradas.length; i++) entradas[i] = Math.max(entradas[i], entradas[i - 1] + 70);
+    window.eventos = [{ evento: 'palavra.slam', ms: Math.round(entradas[0] || 0) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const sOut = BC.ei(BC.lin(-S, -320, -40));
+    BC.wipe($('selow'), BC.eo(BC.lin(t, 0, 260)), BC.ei(BC.lin(-S, -300, -120)), 20);
+    const kp = BC.eo(BC.lin(t, 30, 380));
+    BC.wipe($('placa'), kp, sOut, 120);
+    $('faixa').style.transform = `skewX(-12deg) scaleX(${(BC.eo(BC.lin(t, 200, 600)) * (1 - BC.ei(BC.lin(-S, -360, -160)))).toFixed(4)})`;
+    spans.forEach((s, i) => {
+      const k = BC.expo(BC.lin(t, entradas[i], entradas[i] + 340));
+      const out = BC.ei(BC.lin(-S, -300 + i * 0, -60));
+      s.style.transform = `translateY(${((1 - k) * 105 - out * 105).toFixed(2)}%)`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

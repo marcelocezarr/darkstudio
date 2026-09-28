@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: polaroides (foto_destaque/fotos, camada FUNDO -- pinta a tela inteira).
+     Quadro de investigacao: 2-4 polaroides caem na mesa, presas por tachinhas, legendadas
+     "EVIDENCIA #n", ligadas por um barbante vermelho; a ficha do caso traz o nome. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #cena { position: absolute; inset: 0; transform-origin: 50% 45%; }
+  .polaroide { opacity: 0; }
+  .polaroide .leg { font-size: 30px; letter-spacing: .12em; color: var(--vermelho); }
+  .tacha { position: absolute; left: 50%; top: -6px; width: 34px; height: 34px; margin-left: -17px; border-radius: 50%;
+           background: radial-gradient(circle at 35% 30%, #ff8a7a, #c4231b 45%, #7d1510 100%);
+           box-shadow: 0 6px 8px rgba(0,0,0,.5); z-index: 3; }
+  #fio { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; z-index: 5; pointer-events: none; }
+  #fio path { fill: none; stroke: #b3211b; stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 3px 2px rgba(0,0,0,.45)); }
+  #ficha { left: 200px; top: 810px; max-width: 1180px; padding: 22px 40px 20px; z-index: 6; transform-origin: 0 100%; }
+  #nome { font-size: 70px; color: var(--tinta); white-space: nowrap; }
+  #rot { font-size: 24px; margin-bottom: 6px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="mesa"></div>
+<div id="cena">
+  <div id="pols"></div>
+  <svg id="fio"><path id="fiop"/></svg>
+  <div id="ficha" class="papel kraft"><div id="rot" class="rotulo"></div><div id="nome" class="titulo"></div></div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const cena = document.getElementById('cena'), pols = document.getElementById('pols'), ficha = document.getElementById('ficha');
+  const fiop = document.getElementById('fiop');
+  let DUR = 5000, P = [], ents = [], T_FIO = 1500, D_FIO = 700, T_FICHA = 1600;
+
+  // layouts: [x centro, y topo, rotacao] em 1920x1080; largura por quantidade
+  const LAYOUT = {
+    1: { w: 780, h: 540, pos: [[960, 120, -3]] },
+    2: { w: 680, h: 490, pos: [[590, 140, -4], [1320, 170, 3.5]] },
+    3: { w: 560, h: 410, pos: [[430, 200, -5], [960, 160, 2], [1490, 215, -2.5]] },
+    4: { w: 450, h: 330, pos: [[330, 200, -5], [760, 150, 3], [1180, 205, -2], [1600, 160, 4]] },
+  };
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 5000;
+    let midias = (Array.isArray(d.midias) ? d.midias : []).filter(Boolean);
+    if (!midias.length && d.midia_url) midias = [d.midia_url];
+    midias = midias.slice(0, 4);
+    const n = Math.max(1, midias.length), L = LAYOUT[n];
+    const ev = Z.rot(d, 'evidencia');
+    pols.innerHTML = '';
+    const passo = Math.min(380, (DUR * 0.3) / n);
+    P = midias.map((url, i) => {
+      const p = document.createElement('div'); p.className = 'polaroide';
+      p.style.width = L.w + 'px';
+      const [cx, top, r] = L.pos[i];
+      p.style.left = (cx - L.w / 2) + 'px'; p.style.top = top + 'px';
+      const f = document.createElement('div'); f.className = 'foto'; f.style.height = L.h + 'px';
+      const img = document.createElement('img'); img.src = url; img.alt = ''; f.appendChild(img);
+      const lg = document.createElement('div'); lg.className = 'leg'; lg.style.height = (n >= 3 ? 76 : 90) + 'px';
+      lg.textContent = [ev, '#' + (i + 1)].filter(Boolean).join(' ');
+      if (n >= 4) lg.style.fontSize = '26px';
+      const tacha = document.createElement('div'); tacha.className = 'tacha';
+      p.append(f, lg, tacha);
+      pols.appendChild(p);
+      return { el: p, r: r + (Z.rnd(url, i) - .5) * 2, cx, top };
+    });
+    ents = P.map((_, i) => i * passo);
+    // barbante vermelho ligando as tachinhas (curvas penduradas)
+    if (P.length > 1) {
+      let dd = `M${P[0].cx} ${P[0].top + 11}`;
+      for (let i = 1; i < P.length; i++) {
+        const a = P[i - 1], b = P[i], mx = (a.cx + b.cx) / 2, my = Math.max(a.top, b.top) + 11 + 70;
+        dd += ` Q${mx} ${my} ${b.cx} ${b.top + 11}`;
+      }
+      fiop.setAttribute('d', dd);
+    } else fiop.setAttribute('d', '');
+    T_FIO = ents[ents.length - 1] + 480;
+    // ficha do caso: nome do item
+    const nome = Z.txt(d.texto);
+    document.getElementById('rot').textContent = Z.rot(d, 'caso');
+    const nm = document.getElementById('nome');
+    nm.textContent = nome;
+    Z.caberLinha(nm, 70, 40, 1100);
+    if (!nome) ficha.style.display = 'none';
+    T_FICHA = T_FIO + 200;
+    const evs = ents.map((ms) => ({ evento: 'foto.entra', ms: Math.round(ms) }));
+    if (P.length > 1) evs.push({ evento: 'papel.desliza', ms: Math.round(T_FIO) });
+    if (nome) evs.push({ evento: 'maquina.tecla', ms: Math.round(T_FICHA) });
+    window.eventos = evs;
+  };
+
+  window.quadro = function (t) {
+    const u = t / DUR;
+    cena.style.transform = `scale(${(1.0 + 0.03 * u).toFixed(5)})`;
+    const s = Z.eio(Z.seg(t, DUR - 380, 380));
+    P.forEach((p, i) => {
+      const k = Z.seg(t, ents[i], 460), e = Z.eo(k);
+      const land = k >= 1 ? 1 + 0.02 * Math.exp(-(t - ents[i] - 460) / 90) : 1;
+      p.el.style.opacity = String(Math.min(1, k * 3) * (1 - s));
+      p.el.style.transform = `translate(${(1 - e) * (i % 2 ? 180 : -180)}px, ${(1 - e) * -620 + s * 40}px) rotate(${p.r + (1 - e) * (i % 2 ? 14 : -14)}deg) scale(${(land * (1 + (1 - e) * 0.25)).toFixed(4)})`;
+    });
+    Z.tracar(fiop, Z.eio(Z.seg(t, T_FIO, D_FIO)));
+    fiop.style.opacity = String(1 - s);
+    const kf = Z.seg(t, T_FICHA, 420), ef = Z.eo(kf);
+    ficha.style.opacity = String(Math.min(1, kf * 3) * (1 - s));
+    ficha.style.transform = `translate(${(1 - ef) * -500}px, 0) rotate(${-1.5 + (1 - ef) * -4}deg)`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / rank (rankings: rank). Bloco ciano com a posicao + painel marinho com o nome. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #rk { position: absolute; left: 192px; top: 350px; display: flex; align-items: stretch; min-height: 230px; }
+  #qw { flex: none; display: flex; }
+  #q { width: 230px; min-height: 230px; background: var(--acento); color: var(--navy); display: flex; flex-direction: column;
+       align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  #qrot { font-weight: 700; font-size: 38px; letter-spacing: .08em; line-height: 1; margin-top: 6px; }
+  #qnum { font-weight: 700; font-size: 170px; line-height: .92; letter-spacing: -.02em; }
+  #pw { display: flex; }
+  #p { display: flex; flex-direction: column; justify-content: center; padding: 26px 90px 28px 40px; min-width: 560px; }
+  #top { font-weight: 600; font-size: 32px; letter-spacing: .16em; color: var(--acento); text-transform: uppercase;
+         white-space: nowrap; margin-bottom: 8px; }
+  #nome { font-weight: 700; font-size: 96px; line-height: 1.0; text-transform: uppercase; max-width: 1080px; }
+</style>
+</head>
+<body>
+<div id="rk">
+  <div id="qw"><div id="q"><div id="qrot"></div><div id="qnum" class="num-tab"></div></div></div>
+  <div id="pw"><div id="p" class="painel-a corte-d sombra"><div id="top"></div><div id="nome"></div></div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 3800, temNome = true, T_REV = 380;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 3800;
+    const pos = parseInt(d.posicao != null ? d.posicao : d.numero, 10) || 1;
+    $('qrot').textContent = BC.rot(d, 'posicao');
+    $('qnum').textContent = String(pos);
+    if (String(pos).length >= 2) $('qnum').style.fontSize = '140px';
+    const nome = BC.txt(d.texto);
+    temNome = !!nome;
+    $('top').textContent = BC.rot(d, 'broadcast_ranking') || BC.rot(d, 'top');
+    if (temNome) BC.caberTexto($('nome'), nome, 96, 50, 1080, 2 * 96 * 1.0 + 4);
+    else { $('nome').textContent = BC.rot(d, 'posicao') + ' ' + pos; }
+    T_REV = Math.min(380, DUR * 0.2);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'rank.revela', ms: Math.round(T_REV) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipeV($('qw'), BC.eo(BC.lin(t, 0, 300)), BC.ei(BC.lin(-S, -200, 0)));
+    const kn = BC.lin(t, T_REV - 120, T_REV + 160);
+    const esc = 1.6 - 0.6 * BC.back(kn);
+    $('qnum').style.transform = `scale(${esc.toFixed(4)})`;
+    $('qnum').style.opacity = String(BC.clamp(kn * 3));
+    BC.wipe($('pw'), BC.eo(BC.lin(t, T_REV, T_REV + 420)), BC.ei(BC.lin(-S, -380, -120)));
+    const kt = BC.expo(BC.lin(t, T_REV + 120, T_REV + 620));
+    $('nome').style.transform = `translateX(${((1 - kt) * -40).toFixed(2)}px)`;
+    $('nome').style.opacity = String(kt);
+    $('top').style.opacity = String(BC.eo(BC.lin(t, T_REV + 60, T_REV + 400)));
+  };
+})();
+</script>
+</body>
+</html>

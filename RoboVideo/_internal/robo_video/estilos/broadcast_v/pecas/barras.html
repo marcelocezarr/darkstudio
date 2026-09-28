@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / barras (fatos: percentual). Mesmo cartao do numero-impacto:
+     percentual branco grande contando, rotulo espacado e uma barra horizontal que enche em
+     vermelho sobre trilho claro, com marcas de 25%. -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #c { left: 1010px; top: 280px; width: 770px; height: 330px; overflow: hidden; }
+  #num { position: absolute; left: 76px; top: 20px; font-size: 170px; line-height: 1; font-variant-numeric: tabular-nums; }
+  #tr { position: absolute; left: 76px; right: 56px; top: 206px; height: 18px; background: rgba(255,255,255,.16); }
+  #fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--acento); transform-origin: 0 50%; }
+  .mk { position: absolute; top: -6px; bottom: -6px; width: 2px; background: rgba(15,29,49,.9); }
+  #rot { position: absolute; left: 76px; right: 40px; bottom: 36px; font-size: 27px; color: var(--texto2); }
+</style>
+</head>
+<body>
+<div id="c" class="cartao"><div id="num" class="cond"></div>
+  <div id="tr"><div id="fill"></div><div class="mk" style="left:25%"></div><div class="mk" style="left:50%"></div><div class="mk" style="left:75%"></div></div>
+  <div id="rot" class="esp"></div></div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let D = {}, DUR = 4200, pct = 0, T_F = 1400;
+  window.montar = function (d) {
+    D = d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4200;
+    pct = Number(d.percentual != null ? d.percentual : d.numero);
+    if (!isFinite(pct)) pct = 0;
+    $('rot').textContent = BC.encurtar(BC.txt(d.legenda) || BC.rot(d, 'dados'), 40);
+    BC.caber($('rot'), 27, 20, 640, 0);
+    T_F = Math.min(1400, DUR * 0.35);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'barra.enche', ms: 300 }, { evento: 'numero.impacto', ms: Math.round(T_F + 300) }];
+  };
+  window.quadro = function (t) {
+    const S = DUR - t;
+    const k = BC.expo(BC.lin(t, 0, 420)) * (1 - BC.ei(BC.lin(-S, -360, -40)));
+    $('c').style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(3)}% 0 0)`;
+    $('c').style.opacity = BC.lin(t, 0, 120).toFixed(3);
+    const kc = BC.eo(BC.lin(t, 120, T_F + 120));
+    const dec = D.decimais || 0;
+    $('num').textContent = BC.fmt(D, pct * kc, dec) + '%';
+    const kn = BC.eo(BC.lin(t, 120, 420));
+    $('num').style.opacity = kn.toFixed(3);
+    $('fill').style.transform = `scaleX(${(BC.clamp(pct / 100) * kc).toFixed(4)})`;
+    $('rot').style.opacity = BC.eo(BC.lin(t, 350, 750)).toFixed(3);
+  };
+})();
+</script>
+</body>
+</html>

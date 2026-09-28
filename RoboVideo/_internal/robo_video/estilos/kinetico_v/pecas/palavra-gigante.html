@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / palavra-gigante (impactos): palavras gigantes em Impact branco com sombra dura,
+     cada uma sobe dentro de uma máscara no instante em que é dita (mesma mecânica do odômetro do número);
+     a última palavra "bate" dentro de uma etiqueta limão com texto preto. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #bloco { position: absolute; left: 150px; bottom: 360px; width: 1560px; font-family: var(--f-titulo); color: var(--texto);
+           font-size: 200px; line-height: 1; text-transform: uppercase; filter: drop-shadow(6px 7px 0 rgba(0,0,0,.55)); }
+  .pm { display: inline-block; overflow: hidden; vertical-align: top; height: 1.02em; margin: 0 .2em .06em 0; }
+  .pi { display: inline-block; line-height: 1.02em; will-change: transform; }
+  .pm.lim { background: var(--acento); color: var(--tinta); padding: 0 .1em; }
+</style>
+</head>
+<body>
+<div id="bloco"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 2400, ps = [], tempos = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 2400;
+    const ws = K.palavrasDe(d.texto || '');
+    const b = $('bloco');
+    b.innerHTML = '';
+    ps = ws.map((w, i) => {
+      const m = document.createElement('span'); m.className = 'pm' + (i === ws.length - 1 && ws.length > 1 ? ' lim' : '');
+      const s = document.createElement('span'); s.className = 'pi'; s.textContent = K.maiusc(w, d.idioma);
+      m.appendChild(s); b.appendChild(m);
+      return { m, s };
+    });
+    // até 2 linhas, largura 1560
+    let fs = 200;
+    const cabe = () => b.scrollWidth <= 1561 && b.offsetHeight <= fs * 1.08 * 2 + 4;
+    while (fs > 70 && !cabe()) { fs -= 6; b.style.fontSize = fs + 'px'; }
+    tempos = K.alinhar(ws, d.palavras, DUR, 200);
+    window.eventos = tempos.map((ms, i) => ({ evento: i === tempos.length - 1 ? 'palavra.slam' : 'palavra.batida', ms: Math.round(ms) }));
+  };
+
+  window.quadro = function (t) {
+    const s = K.saida(t, DUR, 160);
+    ps.forEach((p, i) => {
+      const k = K.outExpo(K.prog(t, tempos[i], 240));
+      p.s.style.transform = `translateY(${((1 - k) * 105).toFixed(2)}%)`;
+      if (p.m.classList.contains('lim')) p.m.style.clipPath = K.cortina(K.outExpo(K.prog(t, tempos[i], 110)));
+    });
+    $('bloco').style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

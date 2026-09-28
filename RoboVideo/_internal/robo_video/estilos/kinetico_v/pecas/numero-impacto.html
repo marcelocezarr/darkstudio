@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / numero-impacto: número gigante branco (Impact) que rola como odômetro
+     dentro de uma máscara, sombra dura; depois a etiqueta limão com texto preto aparece de estalo. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #num { position: absolute; left: 150px; top: 364px; font-family: var(--f-titulo); color: var(--texto);
+         font-size: 240px; white-space: nowrap; filter: drop-shadow(6px 7px 0 rgba(0,0,0,.55)); }
+  #etq { position: absolute; left: 130px; top: 640px; height: 76px; padding: 0 26px; font-family: var(--f-texto);
+         font-weight: 900; font-size: 44px; line-height: 76px; letter-spacing: .06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="num"></div>
+<div id="etq" class="etq"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 3200, ROLA = 520, T_ETQ = 780, odo = null, temEtq = false;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3200;
+    const fmt = { ...d };
+    const suf = String(d.sufixo || '');
+    let uni = '';
+    // sufixo longo (" years", " mil euros") vira começo da etiqueta, como "8 / YEARS OF ..."
+    if (suf.trim().length > 3) { uni = suf.trim(); fmt.sufixo = ''; }
+    const alvo = Number(d.numero) || 0;
+    const txt = K.formatarNumero(fmt, alvo);
+    const num = $('num');
+    num.style.fontSize = '240px';
+    num.textContent = txt;
+    let fs = 240;
+    while (fs > 110 && num.scrollWidth > 1250) { fs -= 8; num.style.fontSize = fs + 'px'; }
+    // mantém o topo visual do algarismo em ~390 px
+    num.style.top = Math.round(390 - 0.109 * fs) + 'px';
+    odo = K.odometro(num, txt, 0, ROLA);
+    const etq = [uni, d.legenda || ''].filter(Boolean).join(' ').trim();
+    temEtq = !!etq;
+    const e = $('etq');
+    e.textContent = K.maiusc(etq, d.idioma);
+    let fe = 43;
+    while (fe > 26 && e.scrollWidth > 1500) { fe -= 1; e.style.fontSize = fe + 'px'; }
+    if (!temEtq) e.style.display = 'none';
+    T_ETQ = Math.min(ROLA + 260, DUR * 0.4);
+    window.eventos = [{ evento: 'numero.rola', ms: 0 }, { evento: 'numero.impacto', ms: ROLA }];
+    if (temEtq) window.eventos.push({ evento: 'etiqueta.entra', ms: Math.round(T_ETQ) });
+  };
+
+  window.quadro = function (t) {
+    odo.quadro(t);
+    const s = K.saida(t, DUR, 140);
+    $('num').style.opacity = String(Math.min(K.prog(t, 0, 70), s));
+    const ke = K.outExpo(K.prog(t, T_ETQ, 90));
+    const e = $('etq');
+    e.style.clipPath = K.cortina(ke);
+    e.style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

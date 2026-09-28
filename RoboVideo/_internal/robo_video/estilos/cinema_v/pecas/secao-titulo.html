@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / secao-titulo (secoes: capitulo). Deduzido da linguagem da referencia:
+     footage bem escurecido (mesmo veu do numero), rotulo "CHAPTER II" em sans dourado espacado,
+     titulo serifado grande centralizado e fio dourado que abre do centro. Fades lentos. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #rot { position: absolute; left: 0; width: 1920px; text-align: center; top: 356px; color: var(--acento);
+         font-size: 32px; letter-spacing: .36em; text-indent: .36em; opacity: 0; }
+  #tit { position: absolute; left: 260px; width: 1400px; text-align: center; top: 420px; font-family: var(--fonte-titulo);
+         font-weight: 500; color: var(--texto); font-size: 112px; line-height: 1.08; opacity: 0; }
+  #fio { position: absolute; left: 660px; width: 600px; top: 0; height: 2px; transform: scaleX(0); }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"></div>
+<div id="rot" class="rotulo"></div>
+<div id="tit"></div>
+<div id="fio" class="fio centro"></div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), rot = $('#rot'), tit = $('#tit'), fio = $('#fio');
+  let DUR = 4000;
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4000;
+    const cap = C.rot(d, 'capitulo');
+    rot.textContent = d.numero ? `${cap} ${C.romano(d.numero)}`.trim() : cap;
+    tit.textContent = C.txt(d.texto);
+    C.caber(tit, 1400, 112 * 1.08 * 2 + 2, 112, 56);
+    const r = tit.getBoundingClientRect();
+    tit.style.left = ((1920 - r.width) / 2) + 'px';
+    const alto = r.height, topo = 540 - alto / 2 + 24;
+    tit.style.top = topo + 'px';
+    rot.style.top = (topo - 66) + 'px';
+    fio.style.top = (topo + alto + 34) + 'px';
+    window.eventos = [{ evento: 'secao.abre', ms: 0 }];
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.22)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 650)), sai));
+    C.revela(rot, Math.min(C.sai(C.fase(t, 250, 800)), sai), 8, 4);
+    C.revela(tit, Math.min(C.sai(C.fase(t, 450, 900)), sai), 16, 8);
+    fio.style.transform = `scaleX(${C.io(C.fase(t, 900, 1000)).toFixed(4)})`;
+    fio.style.opacity = String(sai);
+  };
+})();
+</script>
+</body>
+</html>

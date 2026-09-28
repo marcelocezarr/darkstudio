@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: lower-third (pessoa/item/lugar). Etiqueta escura datilografada com o tipo (PESSOA,
+     PRODUTO...) e o nome grande em sans condensada creme no canto inferior esquerdo, com fio vermelho. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #grad { position: absolute; left: 0; right: 0; bottom: 0; height: 460px; opacity: 0;
+          background: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0)); }
+  #caixa { position: absolute; left: 128px; top: 700px; }
+  #tag { position: relative; left: 0; top: 0; display: inline-block; opacity: 0; }
+  #nome { color: var(--creme); font-size: 112px; margin-top: 18px; white-space: nowrap; opacity: 0;
+          text-shadow: 0 3px 16px rgba(0, 0, 0, .45); }
+  #fio { height: 5px; width: 0; background: var(--vermelho); margin-top: 16px; }
+</style>
+</head>
+<body>
+<div id="grad"></div>
+<div id="caixa"><div id="tag" class="tag"><span id="tagt"></span></div><div id="nome" class="condensada"></div><div id="fio"></div></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const grad = document.getElementById('grad'), tag = document.getElementById('tag'), tagt = document.getElementById('tagt');
+  const nome = document.getElementById('nome'), fio = document.getElementById('fio');
+  let DUR = 3200, larg = 300;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 3200;
+    nome.textContent = V.semPonto(d.nome || d.texto);
+    V.caberLinha(nome, 112, 60, 1300);
+    const r = V.txt(d.rotulo) || V.rot(d, d.tipo_item || 'destaque') || V.rot(d, 'destaque');
+    V.prepararDatilo(tagt, r);
+    if (!r) tag.style.display = 'none';
+    larg = Math.min(420, nome.getBoundingClientRect().width * 0.4);
+    window.eventos = [{ evento: 'maquina.digita', ms: 0 }, { evento: 'foto.entra', ms: 280 }];
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 320);
+    grad.style.opacity = String(V.eo(V.seg(t, 0, 300)) * s);
+    tag.style.opacity = String((t > 0 ? 1 : 0) * s);
+    V.datilo(tagt, V.seg(t, 0, V.tempoDatilo(tagt._dv.texto.join(''), 500)));
+    const kn = V.seg(t, 280, 340);
+    nome.style.opacity = String(V.eo(kn) * s);
+    nome.style.transform = `translateX(${(-24 * (1 - V.eo(kn))).toFixed(1)}px)`;
+    fio.style.width = (larg * V.eio(V.seg(t, 450, 700))).toFixed(1) + 'px';
+    fio.style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / palavra-gigante (impactos: palavra). Deduzido: veu escuro, frase curta em
+     serifa grande centralizada; cada palavra surge (sobe + desfoque -> nitido) quando e falada;
+     fio dourado curto abre do centro embaixo. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #frase { position: absolute; left: 210px; width: 1500px; text-align: center; top: 0; font-family: var(--fonte-titulo);
+           font-weight: 500; color: var(--texto); font-size: 150px; line-height: 1.05; }
+  #frase .w { display: inline-block; opacity: 0; }
+  #fio { position: absolute; left: 810px; width: 300px; top: 0; height: 2px; transform: scaleX(0); }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"></div>
+<div id="frase"></div>
+<div id="fio" class="fio centro"></div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), frase = $('#frase'), fio = $('#fio');
+  let DUR = 2800, ws = [], ts = [];
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 2800;
+    ws = C.palavrasEm(frase, d.texto);
+    C.caber(frase, 1500, 150 * 1.05 * 2 + 4, 150, 70, 4);
+    const r = frase.getBoundingClientRect();
+    frase.style.top = (520 - r.height / 2) + 'px';
+    fio.style.top = (520 + r.height / 2 + 40) + 'px';
+    ts = C.temposFala(ws.map((w) => w.textContent), d.palavras, 260, Math.max(0, DUR * 0.45)).map((m) => m + 150);
+    window.eventos = [{ evento: 'palavra.slam', ms: ts[0] || 150 }];
+  };
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(600, DUR * 0.22)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 500)), sai));
+    ws.forEach((w, i) => C.revela(w, Math.min(C.sai(C.fase(t, ts[i], 600)), sai), 18, 8));
+    const ult = ts.length ? ts[ts.length - 1] : 0;
+    fio.style.transform = `scaleX(${C.io(C.fase(t, ult + 250, 800)).toFixed(4)})`;
+    fio.style.opacity = String(sai);
+  };
+})();
+</script>
+</body>
+</html>

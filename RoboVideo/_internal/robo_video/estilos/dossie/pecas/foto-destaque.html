@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: foto-destaque (foto_destaque, camada FUNDO -- pinta a tela inteira).
+     Mesa escura; a midia vira uma polaroide presa com fita, uma ficha datilografada ao lado
+     traz a legenda e o carimbo EVIDENCIA bate na foto. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #cena { position: absolute; inset: 0; }
+  #pol { left: 250px; top: 110px; width: 820px; transform-origin: 50% 0; }
+  #pol .foto { height: 600px; }
+  #pol .leg { height: 118px; font-size: 44px; }
+  #pol .fita.a { left: -40px; top: 10px; transform: rotate(-40deg); }
+  #pol .fita.b { right: -40px; top: 10px; transform: rotate(40deg); }
+  #carimbo { right: 34px; bottom: 150px; font-size: 64px; letter-spacing: .12em; padding: 8px 22px 4px; border-width: 7px; }
+  #ficha { left: 1150px; top: 300px; width: 580px; padding: 36px 44px 44px; transform-origin: 0 0; }
+  #rot { font-size: 26px; margin-bottom: 18px; white-space: nowrap; }
+  #nome { font-size: 64px; margin-bottom: 18px; color: var(--tinta); width: 492px; }
+  #leg { font-size: 32px; line-height: 1.3; width: 492px; color: #2b251e; }
+  #ficha .fita { left: 50%; margin-left: -85px; top: -22px; transform: rotate(-2deg); }
+</style>
+</head>
+<body>
+<div class="mesa"></div>
+<div id="cena">
+
+  <div id="pol" class="polaroide">
+    <div class="foto"><img id="img" alt=""></div>
+    <div class="leg" id="pleg"></div>
+    <div class="fita a"></div><div class="fita b"></div>
+    <div id="carimbo" class="carimbo"></div>
+  </div>
+  <div id="ficha" class="papel">
+    <div class="fita"></div>
+    <div id="rot" class="rotulo"></div>
+    <div id="nome" class="titulo"></div>
+    <div id="leg" class="maquina"></div>
+  </div>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const pol = document.getElementById('pol'), ficha = document.getElementById('ficha');
+  const car = document.getElementById('carimbo'), leg = document.getElementById('leg');
+  let DUR = 4200, T_FICHA = 300, T_CAR = 1000, T_DIG = 800, D_DIG = 1200, temLeg = false, rP = -3, rF = 2;
+
+  function truncarPalavras(el, texto, alturaMax) {
+    // ultimo recurso: corta em FIM de palavra e poe reticencias (nunca no meio da palavra)
+    const ps = texto.split(' ');
+    let n = ps.length;
+    el.textContent = texto;
+    while (n > 3 && el.scrollHeight > alturaMax + 1) { n--; el.textContent = ps.slice(0, n).join(' ').replace(/[,;:.\-–—]+$/, '') + '…'; }
+    return el.textContent;
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 4200;
+    const url = d.midia_url || (Array.isArray(d.midias) && d.midias[0]) || '';
+    const img = document.getElementById('img');
+    if (url) img.src = url; else img.style.display = 'none';
+    const nome = Z.txt(d.texto);
+    const pleg = document.getElementById('pleg');
+    pleg.textContent = nome;
+    pleg.style.width = '776px';
+    Z.caber(pleg, 46, 26, 118);
+    const tipo = Z.txt(d.tipo_item);
+    const rotulo = (tipo && Z.rot(d, tipo)) || Z.rot(d, 'arquivo');
+    document.getElementById('rot').textContent = rotulo;
+    const nm = document.getElementById('nome');
+    let texto = Z.txt(d.legenda);
+    if (texto && texto.toLowerCase() === nome.toLowerCase()) texto = '';
+    temLeg = !!texto;
+    // o nome ja esta na legenda da polaroide: a ficha so repete o nome quando nao ha legenda
+    if (temLeg || !nome) nm.style.display = 'none'; else { nm.textContent = nome; Z.caber(nm, 64, 38, 160); }
+    if (temLeg) {
+      const alt = 700 - document.getElementById('rot').getBoundingClientRect().height - nm.getBoundingClientRect().height - 110;
+      leg.textContent = texto;
+      if (Z.caber(leg, 36, 28, alt) <= 28 && leg.scrollHeight > alt + 1) texto = truncarPalavras(leg, texto, alt);
+      Z.prepararDatilo(leg, texto);
+    } else leg.style.display = 'none';
+    // ficha centralizada verticalmente ao lado da polaroide
+    const hF = ficha.getBoundingClientRect().height;
+    ficha.style.top = Math.max(150, Math.min(540 - hF / 2 + 20, 1000 - hF)) + 'px';
+    car.textContent = Z.rot(d, 'evidencia');
+    if (!car.textContent) car.style.display = 'none';
+    rP = -2.5 - Z.rnd(url + nome, 1) * 2;
+    rF = 1.5 + Z.rnd(url + nome, 2) * 1.5;
+    D_DIG = temLeg ? Math.max(500, Math.min(texto.length * 22, DUR * 0.4)) : 0;
+    T_CAR = Math.min(1100, DUR * 0.35);
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }, { evento: 'papel.desliza', ms: T_FICHA },
+                      { evento: 'carimbo.bate', ms: Math.round(T_CAR) }];
+    if (temLeg) window.eventos.push({ evento: 'maquina.digita', ms: T_DIG });
+  };
+
+  window.quadro = function (t) {
+    // a mesa fica parada e sempre opaca; so a polaroide, a ficha e o carimbo se movem
+    const kp = Z.seg(t, 0, 520), ep = Z.eo(kp);
+    pol.style.opacity = String(Math.min(1, kp * 3));
+    pol.style.transform = `translate(${(1 - ep) * -120}px, ${(1 - ep) * -700}px) rotate(${rP + (1 - ep) * -9}deg)`;
+    const kf = Z.seg(t, T_FICHA, 460), ef = Z.eo(kf);
+    ficha.style.opacity = String(Math.min(1, kf * 3));
+    ficha.style.transform = `translate(${(1 - ef) * 700}px, ${(1 - ef) * 40}px) rotate(${rF + (1 - ef) * 6}deg)`;
+    const k = Z.seg(t, T_CAR - 140, 140);
+    car.style.opacity = String(k <= 0 ? 0 : 0.5 + 0.5 * k);
+    car.style.transform = `rotate(-11deg) scale(${(1 + (1 - Z.eio(k)) * 0.9).toFixed(4)})`;
+    if (temLeg) Z.datilo(leg, Z.seg(t, T_DIG, D_DIG));
+    // saida: a polaroide e a ficha deslizam para fora nos ultimos 380 ms (a mesa fica)
+    const s = Z.eio(Z.seg(t, DUR - 380, 380));
+    if (s > 0) {
+      pol.style.transform += ` translate(${-s * 260}px, ${s * 60}px)`;
+      ficha.style.transform += ` translate(${s * 320}px, 0)`;
+      pol.style.opacity = ficha.style.opacity = String(1 - s);
+    }
+  };
+})();
+</script>
+</body>
+</html>

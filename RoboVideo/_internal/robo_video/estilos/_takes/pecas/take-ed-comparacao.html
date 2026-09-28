@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / take-ed-comparacao (camada FUNDO). Pagina editorial: chapeu com titulo e fio no alto,
+     duas midias lado a lado que se abrem a partir do centro (cortina), linha divisoria na cor de
+     acento com selo "VS" no meio, letras A e B grandes e rotulos (dados.a / dados.b quando houver),
+     frase de apoio no pe. Uma midia so -> dois recortes diferentes da mesma. -->
+<link rel="stylesheet" href="../comum/takes-c.css">
+<style>
+  #topo { position: absolute; left: 96px; right: 96px; top: 58px; height: 64px; display: flex; align-items: flex-end; gap: 24px; }
+  #tit { font-family: var(--tc-ft); color: var(--tc-tx); line-height: 1; white-space: nowrap; }
+  #topo .tc-rot { margin-left: auto; padding-bottom: 6px; }
+  #regua { position: absolute; left: 96px; right: 96px; top: 140px; height: 2px; background: var(--tc-tx); transform-origin: 0 50%; opacity: .85; }
+  .pn { position: absolute; top: 168px; height: 690px; overflow: hidden; }
+  .pn .tc-mid { position: absolute; inset: 0; }
+  .pn .som { position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
+             background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.72)); }
+  .let { position: absolute; bottom: 18px; font-family: var(--tc-ft); font-size: 190px; line-height: .8; color: var(--tc-ac);
+         font-weight: 700; }
+  .nm { position: absolute; bottom: 34px; font-family: var(--tc-ft); color: #fff; line-height: 1.05;
+        text-shadow: 0 2px 16px rgba(0,0,0,.55); }
+  #pa .let { left: 34px; } #pa .nm { left: 190px; }
+  #pb .let { right: 34px; } #pb .nm { right: 190px; text-align: right; }
+  #div { position: absolute; left: 957px; top: 150px; width: 6px; height: 726px; background: var(--tc-ac); transform-origin: 50% 0; }
+  #vs { position: absolute; left: 960px; top: 513px; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 50%;
+        background: var(--tc-bg); border: 5px solid var(--tc-ac); display: flex; align-items: center; justify-content: center;
+        font-family: var(--tc-ft); font-weight: 700; font-size: 44px; color: var(--tc-tx); letter-spacing: .02em; }
+  #pe { position: absolute; left: 96px; right: 96px; top: 884px; height: 150px; display: flex; gap: 30px; align-items: flex-start; }
+  #pe i { flex: none; width: 60px; height: 4px; background: var(--tc-ac); margin-top: 24px; transform-origin: 0 50%; }
+  #txt { font-family: var(--tc-fx); color: var(--tc-tx2); line-height: 1.32; width: 1600px; }
+</style>
+</head>
+<body>
+<div class="tc-fundo"></div>
+<div id="topo"><div id="tit"></div><span id="rot" class="tc-rot"></span></div>
+<div id="regua"></div>
+<div id="pa" class="pn"><div class="som"></div><div class="let">A</div><div class="nm" id="na"></div></div>
+<div id="pb" class="pn"><div class="som"></div><div class="let">B</div><div class="nm" id="nb"></div></div>
+<div id="div"></div>
+<div id="vs"></div>
+<div id="pe"><i></i><div id="txt"></div></div>
+<script src="../comum/takes-c.js"></script>
+<script>
+(() => {
+  const Z = window.TC, $ = (s) => document.querySelector(s);
+  const pa = $('#pa'), pb = $('#pb'), dv = $('#div'), vs = $('#vs'), tit = $('#tit'), rg = $('#regua'), txt = $('#txt'),
+        pe = $('#pe'), topo = $('#topo');
+  let DUR = 4500, A, B, movs, temTit = false, temTxt = false, lets, nms;
+  const X0 = 96, X1 = 1824, MEIO = 960, GAP = 12;
+
+  window.montar = function (d) {
+    d = d || {};
+    Z.tema(d);
+    DUR = d.dur_ms || 4500;
+    const s = Z.slots(d, 2);
+    const sem = Z.midias(d).join('|') + Z.txt(d.texto);
+    // painel B pega a 2a midia ou um recorte diferente da 1a (mais fechado)
+    A = Z.criarMidia(pa, s[0]); B = Z.criarMidia(pb, s[1]);
+    pa.insertBefore(A, pa.firstChild); pb.insertBefore(B, pb.firstChild);
+    const k0 = Math.floor(Z.rnd(sem, 1) * 2);
+    movs = k0 ? ['pane', 'pand'] : ['zin', 'zout'];
+    Object.assign(pa.style, { left: X0 + 'px', width: (MEIO - GAP / 2 - X0) + 'px' });
+    Object.assign(pb.style, { left: (MEIO + GAP / 2) + 'px', width: (X1 - MEIO - GAP / 2) + 'px' });
+    const titulo = Z.txt(d.titulo), texto = Z.txt(d.texto);
+    temTit = !!titulo; temTxt = !!texto;
+    tit.textContent = titulo;
+    if (temTit) { tit.style.maxWidth = '1300px'; Z.caber(tit, 58, 30, 70, 1300); if (tit.scrollWidth > 1301) Z.caberTexto(tit, titulo, 30, 30, 70); }
+    $('#rot').textContent = Z.rot(d, 'versus') ? '' : '';
+    vs.textContent = Z.rot(d, 'versus') || 'VS';
+    // rotulos dos lados (a/b dos contrastes; ausentes -> so as letras)
+    const na = $('#na'), nb = $('#nb');
+    [[na, Z.txt(d.a)], [nb, Z.txt(d.b)]].forEach(([el, v]) => {
+      el.style.width = '600px';
+      if (!v) { el.style.display = 'none'; return; }
+      Z.caberTexto(el, v, 56, 30, 124);
+      Z.palavras(el);
+    });
+    nms = [na, nb];
+    lets = [pa.querySelector('.let'), pb.querySelector('.let')];
+    if (temTxt) { Z.caberTexto(txt, texto, 40, 24, 140); Z.palavras(txt); } else pe.style.display = 'none';
+    // sem titulo e sem texto: paineis ganham a pagina inteira
+    if (!temTit) { topo.style.display = 'none'; }
+    const top = temTit ? 168 : 70, bot = temTxt ? 858 : 1010;
+    [pa, pb].forEach((p) => { p.style.top = top + 'px'; p.style.height = (bot - top) + 'px'; });
+    rg.style.top = (top - 28) + 'px'; rg.style.display = temTit ? '' : 'none';
+    dv.style.top = (top - 18) + 'px'; dv.style.height = (bot - top + 36) + 'px';
+    vs.style.top = ((top + bot) / 2) + 'px';
+    if (temTxt) pe.style.top = (bot + 26) + 'px';
+    window.eventos = [{ evento: 'take.entra', ms: 0 }, { evento: 'linha.traca', ms: 120 }, { evento: 'foto.entra', ms: 300 },
+                      { evento: 'versus.choque', ms: 900 }];
+  };
+
+  window.quadro = function (t) {
+    const k = t / DUR;
+    const sai = Z.eio(Z.seg(t, DUR - 400, 400));
+    // divisoria desce do topo; paineis abrem do centro para fora (cortina)
+    const kd = Z.eio(Z.seg(t, 120, 520));
+    dv.style.transform = `scaleY(${Z.f(kd * (1 - sai), 4)})`;
+    const ka = Z.eo5(Z.seg(t, 300, 900)), kb2 = Z.eo5(Z.seg(t, 420, 900));
+    pa.style.clipPath = `inset(0 0 0 ${Z.f((1 - ka) * 100, 2)}%)`;
+    pb.style.clipPath = `inset(0 ${Z.f((1 - kb2) * 100, 2)}% 0 0)`;
+    const sx = sai * 100;
+    if (sai > 0) { pa.style.clipPath = `inset(0 ${Z.f(sx, 2)}% 0 0)`; pb.style.clipPath = `inset(0 0 0 ${Z.f(sx, 2)}%)`; }
+    Z.kb(A, k, movs[0], 1); Z.kb(B, k, movs[1], 1);
+    // letras + nomes
+    lets.forEach((l, i) => {
+      const kl = Z.eo(Z.seg(t, 800 + i * 150, 600));
+      l.style.opacity = Z.f(kl, 3);
+      l.style.transform = `translateY(${Z.f((1 - kl) * 60, 1)}px)`;
+      if (nms[i]._ws) Z.revelar(nms[i], t, 950 + i * 150, 400, 300);
+    });
+    const kv = Z.back(Z.seg(t, 900, 420));
+    vs.style.opacity = Z.f(Math.min(1, Z.seg(t, 900, 120)) * (1 - sai), 3);
+    vs.style.transform = `scale(${Z.f(kv, 4)}) rotate(${Z.f((1 - kv) * -40, 2)}deg)`;
+    if (temTit) {
+      const kt = Z.eo(Z.seg(t, 60, 600));
+      rg.style.transform = `scaleX(${Z.f(Z.eio(Z.seg(t, 0, 700)) * (1 - sai), 4)})`;
+      topo.style.opacity = Z.f(kt * (1 - sai), 3);
+      topo.style.transform = `translateY(${Z.f((1 - kt) * 20, 2)}px)`;
+    }
+    if (temTxt) {
+      pe.style.opacity = Z.f(1 - sai, 3);
+      pe.firstElementChild.style.transform = `scaleX(${Z.f(Z.eo(Z.seg(t, 1000, 500)), 4)})`;
+      Z.revelar(txt, t, 1100, Math.min(1600, DUR - 1900), 280);
+    }
+  };
+})();
+</script>
+</body>
+</html>

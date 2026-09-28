@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast (validado) / ticker persistente. Faixa inferior azul-marinho com selo vermelho
+     "LIVE" (rotulo ao_vivo) e manchetes em caixa alta separadas por "//" vermelho, rolando
+     rapido. PERIODICA: quadro(0) == quadro(dur_ms) (voltas inteiras de uma copia da lista). -->
+<link rel="stylesheet" href="../comum/bv.css">
+<style>
+  #tk { position: absolute; left: 0; right: 0; top: 940px; height: 77px; display: flex; align-items: stretch;
+        background: rgba(18, 33, 57, .97); box-shadow: 0 -1px 0 rgba(255,255,255,.06); }
+  #selo { flex: none; min-width: 157px; display: flex; align-items: center; justify-content: center; padding: 0 26px;
+          background: var(--acento); color: #fff; font-size: 44px; letter-spacing: .05em; position: relative; z-index: 2; }
+  #faixa { flex: 1 1 auto; position: relative; overflow: hidden; }
+  #trilho { position: absolute; left: 0; top: 0; bottom: 0; display: flex; align-items: center; white-space: nowrap;
+            will-change: transform; padding-top: 2px; }
+  .it { font-size: 46px; padding: 0 0 0 14px; }
+  .sep { font-size: 46px; color: var(--acento); padding: 0 112px 0 108px; font-style: italic; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<div id="tk">
+  <div id="selo" class="cond"></div>
+  <div id="faixa"><div id="trilho"></div></div>
+</div>
+<script src="../comum/bv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 30000, larg = 1, voltas = 1;
+  const VEL = 450;  // px/s (medido na referencia: ~1/4 da tela por segundo)
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 30000;
+    $('selo').textContent = BC.rot(d, 'ao_vivo', 'LIVE');
+    let itens = (Array.isArray(d.itens) ? d.itens : []).map(BC.txt).filter(Boolean);
+    if (!itens.length) itens = BC.txt(d.texto).split(/\s*[•|]\s*/).filter(Boolean);
+    if (!itens.length) itens = [BC.rot(d, 'ao_vivo', 'LIVE')];
+    itens = itens.map((s) => BC.encurtar(s, 60));
+    const tr = $('trilho');
+    tr.innerHTML = '';
+    const copia = () => itens.forEach((s) => {
+      const e = document.createElement('span'); e.className = 'it cond'; e.textContent = s; tr.appendChild(e);
+      const p = document.createElement('span'); p.className = 'sep cond'; p.textContent = '//'; tr.appendChild(p);
+    });
+    copia();
+    larg = tr.getBoundingClientRect().width;
+    const vis = $('faixa').getBoundingClientRect().width;
+    let n = 1;
+    voltas = Math.max(1, Math.round((VEL * DUR / 1000) / larg));
+    while (n * larg < larg + vis + 4 && n < 200) { copia(); n++; }
+    window.eventos = [];
+  };
+
+  window.quadro = function (t) {
+    const fase = (((t % DUR) + DUR) % DUR) / DUR;
+    const x = -((fase * voltas * larg) % larg);
+    $('trilho').style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / arquivo-fotogramas (camada FUNDO). Uma tira de filme com as midias atravessa a tela
+     deslizando; um fotograma e marcado (lapis de acento), sai da tira e amplia como uma copia
+     impressa; a tira desce e segue correndo embaixo. Titulo/frase opcionais ao lado da ampliacao.
+     Paleta/fontes do estilo do video (dados.estilo). Tolera 1..N midias. -->
+<link rel="stylesheet" href="../comum/takes-a.css">
+<style>
+  #bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 75% at 50% 42%, var(--fundo2) 0%, var(--fundo) 72%); }
+  #tira { position: absolute; left: 0; top: 370px; height: 340px; background: var(--fundo-escuro);
+          transform-origin: 960px 170px; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .furos { position: absolute; left: 0; right: 0; height: 22px;
+           background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 20px, var(--fraco) 20px 44px, rgba(0,0,0,0) 44px 64px); }
+  .furos.a { top: 14px; } .furos.b { bottom: 14px; }
+  .fg { position: absolute; top: 50px; width: 360px; height: 240px; }
+  .fg .tka-m { position: absolute; inset: 0; }
+  .fg .cod { position: absolute; left: 4px; bottom: -40px; font-size: 13px; letter-spacing: .22em; opacity: .75; }
+  #marca { position: absolute; top: 40px; width: 380px; height: 260px; border: 4px solid var(--acento); border-radius: 18px; }
+  #amp { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; }
+  #amp .papel { position: absolute; inset: 0; background: var(--texto); box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  #amp .tka-m { position: absolute; left: 14px; top: 14px; right: 14px; bottom: 14px; }
+  .cm { position: absolute; width: 26px; height: 26px; border: 0 solid var(--acento); }
+  #col { position: absolute; left: 150px; top: 110px; height: 620px; display: flex; flex-direction: column; justify-content: center; }
+  #sep { width: 110px; margin: 34px 0 28px; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="tira"><div class="furos a"></div><div class="furos b"></div><div id="marca"></div></div>
+<div id="amp"><div class="papel"></div></div>
+<div id="col">
+  <div id="tit" class="tka-tit"></div>
+  <div id="sep" class="tka-fio"></div>
+  <div id="frase" class="tka-frase"></div>
+</div>
+<script src="../comum/takes-a.js"></script>
+<script>
+(() => {
+  const A = window.TKA, $ = (id) => document.getElementById(id);
+  const FW = 360, FH = 240, P = 392, N = 9, ROT = -3.2, V = 0.105;   // V = px/ms da tira
+  let DUR = 4500, s = 1, fgs = [], amp, ampM, sel = 0, temTexto = false, cms = [];
+  let A0 = 1500, A1 = 2400, MK = 1150, ALVO = null, INI = null;
+  const rad = ROT * Math.PI / 180;
+
+  // posicao da tira no tempo (antes da ampliacao a tira fica no centro)
+  const tiraX = (t) => 1700 * (1 - A.expo(A.fase(t, 0, 950 * s))) - V * t + 60;
+  const desce = (t) => A.io(A.fase(t, A0, A1 - A0));
+  // centro na tela do fotograma j no tempo t (mesma transformacao do #tira)
+  function centro(j, t) {
+    const k = desce(t), S = A.mix(1.3, 0.72, k), ty = A.mix(0, 372, k);
+    const lx = j * P + FW / 2 - 960, ly = 50 + FH / 2 - 170;
+    const x = 960 + S * (lx * Math.cos(rad) - ly * Math.sin(rad)) + tiraX(t);
+    const y = 370 + 170 + S * (lx * Math.sin(rad) + ly * Math.cos(rad)) + ty;
+    return [x, y, S];
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    A.tema(d);
+    DUR = Math.max(2500, d.dur_ms || 4500);
+    s = A.clamp(DUR / 4500, 0.68, 1.15);
+    const urls = A.urls(d);
+    const sem = A.hash(urls.join('|') || 'x') % 4;
+    const slots = A.slots(urls, N);
+    const tira = $('tira');
+    tira.style.width = (N * P + 40) + 'px';
+    fgs = slots.map((sl, j) => {
+      const f = document.createElement('div'); f.className = 'fg';
+      f.style.left = (j * P) + 'px';
+      const m = A.midia(sl, j, sem); f.appendChild(m); f._m = m;
+      const c = document.createElement('div'); c.className = 'cod tka-num';
+      c.textContent = `${String(j * 2 + 11)}  ▸  ${String(j * 2 + 11)}A`;
+      f.appendChild(c);
+      tira.appendChild(f);
+      return f;
+    });
+    tira.appendChild($('marca'));
+    const tit = A.txt(d.titulo), frase = A.txt(d.texto);
+    temTexto = !!(tit || frase);
+    A0 = 1480 * s; A1 = A0 + 920 * s; MK = A0 - 420 * s;
+    ALVO = temTexto ? { x: 736, y: 96, w: 1088, h: 640 } : { x: 330, y: 80, w: 1260, h: 720 };
+    // escolhe o fotograma mais perto do centro-alvo no momento da ampliacao
+    const cx = ALVO.x + ALVO.w / 2;
+    let melhor = 1e9;
+    for (let j = 0; j < N; j++) { const [x] = centro(j, A0); const dd = Math.abs(x - cx) + (x < 200 || x > 1720 ? 1e6 : 0) + (slots[j].rep ? 420 : 0); if (dd < melhor) { melhor = dd; sel = j; } }
+    const [x0, y0, S0] = centro(sel, A0);
+    INI = { cx: x0, cy: y0, w: FW * S0 + 28, h: FH * S0 + 28 };
+    $('marca').style.left = (sel * P - 10) + 'px';
+    // ampliacao: copia do fotograma selecionado, em "papel"
+    amp = $('amp');
+    ampM = A.midia(slots[sel], sel, sem);
+    ampM._kb = { ...fgs[sel]._m._kb };
+    amp.appendChild(ampM);
+    cms = ['lt', 'rt', 'lb', 'rb'].map((k) => {
+      const c = document.createElement('div'); c.className = 'cm';
+      c.style[k[0] === 'l' ? 'left' : 'right'] = '-22px'; c.style[k[1] === 't' ? 'top' : 'bottom'] = '-22px';
+      c.style[k[0] === 'l' ? 'borderLeftWidth' : 'borderRightWidth'] = '3px';
+      c.style[k[1] === 't' ? 'borderTopWidth' : 'borderBottomWidth'] = '3px';
+      amp.appendChild(c); return c;
+    });
+    $('col').style.display = temTexto ? '' : 'none';
+    if (temTexto) {
+      const cw = 736 - 150 - 80, et = $('tit'), ef = $('frase');
+      if (tit) A.caber(et, tit, cw, frase ? 360 : 520, frase ? 88 : 100, 44); else et.style.display = 'none';
+      if (frase) {
+        const usado = tit ? et.getBoundingClientRect().height : 0;
+        if (!tit) { ef.style.fontFamily = 'var(--fonte-titulo)'; ef.style.color = 'var(--texto)'; ef.style.lineHeight = '1.16'; }
+        A.caber(ef, frase, cw, Math.max(150, 600 - usado - 80), tit ? 36 : 60, tit ? 24 : 32);
+      } else ef.style.display = 'none';
+      $('sep').style.display = tit && frase ? '' : 'none';
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }, { evento: 'foto.desliza', ms: 60 },
+                      { evento: 'foto.marca', ms: Math.round(MK) }, { evento: 'foto.amplia', ms: Math.round(A0) }];
+  };
+
+  window.quadro = function (t) {
+    const kb = A.fase(t, 0, DUR);
+    const k = desce(t), S = A.mix(1.3, 0.72, k), ty = A.mix(0, 372, k);
+    const tira = $('tira');
+    tira.style.transform = `translate(${A.f(tiraX(t), 2)}px, ${A.f(ty, 2)}px) rotate(${ROT}deg) scale(${A.f(S, 4)})`;
+    tira.style.opacity = A.f(1 - 0.35 * k);
+    fgs.forEach((f, j) => {
+      A.kb(f._m, kb, 0.8);
+      if (j === sel) f._m.style.opacity = A.f(1 - 0.85 * A.fase(t, A0, 260 * s));
+    });
+    // marca de lapis: aparece, pisca levemente e some quando o fotograma sai
+    const km = A.expo(A.fase(t, MK, 320 * s));
+    const mk = $('marca');
+    mk.style.opacity = A.f(km * (1 - A.fase(t, A0 + 300 * s, 400 * s)));
+    mk.style.transform = `scale(${A.f(1.12 - 0.12 * km, 4)})`;
+    // ampliacao
+    const ka = A.io(A.fase(t, A0, A1 - A0));
+    const w = A.mix(INI.w, ALVO.w, ka), h = A.mix(INI.h, ALVO.h, ka);
+    const cx = A.mix(INI.cx, ALVO.x + ALVO.w / 2, ka), cy = A.mix(INI.cy, ALVO.y + ALVO.h / 2, ka) - Math.sin(ka * Math.PI) * 40;
+    amp.style.display = t < A0 ? 'none' : '';
+    Object.assign(amp.style, { left: A.f(cx - w / 2, 2) + 'px', top: A.f(cy - h / 2, 2) + 'px', width: A.f(w, 2) + 'px', height: A.f(h, 2) + 'px' });
+    amp.style.transform = `rotate(${A.f(ROT * (1 - ka) + 0.6 * Math.sin(ka * Math.PI), 3)}deg)`;
+    A.kb(ampM, kb, 0.8);
+    const kc = A.expo(A.fase(t, A1 - 200 * s, 600 * s));
+    cms.forEach((c) => { c.style.opacity = A.f(kc); });
+    if (temTexto) {
+      A.revela($('tit'), A.sai(A.fase(t, A1 - 250 * s, 700 * s)), 34);
+      $('sep').style.transform = `scaleX(${A.f(A.io(A.fase(t, A1 - 50 * s, 600 * s)))})`;
+      A.revela($('frase'), A.sai(A.fase(t, A1 + 100 * s, 650 * s)), 22);
+    }
+  };
+})();
+</script>
+</body>
+</html>

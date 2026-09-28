@@ -1,0 +1,38 @@
+/* Takes (grupo B: vidro / frente-fundo / retrato) -- base comum.
+   Camada FUNDO: opaca, 1920x1080. Cores/fontes vêm de dados.estilo (TB.tema). */
+:root {
+  --fundo: #0b0c10; --texto: #f4f2ee; --acento: #d8b25a; --suave: rgba(244,242,238,.72);
+  --fonte-titulo: 'Segoe UI Semibold', 'Segoe UI', sans-serif;
+  --fonte-texto: 'Segoe UI', Arial, sans-serif;
+  --fonte-rotulo: 'Segoe UI Semibold', 'Segoe UI', sans-serif;
+  --titulo-caixa: none;
+}
+html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+body { background: var(--fundo); color: var(--texto); font-family: var(--fonte-texto); position: relative; }
+* { box-sizing: border-box; }
+.abs { position: absolute; }
+.cheio { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+canvas.borrao { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 50% 50%; }
+.midia { position: absolute; overflow: hidden; background: #111; }
+.midia img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%;
+             will-change: transform; }
+/* vidro fosco: o "fosco" é um canvas pré-desfocado alinhado ao fundo (nada de backdrop-filter) */
+.vidro { position: absolute; overflow: hidden; border-radius: 26px; }
+.vidro > canvas.fosco { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.vidro > .tinta { position: absolute; inset: 0; border-radius: inherit;
+                  background: linear-gradient(155deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.07) 38%, rgba(255,255,255,.04) 62%, rgba(255,255,255,.12) 100%); }
+.vidro > .aresta { position: absolute; inset: 0; border-radius: inherit; border: 1.5px solid rgba(255,255,255,.30);
+                   box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.18); }
+.vidro > .brilho { position: absolute; top: -40%; left: -60%; width: 38%; height: 180%;
+                   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.16) 50%, rgba(255,255,255,0) 100%);
+                   transform: rotate(18deg); }
+.sombra { position: absolute; border-radius: 40px;
+          background: radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,0)); }
+.rotulo { font-family: var(--fonte-rotulo); font-size: 22px; letter-spacing: .32em; text-transform: uppercase;
+          color: var(--acento); white-space: nowrap; }
+.titulo { font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.06; text-transform: var(--titulo-caixa);
+          overflow-wrap: normal; word-break: normal; hyphens: none; }
+.frase { font-family: var(--fonte-texto); color: var(--suave); line-height: 1.32; }
+.fio { height: 2px; background: var(--acento); transform-origin: 0 50%; }
+.linha { display: block; overflow: hidden; padding: .06em 0 .16em; margin: -.06em 0 -.16em; }
+.linha > span { display: inline-block; will-change: transform; }

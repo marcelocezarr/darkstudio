@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie validado: topicos (listas). Deduzida: etiqueta escura com o titulo no canto; cartoes creme
+     (papel das polaroides) empilhados a esquerda, numero vermelho datilografado + item, presos por um fio
+     vermelho vertical; cada cartao entra quando o item e dito. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #lista { position: absolute; left: 190px; top: 190px; width: 900px; }
+  .item { position: relative; display: flex; align-items: center; min-height: 104px; padding: 18px 34px 18px 30px;
+          margin-bottom: 30px; opacity: 0; width: fit-content; max-width: 900px; }
+  .item .n { color: var(--vermelho); font-size: 38px; letter-spacing: .06em; margin-right: 26px; flex: none; }
+  .item .t { color: var(--tinta); font-size: 40px; line-height: 1.2; }
+  #fio { position: absolute; left: 212px; top: 190px; width: 4px; height: 0; background: var(--vermelho); opacity: .9; }
+  #tag { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="escuro"></div>
+<div id="fio"></div>
+<div id="lista"></div>
+<div id="tag" class="tag"><span id="tagt"></span></div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const V = window.DV;
+  const esc = document.getElementById('escuro'), lista = document.getElementById('lista'), fio = document.getElementById('fio');
+  const tag = document.getElementById('tag'), tagt = document.getElementById('tagt');
+  let DUR = 4500, els = [], tempos = [], altFio = 0, temTag = false;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    V.aplicarEstilo(d);
+    DUR = d.dur_ms || 4500;
+    const itens = (Array.isArray(d.itens) ? d.itens : []).map(V.semPonto).filter(Boolean).slice(0, 5);
+    lista.innerHTML = itens.map((it, i) => `<div class="item pola"><span class="n maquina">${String(i + 1).padStart(2, '0')}</span><span class="t maquina">${V.esc(it)}</span></div>`).join('');
+    els = Array.from(lista.querySelectorAll('.item'));
+    // cabe na altura (5 itens): reduz fonte/espaco
+    let fs = 40;
+    while (lista.getBoundingClientRect().height > 800 && fs > 26) {
+      fs -= 2; els.forEach((e) => { e.querySelector('.t').style.fontSize = fs + 'px'; e.style.marginBottom = '20px'; e.style.minHeight = '84px'; });
+    }
+    const h = lista.getBoundingClientRect().height;
+    const top = Math.max(170, Math.round((1080 - h) / 2));
+    lista.style.top = top + 'px'; fio.style.top = (top - 30) + 'px';
+    altFio = h + 30;
+    els.forEach((e, i) => { e.dataset.r = (-1.2 + V.rnd(itens.join('|'), i) * 2.4).toFixed(2); });
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    tempos = els.map((_, i) => Math.min(DUR * 0.7, 250 + Math.max(0, Number(ms[i]) || i * 600)));
+    const tit = V.semPonto(d.titulo);
+    temTag = !!tit;
+    V.prepararDatilo(tagt, tit);
+    window.eventos = tempos.map((t) => ({ evento: 'lista.item', ms: Math.round(t) }));
+    if (temTag) window.eventos.unshift({ evento: 'maquina.digita', ms: 0 });
+  };
+
+  window.quadro = function (t) {
+    const s = V.saida(t, DUR, 320);
+    esc.style.opacity = String(0.4 * V.eo(V.seg(t, 0, 240)) * s);
+    tag.style.opacity = String((temTag && t > 0 ? 1 : 0) * s);
+    // rotulo datilografado rapido: uma janela longa demais fica "cortada"
+    // legivel por boa parte do card (ruim pra still/thumbnail); com teto baixo
+    // o texto completo aparece quase de imediato e so o efeito de entrada fica.
+    V.datilo(tagt, V.seg(t, 0, V.tempoDatilo(tagt._dv.texto.join(''), 260)));
+    fio.style.height = (altFio * V.eio(V.seg(t, 150, Math.max(400, (tempos[tempos.length - 1] || 0) + 300)))).toFixed(1) + 'px';
+    fio.style.opacity = String(0.9 * s);
+    els.forEach((e, i) => {
+      const k = V.seg(t, tempos[i], 260);
+      e.style.opacity = String(Math.min(1, k * 1.8) * s);
+      e.style.transform = `translateX(${(-40 * (1 - V.eo(k))).toFixed(1)}px) rotate(${e.dataset.r}deg)`;
+    });
+  };
+})();
+</script>
+</body>
+</html>

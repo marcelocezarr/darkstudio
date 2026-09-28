@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / mapa-mundi (fatos: lugar com lat/lon): o footage escurece, o mapa político em
+     traço branco fino (Mercator, cortado no Ártico) aparece; um anel limão pulsa no lugar, vira ponto
+     limão com o nome pequeno ao lado e, depois, o nome GRANDE (Impact) embaixo, centralizado. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #veu { position: absolute; inset: 0; background: rgba(0,0,0,.52); }
+  #mapa { position: absolute; left: 0; top: 0; }
+  #mapa path { fill: none; stroke: rgba(255,255,255,.82); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  #mapa path.b { stroke: rgba(255,255,255,.6); stroke-width: 1.1; }
+  #anel { position: absolute; width: 0; height: 0; }
+  #anel i { position: absolute; border: 3px solid var(--acento); border-radius: 50%; }
+  #ponto { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: var(--acento); }
+  #rot { position: absolute; font-family: var(--f-texto); font-weight: 900; font-size: 34px; line-height: 1; color: var(--texto);
+         white-space: nowrap; text-transform: uppercase; letter-spacing: .01em; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+  #grande { position: absolute; left: 0; width: 1920px; top: 858px; text-align: center; font-family: var(--f-titulo);
+            color: var(--texto); font-size: 106px; line-height: 1.2; white-space: nowrap; }
+  #grande span { display: inline-block; transform: scaleX(.86); transform-origin: 50% 50%;
+                 filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<svg id="mapa" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+<div id="anel"><i></i><i></i></div>
+<div id="ponto"></div>
+<div id="rot"></div>
+<div id="grande"><span></span></div>
+<script src="../comum/kv.js"></script>
+<script src="../comum/mundo.js"></script>
+<script src="../comum/bordas.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  // projeção medida na referência: Mercator, 4,45 px/grau, lon 0 em x=940, equador em y=555, corte a 72°N
+  const ESC = 4.45, X0 = 966, Y0 = 555, R = ESC * 180 / Math.PI, LAT_MAX = 72, LAT_MIN = -57;
+  const px = (lon) => X0 + lon * ESC;
+  const py = (lat) => {
+    const l = K.clamp(lat, LAT_MIN, LAT_MAX) * Math.PI / 180;
+    return Y0 - R * Math.log(Math.tan(Math.PI / 4 + l / 2));
+  };
+  const caminho = (pts, fechar) => pts.map(([lo, la], i) => `${i ? 'L' : 'M'}${px(lo).toFixed(1)},${py(la).toFixed(1)}`).join('') + (fechar ? 'Z' : '');
+  let d = {}, DUR = 5000, X = 960, Y = 540, T_ANEL = 250, T_PONTO = 1200, T_GRANDE = 2600;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 5000;
+    const svg = $('mapa');
+    const partes = [];
+    (window.MUNDO_TERRA || []).forEach((p) => partes.push(`<path d="${caminho(p, true)}"/>`));
+    (window.MUNDO_AGUA || []).forEach((p) => partes.push(`<path d="${caminho(p, true)}"/>`));
+    (window.MUNDO_BORDAS || []).forEach((p) => partes.push(`<path class="b" d="${caminho(p, false)}"/>`));
+    svg.innerHTML = partes.join('');
+    const lat = Number(d.lat), lon = Number(d.lon);
+    X = px(isFinite(lon) ? lon : 0); Y = py(isFinite(lat) ? lat : 0);
+    Y = K.clamp(Y, 90, 1000);
+    $('ponto').style.left = X + 'px'; $('ponto').style.top = Y + 'px';
+    $('anel').style.left = X + 'px'; $('anel').style.top = Y + 'px';
+    const nome = K.maiusc(d.nome || d.lugar || d.texto || '', d.idioma);
+    const rot = $('rot');
+    rot.textContent = nome;
+    // rótulo pequeno à direita do ponto (à esquerda se não couber)
+    const w = rot.offsetWidth;
+    rot.style.left = (X + w + 24 > 1860 ? X - 24 - w : X + 24) + 'px';
+    rot.style.top = Math.round(Y - 26 - 17 - 3) + 'px';
+    $('grande').firstChild.textContent = nome;
+    const g = $('grande').firstChild;
+    let fs = 106;
+    while (fs > 60 && g.offsetWidth * 0.86 > 1500) { fs -= 4; $('grande').style.fontSize = fs + 'px'; }
+    // tempos (escalam em peças curtas)
+    T_PONTO = Math.min(1200, DUR * 0.24);
+    T_GRANDE = Math.min(2600, DUR * 0.5);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'mapa.ponto', ms: Math.round(T_PONTO) },
+                      { evento: 'palavra.slam', ms: Math.round(T_GRANDE) }];
+  };
+
+  window.quadro = function (t) {
+    const s = K.saida(t, DUR, 320);
+    const ka = K.prog(t, 0, 140);
+    $('veu').style.opacity = String(Math.min(ka, s));
+    $('mapa').style.opacity = String(Math.min(K.prog(t, 40, 160), s));
+    // anel pulsando (antes do ponto: sozinho; depois: em volta do ponto, mais fraco)
+    const aneis = $('anel').children;
+    for (let i = 0; i < aneis.length; i++) {
+      const per = 900, tt = t - T_ANEL - i * per / 2;
+      const f = tt < 0 ? -1 : (tt % per) / per;
+      const r = 10 + 22 * K.outCubic(Math.max(0, f));
+      const a = f < 0 ? 0 : (1 - f) * (t < T_PONTO ? 1 : 0.55);
+      Object.assign(aneis[i].style, { width: 2 * r + 'px', height: 2 * r + 'px', left: -r - 3 + 'px', top: -r - 3 + 'px',
+                                      opacity: String(a * s) });
+    }
+    const kp = K.prog(t, T_PONTO, 160);
+    $('ponto').style.transform = `scale(${K.outBack(kp, 3).toFixed(3)})`;
+    $('ponto').style.opacity = String(Math.min(K.prog(t, T_PONTO, 40), s));
+    $('rot').style.opacity = String(Math.min(K.prog(t, T_PONTO + 60, 120), s));
+    $('rot').style.transform = `translateX(${((1 - K.outExpo(K.prog(t, T_PONTO + 60, 220))) * -14).toFixed(1)}px)`;
+    const kg = K.prog(t, T_GRANDE, 180);
+    $('grande').style.opacity = String(Math.min(K.prog(t, T_GRANDE, 50), s));
+    $('grande').style.transform = `scale(${(1.12 - 0.12 * K.outExpo(kg)).toFixed(4)})`;
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / lower-third (fatos: lugar, pessoa, item): nome em versalete com tracking amplo,
+     rotulo (PESSOA / LOCAL / PRODUTO) acima e fio dourado que se desenha da esquerda. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; left: 0; bottom: 0; width: 1300px; height: 420px; opacity: 0;
+         background: radial-gradient(ellipse 70% 80% at 12% 100%, rgba(0,0,0,.62) 0%, rgba(0,0,0,.3) 50%, rgba(0,0,0,0) 80%); }
+  #bloco { position: absolute; left: 200px; bottom: 196px; }
+  #rot { font-size: 22px; letter-spacing: .42em; margin-bottom: 20px; opacity: 0; }
+  #nome { font-family: var(--fonte-titulo); color: var(--texto); text-transform: uppercase; letter-spacing: .16em;
+          line-height: 1.12; font-weight: normal; white-space: normal; }
+  #fio { margin-top: 22px; }
+  #sub { margin-top: 16px; font-family: var(--fonte-titulo); font-style: italic; color: var(--suave);
+         font-size: 30px; line-height: 1.2; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="bloco">
+  <div id="rot" class="versal sombra"></div>
+  <div id="nome" class="sombra"></div>
+  <div id="fio" class="fio"></div>
+  <div id="sub" class="sombra"></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), rot = $('#rot'), nome = $('#nome'), fio = $('#fio'), sub = $('#sub');
+  let DUR = 3500, letras = [];
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3500;
+    const tipo = String(d.tipo_item || '').toLowerCase();
+    rot.textContent = C.txt(d.rotulo) || C.rot(d, tipo) || '';
+    rot.style.display = rot.textContent ? '' : 'none';
+    nome.textContent = C.txt(d.nome || d.texto);
+    C.caber(nome, 1050, 130, 50, 30);
+    fio.style.width = Math.max(220, Math.min(nome.getBoundingClientRect().width + 40, 1000)) + 'px';
+    const s = C.txt(d.subtitulo || d.cargo || '');
+    sub.textContent = s;
+    sub.style.display = s ? '' : 'none';
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }];
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 600, 550);
+    veu.style.opacity = String(env);
+    const kf = C.io(C.fase(t, 0, 1000));
+    fio.style.transform = `scaleX(${kf.toFixed(4)})`;
+    fio.style.opacity = String(env);
+    const kr = C.sai(C.fase(t, 250, 700));
+    rot.style.opacity = String(Math.min(kr, env));
+    const kn = C.sai(C.fase(t, 350, 900));
+    nome.style.opacity = String(Math.min(kn, env));
+    nome.style.transform = `translateX(${((1 - kn) * -14).toFixed(2)}px)`;
+    sub.style.opacity = String(Math.min(C.sai(C.fase(t, 700, 700)), env));
+  };
+})();
+</script>
+</body>
+</html>

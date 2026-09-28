@@ -1,0 +1,105 @@
+{
+  "nome": "Dossiê",
+  "grupo": "validado",
+  "descricao": "Investigação em papel: número vermelho sobre o footage escurecido, fotos P&B em papel quadriculado, rede de evidências com fio vermelho e mapa em traço claro.",
+  "paleta": {"fundo": "#16130f", "papel": "#e6ddcc", "grade": "#cfc6b4", "cartao": "#e6dfcd", "etiqueta": "#ece5d6",
+             "tinta": "#251d12", "texto": "#e8e1d0", "creme": "#e8e1d0", "acento": "#bb2123"},
+  "fontes": {"titulo": "Bahnschrift, 'Arial Narrow', 'Franklin Gothic Medium', sans-serif",
+             "texto": "'Courier New', Courier, monospace"},
+  "trilha_mood": "tensa",
+  "ritmo": {"distancia_min_ms": 4500, "teto_por_min": 7, "leitura_min_ms": 1600},
+  "sfx_volume_db": -16,
+  "sfx": {
+    "numero.impacto": {"arquivo": "sfx/impacto.wav", "volume_db": -17},
+    "papel.desliza": {"arquivo": "sfx/papel.wav", "volume_db": -15},
+    "foto.desliza": {"arquivo": "sfx/whoosh.wav", "volume_db": -20},
+    "foto.entra": {"arquivo": "sfx/whoosh.wav", "volume_db": -21},
+    "maquina.digita": {"arquivo": "sfx/datilografia.wav", "volume_db": -19},
+    "maquina.tecla": {"arquivo": "sfx/maquina.wav", "volume_db": -20},
+    "lista.item": {"arquivo": "sfx/maquina.wav", "volume_db": -17},
+    "rede.no": {"arquivo": "sfx/clique.wav", "volume_db": -19},
+    "mapa.abre": {"arquivo": "sfx/whoosh.wav", "volume_db": -22},
+    "mapa.ponto": {"arquivo": "sfx/pop.wav", "volume_db": -18},
+    "palavra.slam": {"arquivo": "sfx/impacto.wav", "volume_db": -19},
+    "secao.abre": {"arquivo": "sfx/swell.wav", "volume_db": -17}
+  },
+  "pecas": {
+    "secao-titulo": {
+      "arquivo": "pecas/secao-titulo.html", "familia": "secoes", "camada": "principal", "subtipos": ["capitulo"],
+      "dur_ms_padrao": 3400, "minimo_ms": 2400, "variaveis_exigidas": ["texto"], "zona": "tela",
+      "exemplo": {"texto": "The honest summary", "numero": 2, "total": 6, "subtipo": "capitulo"}
+    },
+    "numero-impacto": {
+      "arquivo": "pecas/numero-impacto.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["numero", "percentual", "moeda", "ano"],
+      "dur_ms_padrao": 3600, "minimo_ms": 2000, "variaveis_exigidas": ["numero"], "zona": "centro",
+      "exemplo": {"texto": "8", "numero": 8, "numero_texto": "8", "prefixo": "", "sufixo": "", "decimais": 0,
+                  "separador_milhar": ",", "separador_decimal": ".", "legenda": "years of battery warranty", "subtipo": "numero"}
+    },
+    "mapa-mundi": {
+      "arquivo": "pecas/mapa-mundi.html", "familia": "fatos", "camada": "principal", "subtipos": ["lugar"],
+      "dur_ms_padrao": 5000, "minimo_ms": 3000, "variaveis_exigidas": ["lat", "lon"], "zona": "tela",
+      "exemplo": {"texto": "Britain", "nome": "Britain", "lugar": "Britain", "tipo_item": "lugar", "lat": 54.0, "lon": -2.5,
+                  "subtipo": "lugar"}
+    },
+    "lower-third": {
+      "arquivo": "pecas/lower-third.html", "familia": "fatos", "camada": "principal",
+      "subtipos": ["pessoa", "item", "lugar"], "dur_ms_padrao": 3200, "minimo_ms": 1800, "variaveis_exigidas": ["nome"],
+      "zona": "inferior", "zona_topo": 0.64,
+      "exemplo": {"texto": "Maxus eDeliver 7", "nome": "Maxus eDeliver 7", "tipo_item": "produto", "rotulo": "PRODUTO",
+                  "subtipo": "item"}
+    },
+    "rede-evidencias": {
+      "arquivo": "pecas/rede.html", "familia": "listas", "camada": "principal", "subtipos": ["lista"],
+      "dur_ms_padrao": 4600, "minimo_ms": 2800, "variaveis_exigidas": ["itens"], "zona": "tela",
+      "exemplo": {"titulo": "The honest summary", "itens": ["Nearly no impact here", "In Britain for years",
+                  "Mostly on the van side", "Passenger cars never landed"], "itens_ms": [0, 500, 1000, 1500],
+                  "texto": "The honest summary"}
+    },
+    "topicos": {
+      "arquivo": "pecas/topicos.html", "familia": "listas", "camada": "principal", "subtipos": ["lista"],
+      "dur_ms_padrao": 4500, "minimo_ms": 2600, "variaveis_exigidas": ["itens"], "zona": "tela",
+      "exemplo": {"titulo": "Before you buy", "itens": ["The fall in value", "Better used buys", "Battery health"],
+                  "itens_ms": [0, 700, 1400], "texto": "The fall in value, better used buys, battery health"}
+    },
+    "foto-destaque": {
+      "arquivo": "pecas/foto-destaque.html", "familia": "foto_destaque", "camada": "principal", "subtipos": ["foto"],
+      "dur_ms_padrao": 4800, "minimo_ms": 2800, "variaveis_exigidas": ["midia_url"], "usa_midia": true, "zona": "tela",
+      "exemplo": {"texto": "The fall in value", "legenda": "The fall in value is steep in the first years", "tipo_item": "conceito"}
+    },
+    "foto-carrossel": {
+      "arquivo": "pecas/foto-destaque.html", "familia": "foto_destaque", "camada": "principal", "subtipos": ["fotos"],
+      "dur_ms_padrao": 8000, "minimo_ms": 4000, "variaveis_exigidas": ["midias"], "usa_midia": true, "zona": "tela",
+      "exemplo": {"texto": "The fall in value", "legenda": "Better used buys, battery health", "tipo_item": "conceito"}
+    },
+    "rede-fotos": {
+      "arquivo": "pecas/rede.html", "familia": "foto_destaque", "camada": "principal", "subtipos": ["fotos"],
+      "dur_ms_padrao": 4600, "minimo_ms": 2800, "variaveis_exigidas": ["midias"], "usa_midia": true, "zona": "tela",
+      "exemplo": {"texto": "The honest summary", "legenda": "Nearly no impact here, in Britain for years, mostly on the van side, passenger cars never landed",
+                  "tipo_item": "conceito"}
+    },
+    "foto-emoldurada": {
+      "arquivo": "pecas/foto-emoldurada.html", "familia": "foto_destaque", "camada": "principal", "subtipos": ["foto"],
+      "dur_ms_padrao": 4000, "minimo_ms": 2400, "variaveis_exigidas": ["midia_url"], "usa_midia": true, "zona": "tela",
+      "exemplo": {"texto": "Forecourt", "legenda": "Not a criticism, just a fact", "tipo_item": "lugar"}
+    },
+    "citacao": {
+      "arquivo": "pecas/citacao.html", "familia": "citacoes", "camada": "principal", "subtipos": ["citacao"],
+      "dur_ms_padrao": 4500, "minimo_ms": 2800, "variaveis_exigidas": ["texto"], "zona": "centro",
+      "exemplo": {"texto": "It is not a criticism, it is simply where the market is.", "autor": "Trade press"}
+    },
+    "karaoke": {
+      "arquivo": "pecas/karaoke.html", "familia": "karaoke", "camada": "principal", "subtipos": ["frase"],
+      "dur_ms_padrao": 3400, "minimo_ms": 2000, "variaveis_exigidas": ["texto"],
+      "exemplo": {"texto": "Passenger cars never really landed here", "destaque": 3,
+                  "palavras": [{"texto": "Passenger", "ms": 0}, {"texto": "cars", "ms": 320}, {"texto": "never", "ms": 560},
+                               {"texto": "really", "ms": 820}, {"texto": "landed", "ms": 1080}, {"texto": "here", "ms": 1380}]}
+    },
+    "palavra-gigante": {
+      "arquivo": "pecas/palavra-gigante.html", "familia": "impactos", "camada": "principal", "subtipos": ["palavra"],
+      "dur_ms_padrao": 2400, "minimo_ms": 1600, "variaveis_exigidas": ["texto"], "zona": "centro",
+      "exemplo": {"texto": "Not a criticism", "palavras": [{"texto": "Not", "ms": 0}, {"texto": "a", "ms": 200},
+                  {"texto": "criticism", "ms": 360}]}
+    }
+  }
+}

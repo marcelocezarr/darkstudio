@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / topicos (listas: lista, ficha): pilha à esquerda no padrão do rank — quadrado limão com
+     o número (Impact preto) + caixa escura com o item em Impact branco; cada linha entra quando é dita.
+     Ficha técnica: rótulo pequeno limão em cima do valor. Título opcional numa aba escura. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #pilha { position: absolute; left: 96px; top: 150px; }
+  #aba { display: block; width: max-content; height: 58px; padding: 0 20px; font-size: 36px; line-height: 60px; margin-bottom: 14px; }
+  #aba:empty { display: none; }
+  .row { position: relative; height: 112px; margin-bottom: 14px; will-change: transform; }
+  .num { position: absolute; left: 0; top: 0; width: 112px; height: 112px; background: var(--acento); color: var(--tinta);
+         font-family: var(--f-titulo); font-size: 84px; line-height: 112px; text-align: center; }
+  .item { position: absolute; left: 124px; top: 0; height: 112px; padding: 0 40px 0 30px; white-space: nowrap;
+          font-family: var(--f-titulo); color: var(--texto); font-size: 70px; line-height: 112px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
+  .item span { display: inline-block; transform-origin: 0 50%; }
+  .item.ficha { line-height: 1; padding-top: 12px; }
+  .item.ficha small { display: block; font-family: var(--f-texto); font-weight: 900; font-size: 22px; letter-spacing: .08em;
+                      color: var(--acento); margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div id="pilha"><div id="aba" class="aba"></div></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ESTREITO = 0.86;
+  let d = {}, DUR = 6000, rows = [], tempos = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 6000;
+    const campos = Array.isArray(d.campos) && d.campos.length ? d.campos.slice(0, 5) : null;
+    const itens = campos ? campos.map((c) => c.valor) : (Array.isArray(d.itens) ? d.itens.slice(0, 5) : []);
+    $('aba').textContent = K.maiusc(d.titulo || '', d.idioma);
+    const p = $('pilha');
+    const n = itens.length;
+    const alto = n >= 5 ? 96 : 112;
+    rows = itens.map((txt, i) => {
+      const r = document.createElement('div'); r.className = 'row'; r.style.height = alto + 'px';
+      const nm = document.createElement('div'); nm.className = 'num'; nm.textContent = String(i + 1);
+      Object.assign(nm.style, { width: alto + 'px', height: alto + 'px', lineHeight: alto + 'px', fontSize: Math.round(alto * 0.75) + 'px' });
+      const it = document.createElement('div'); it.className = 'item cx' + (campos ? ' ficha' : '');
+      Object.assign(it.style, { height: alto + 'px', left: (alto + 12) + 'px' });
+      if (campos) {
+        const sm = document.createElement('small'); sm.textContent = K.maiusc(campos[i].rotulo || '', d.idioma); it.appendChild(sm);
+        it.style.fontSize = Math.round(alto * 0.5) + 'px';
+      } else { it.style.lineHeight = alto + 'px'; it.style.fontSize = Math.round(alto * 0.62) + 'px'; }
+      const sp = document.createElement('span'); sp.textContent = K.maiusc(txt, d.idioma); it.appendChild(sp);
+      r.appendChild(nm); r.appendChild(it); p.appendChild(r);
+      let fs = parseFloat(it.style.fontSize);
+      while (fs > 30 && sp.offsetWidth * ESTREITO > 1300) { fs -= 3; it.style.fontSize = fs + 'px'; }
+      sp.style.transform = `scaleX(${ESTREITO})`;
+      const sw = it.querySelector('small') ? Math.max(it.querySelector('small').offsetWidth, sp.offsetWidth * ESTREITO) : sp.offsetWidth * ESTREITO;
+      it.style.width = Math.round(30 + sw + 40) + 'px';
+      return { r, nm, it };
+    });
+    // tempos: quando cada item é dito (itens_ms), senão escalonado
+    const ms = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    tempos = rows.map((_, i) => {
+      const v = Number(ms[i]);
+      return K.clamp(isFinite(v) && ms[i] != null ? v : 250 + i * 450, 150 + i * 120, DUR * 0.7);
+    });
+    for (let i = 1; i < tempos.length; i++) if (tempos[i] < tempos[i - 1] + 120) tempos[i] = tempos[i - 1] + 120;
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(tempos.map((t) => ({ evento: 'lista.item', ms: Math.round(t) })));
+  };
+
+  window.quadro = function (t) {
+    const ks = K.inCubic(K.prog(t, DUR - 260, 260));
+    $('aba').style.clipPath = K.cortina(K.outExpo(K.prog(t, 0, 160)));
+    $('aba').style.opacity = String(1 - ks);
+    rows.forEach((o, i) => {
+      const k = K.outExpo(K.prog(t, tempos[i], 260));
+      o.r.style.transform = `translateX(${((1 - k) * -60 - ks * 60).toFixed(1)}px)`;
+      o.r.style.opacity = String(Math.min(K.prog(t, tempos[i], 80), 1 - ks));
+      o.it.style.clipPath = K.cortina(K.outExpo(K.prog(t, tempos[i] + 40, 280)));
+    });
+  };
+})();
+</script>
+</body>
+</html>

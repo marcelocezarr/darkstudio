@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / sequencia-alternada (camada FUNDO). A tela e dividida por uma costura de acento;
+     paineis com as midias entram em ritmo, alternando esquerda/direita, cada um cobrindo o
+     anterior daquele lado (que e empurrado para a costura). Um marcador numerado desce pela
+     costura a cada batida. Titulo/frase opcionais num bloco no canto inferior esquerdo.
+     Paleta/fontes do estilo do video (dados.estilo). Tolera 1..N midias. -->
+<link rel="stylesheet" href="../comum/takes-a.css">
+<style>
+  #bg { position: absolute; inset: 0; background: var(--fundo); }
+  .meia { position: absolute; top: 0; height: 1080px; width: 952px; overflow: hidden; background: var(--fundo2); }
+  #mE { left: 0; } #mD { left: 968px; }
+  .meia .tka-m { position: absolute; inset: 0; }
+  .meia .sombra { position: absolute; inset: 0; background: var(--fundo); opacity: 0; pointer-events: none; }
+  #costura { position: absolute; left: 957px; top: 0; width: 6px; height: 1080px; background: var(--acento); transform-origin: 50% 0; }
+  #marc { position: absolute; left: 960px; top: 0; width: 92px; height: 92px; margin-left: -46px; background: var(--fundo);
+          border: 3px solid var(--acento); overflow: hidden; }
+  #marc .n { position: absolute; left: 0; right: 0; height: 86px; line-height: 86px; text-align: center;
+             font-family: var(--fonte-titulo); font-size: 40px; color: var(--texto); }
+  #bloco { position: absolute; left: 96px; bottom: 96px; max-width: 830px; background: var(--fundo);
+           padding: 30px 40px 34px 40px; border-left: 6px solid var(--acento); }
+  #bfrase { margin-top: 14px; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="mE" class="meia"></div>
+<div id="mD" class="meia"></div>
+<div id="costura"></div>
+<div id="marc"></div>
+<div id="bloco">
+  <div id="btit" class="tka-tit"></div>
+  <div id="bfrase" class="tka-frase"></div>
+</div>
+<script src="../comum/takes-a.js"></script>
+<script>
+(() => {
+  const A = window.TKA, $ = (id) => document.getElementById(id);
+  let DUR = 4500, s = 1, K = 4, TS = [], ps = [], nums = [], temTexto = false, ENT = 640;
+
+  window.montar = function (d) {
+    d = d || {};
+    A.tema(d);
+    DUR = Math.max(2500, d.dur_ms || 4500);
+    s = A.clamp(DUR / 4500, 0.7, 1.15);
+    const urls = A.urls(d);
+    K = DUR >= 3800 ? 4 : 3;
+    if (urls.length >= 5 && DUR >= 5200) K = 5;
+    ENT = 640 * s;
+    // batidas: as duas primeiras proximas (a tela enche rapido), depois ritmo regular
+    TS = [60, 60 + 360 * s];
+    const resto = DUR - 700 * s - TS[1];
+    for (let k = 2; k < K; k++) TS.push(TS[1] + resto * (k - 1) / (K - 1));
+    const sem = A.hash(urls.join('|') || 'x') % 4;
+    const slots = A.slots(urls, K);
+    ps = slots.map((sl, k) => {
+      const lado = k % 2 === 0 ? 'E' : 'D';
+      const m = A.midia(sl, k, sem);
+      const sh = document.createElement('div'); sh.className = 'sombra'; m.appendChild(sh); m._sh = sh;
+      m._lado = lado;
+      $('m' + lado).appendChild(m);
+      return m;
+    });
+    // numeros do marcador (rolam verticalmente dentro do quadrado)
+    const marc = $('marc');
+    nums = slots.map((_, k) => { const n = document.createElement('div'); n.className = 'n'; n.textContent = String(k + 1).padStart(2, '0'); marc.appendChild(n); return n; });
+    // bloco de texto
+    const tit = A.txt(d.titulo), frase = A.txt(d.texto);
+    temTexto = !!(tit || frase);
+    $('bloco').style.display = temTexto ? '' : 'none';
+    if (temTexto) {
+      const et = $('btit'), ef = $('bfrase');
+      const principal = tit || frase, sec = tit ? frase : '';
+      A.caber(et, principal, 740, sec ? 190 : 260, tit ? 76 : 56, 40);
+      if (!tit) { et.style.lineHeight = '1.12'; }
+      if (sec) A.caber(ef, sec, 740, 150, 32, 25); else ef.style.display = 'none';
+      $('bloco').style.width = 'auto';
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 },
+                      ...TS.map((t0, k) => ({ evento: k === 0 ? 'painel.abre' : 'painel.alterna', ms: Math.round(t0) }))];
+  };
+
+  window.quadro = function (t) {
+    const kb = A.fase(t, 0, DUR);
+    // costura desenha de cima para baixo
+    $('costura').style.transform = `scaleY(${A.f(A.io(A.fase(t, 0, 520 * s)))})`;
+    ps.forEach((m, k) => {
+      const t0 = TS[k], ke = A.expo(A.fase(t, t0, ENT));
+      const esq = m._lado === 'E';
+      // revela da borda externa para a costura
+      const ab = A.f((1 - ke) * 100, 2);
+      m.style.clipPath = esq ? `inset(0 ${ab}% 0 0)` : `inset(0 0 0 ${ab}%)`;
+      m.style.visibility = t < t0 ? 'hidden' : 'visible';
+      // o painel seguinte do mesmo lado empurra este para a costura e escurece
+      const prox = TS[k + 2];
+      const kp = prox !== undefined ? A.io(A.fase(t, prox, ENT)) : 0;
+      m.style.transform = `translateX(${A.f((esq ? 1 : -1) * kp * 240, 2)}px)`;
+      m._sh.style.opacity = A.f(0.7 * kp);
+      A.kb(m, A.fase(t, t0 - 400 * s, DUR - t0 + 400 * s), 1.1);
+      if (m._img) m._img.style.transform = `translateX(${A.f((esq ? -1 : 1) * (1 - ke) * 14, 3)}%) ` + m._img.style.transform;
+    });
+    // marcador: desce pela costura a cada batida e troca o numero (rolagem)
+    let pos = 0;
+    for (let k = 1; k < K; k++) pos += A.io(A.fase(t, TS[k], ENT * 0.8));
+    const y = 96 + pos * ((1080 - 96 * 2 - 92) / Math.max(1, K - 1));
+    const km = A.expo(A.fase(t, 200 * s, 500 * s));
+    const marc = $('marc');
+    marc.style.top = A.f(y, 2) + 'px';
+    marc.style.transform = `scale(${A.f(km, 4)})`;
+    nums.forEach((n, k) => { n.style.transform = `translateY(${A.f((k - pos) * 86, 2)}px)`; });
+    if (temTexto) {
+      const kt = A.expo(A.fase(t, TS[1] + 240 * s, 520 * s));
+      const b = $('bloco');
+      b.style.clipPath = `inset(0 ${A.f((1 - kt) * 100, 2)}% 0 0)`;
+      A.revela($('btit'), A.sai(A.fase(t, TS[1] + 300 * s, 560 * s)), 26);
+      A.revela($('bfrase'), A.sai(A.fase(t, TS[1] + 400 * s, 560 * s)), 18);
+    }
+  };
+})();
+</script>
+</body>
+</html>

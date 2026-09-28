@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / foto-moldura (foto_destaque: foto, camada principal): o footage escurece um pouco,
+     a foto abre do centro para os lados com moldura limão; aba escura com o nome (Impact branco) no canto
+     superior esquerdo e legenda curta em caixa escura com texto limão centralizada embaixo. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #veu { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+  #moldura { position: absolute; left: 424px; top: 210px; width: 1172px; height: 656px; border: 5px solid var(--acento);
+             background: #111; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+  #moldura img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: 50% 50%; }
+  #aba { position: absolute; left: 404px; top: 172px; height: 60px; padding: 0 20px; font-size: 36px; line-height: 62px; }
+  #aba:empty { display: none; }
+  #leg { position: absolute; top: 884px; left: 0; background: rgba(10,10,10,.72); color: var(--acento); font-family: var(--f-texto);
+         font-weight: 900; font-size: 30px; line-height: 36px; letter-spacing: .06em; text-transform: uppercase; text-align: center;
+         padding: 7px 18px 8px; max-width: 1100px; }
+  #leg:empty { display: none; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="moldura"><img id="img"></div>
+<div id="aba" class="aba"></div>
+<div id="leg"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 4500, T_ABA = 180, T_LEG = 300;
+
+  // legenda curta: no máximo ~8 palavras (a referência usa frases de 2-4 palavras)
+  function curta(txt) {
+    const ws = K.palavrasDe(txt);
+    return ws.length <= 8 ? ws.join(' ') : ws.slice(0, 8).join(' ');
+  }
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4500;
+    $('img').src = d.midia_url || (Array.isArray(d.midias) ? d.midias[0] : '');
+    $('aba').textContent = K.maiusc(d.texto || '', d.idioma);
+    const aba = $('aba');
+    let fa = 36;
+    while (fa > 22 && aba.offsetWidth > 1100) { fa -= 2; aba.style.fontSize = fa + 'px'; }
+    const leg = $('leg');
+    const txt = (d.legenda && d.legenda !== d.texto) ? d.legenda : '';
+    leg.textContent = K.maiusc(curta(txt), d.idioma);
+    leg.style.left = Math.round(960 - leg.offsetWidth / 2) + 'px';
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }, { evento: 'etiqueta.entra', ms: T_LEG }];
+  };
+
+  window.quadro = function (t) {
+    const s = K.saida(t, DUR, 260);
+    $('veu').style.opacity = String(Math.min(K.prog(t, 0, 120), s));
+    const k = K.outExpo(K.prog(t, 0, 260));
+    const lado = ((1 - k) * 34).toFixed(2);
+    const m = $('moldura');
+    m.style.clipPath = `inset(0 ${lado}% 0 ${(lado * 0.6).toFixed(2)}%)`;
+    m.style.opacity = String(Math.min(K.prog(t, 0, 50), s));
+    $('img').style.transform = `scale(${(1.0 + 0.04 * K.prog(t, 0, DUR)).toFixed(4)})`;
+    $('aba').style.clipPath = K.cortina(K.outExpo(K.prog(t, T_ABA, 110)));
+    $('aba').style.opacity = String(s);
+    $('leg').style.clipPath = K.cortina(K.outExpo(K.prog(t, T_LEG, 90)));
+    $('leg').style.opacity = String(s);
+  };
+})();
+</script>
+</body>
+</html>

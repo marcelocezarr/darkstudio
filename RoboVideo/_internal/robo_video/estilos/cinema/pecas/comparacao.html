@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / comparacao (contrastes: versus, mas): duas colunas serifadas separadas por um fio
+     vertical dourado com o conector em italico. B entra quando e dito. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: radial-gradient(ellipse 66% 52% at 50% 50%, rgba(0,0,0,.66) 0%, rgba(0,0,0,.44) 55%, rgba(0,0,0,.12) 100%); }
+  .col { position: absolute; top: 50%; width: 640px; display: flex; flex-direction: column; }
+  #a { right: calc(50% + 90px); align-items: flex-end; text-align: right; }
+  #b { left: calc(50% + 90px); align-items: flex-start; text-align: left; }
+  .col .t { font-family: var(--fonte-titulo); color: var(--texto); line-height: 1.16; font-weight: normal; }
+  #meio { position: absolute; left: 50%; top: 50%; width: 0; }
+  #meio .fio { position: absolute; left: 0; width: 1px; height: 150px; background: var(--acento); }
+  #meio .cima { bottom: 46px; transform-origin: center bottom; }
+  #meio .baixo { top: 46px; transform-origin: center top; }
+  #con { position: absolute; left: 0; top: 0; transform: translate(-50%, -54%); font-family: var(--fonte-titulo);
+         font-style: italic; color: var(--acento-claro); font-size: 46px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="a" class="col"><div class="t sombra"></div></div>
+<div id="meio"><div class="fio cima"></div><div id="con" class="sombra"></div><div class="fio baixo"></div></div>
+<div id="b" class="col"><div class="t sombra"></div></div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), A = $('#a'), B = $('#b'), con = $('#con');
+  const fc = $('#meio .cima'), fb = $('#meio .baixo');
+  let DUR = 4500, tB = 900;
+
+  function limpa(s) { return C.txt(s).replace(/^[,;:.\s]+|[,;:.\s]+$/g, ''); }
+
+  window.montar = function (d) {
+    d = d || {};
+    C.tema(d);
+    DUR = d.dur_ms || 4500;
+    const ta = A.querySelector('.t'), tb = B.querySelector('.t');
+    ta.textContent = limpa(d.a);
+    tb.textContent = limpa(d.b);
+    // mesmo tamanho nas duas colunas (o menor que couber em ambas)
+    const sa = C.caber(ta, 640, 300, 72, 36), sb = C.caber(tb, 640, 300, 72, 36);
+    const s = Math.min(sa, sb);
+    ta.style.fontSize = tb.style.fontSize = s + 'px';
+    const conector = C.txt(d.conector) || C.rot(d, 'versus') || 'vs';
+    con.textContent = /^vs\.?$/i.test(conector) ? (C.rot(d, 'versus') || 'vs').toLowerCase() : conector.toLowerCase();
+    // B entra quando comeca a ser dito (primeira palavra de b nas palavras faladas)
+    const falas = Array.isArray(d.palavras) ? d.palavras : [];
+    const prim = limpa(d.b).split(' ')[0] || '';
+    const norm = (x) => String(x || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]+/gu, '');
+    const achou = falas.find((p) => norm(p.texto) === norm(prim) && p.ms > 0);
+    tB = Math.max(700, Math.min(achou ? achou.ms : DUR * 0.28, DUR * 0.45));
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'versus.choque', ms: Math.round(tB) }];
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 600, 600);
+    veu.style.opacity = String(env);
+    const ka = C.sai(C.fase(t, 150, 800)), kb = C.sai(C.fase(t, tB, 800));
+    A.style.opacity = String(Math.min(ka, env));
+    A.style.transform = `translate(${((1 - ka) * -24).toFixed(2)}px, -50%)`;
+    B.style.opacity = String(Math.min(kb, env));
+    B.style.transform = `translate(${((1 - kb) * 24).toFixed(2)}px, -50%)`;
+    const kf = C.io(C.fase(t, 250, 900));
+    fc.style.transform = fb.style.transform = `scaleY(${kf.toFixed(4)})`;
+    fc.style.opacity = fb.style.opacity = String(0.85 * env);
+    con.style.opacity = String(Math.min(C.sai(C.fase(t, 500, 600)), env));
+  };
+})();
+</script>
+</body>
+</html>

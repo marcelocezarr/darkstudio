@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / donut (fatos: percentual). Anel que preenche ate o percentual, valor
+     contando no centro e legenda ao lado. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #card { position: absolute; right: 192px; top: 190px; }
+  #tagw { margin-left: 30px; margin-bottom: -1px; }
+  #p { display: flex; align-items: center; gap: 44px; padding: 34px 64px 34px 58px; }
+  #anel { position: relative; width: 340px; height: 340px; flex: none; }
+  #anel svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  #trilho { fill: none; stroke: rgba(255,255,255,.14); stroke-width: 38; }
+  #arco { fill: none; stroke: var(--acento); stroke-width: 38; }
+  #marcas line { stroke: var(--navy); stroke-width: 4; }
+  #centro { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #val { font-weight: 700; font-size: 104px; line-height: 1; white-space: nowrap; }
+  #val small { font-size: .5em; color: var(--acento); margin-left: 4px; font-weight: 600; }
+  #leg { width: 400px; font-weight: 600; font-size: 46px; line-height: 1.14; }
+  #regra { width: 90px; height: 6px; background: var(--acento); margin-bottom: 22px; transform-origin: left; }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="tagw"><div id="tag" class="tag"></div></div>
+  <div id="pw"><div id="p" class="painel-a corte-e sombra">
+    <div id="anel">
+      <svg viewBox="0 0 340 340"><circle id="trilho" cx="170" cy="170" r="140"/><circle id="arco" cx="170" cy="170" r="140"/><g id="marcas"></g></svg>
+      <div id="centro"><div id="val" class="num-tab"></div></div>
+    </div>
+    <div id="lw"><div id="regra"></div><div id="leg"></div></div>
+  </div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const C = 2 * Math.PI * 140;
+  let d = {}, DUR = 4200, alvo = 0, T0 = 380, TC = 1200, temLeg = false;
+
+  window.montar = function (dados) {
+    d = dados || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 4200;
+    $('tag').textContent = BC.rot(d, 'dados');
+    alvo = Number(d.percentual != null ? d.percentual : d.numero) || 0;
+    $('arco').setAttribute('stroke-dasharray', `0 ${C}`);
+    // 4 marcas finas (25/50/75/100) cortando o anel
+    const g = $('marcas');
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2;
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', 170 + 118 * Math.cos(a)); l.setAttribute('y1', 170 + 118 * Math.sin(a));
+      l.setAttribute('x2', 170 + 162 * Math.cos(a)); l.setAttribute('y2', 170 + 162 * Math.sin(a));
+      g.appendChild(l);
+    }
+    const leg = BC.txt(d.legenda);
+    temLeg = !!leg;
+    $('lw').style.display = temLeg ? '' : 'none';
+    if (temLeg) BC.caberTexto($('leg'), leg, 46, 30, 400, 4 * 46 * 1.14);
+    $('val').innerHTML = BC.fmt({ ...d, ano: false }, alvo) + '<small>%</small>';
+    BC.caber($('val'), 104, 56, 230, 0);
+    T0 = 380; TC = Math.min(1300, DUR * 0.35);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'barra.enche', ms: T0 }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('tagw'), BC.eo(BC.lin(t, 0, 280)), BC.ei(BC.lin(-S, -280, -80)), 20);
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 60, 480)), BC.ei(BC.lin(-S, -380, -20)));
+    const k = BC.eio(BC.lin(t, T0, T0 + TC));
+    const frac = BC.clamp(alvo / 100) * k;
+    $('arco').setAttribute('stroke-dasharray', `${(frac * C).toFixed(2)} ${C.toFixed(2)}`);
+    $('val').firstChild.textContent = BC.fmt({ ...d, ano: false }, alvo * k);
+    $('val').style.opacity = String(BC.lin(t, T0 - 100, T0 + 150));
+    const kl = BC.eo(BC.lin(t, T0 + 200, T0 + 700));
+    $('regra').style.transform = `scaleX(${kl.toFixed(4)})`;
+    $('leg').style.opacity = String(kl);
+    $('leg').style.transform = `translateX(${((1 - kl) * 24).toFixed(2)}px)`;
+  };
+})();
+</script>
+</body>
+</html>

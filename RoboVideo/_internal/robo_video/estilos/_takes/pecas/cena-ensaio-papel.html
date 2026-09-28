@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Takes / cena-ensaio-papel (camada FUNDO). Mesa na cor de fundo do estilo com um foco de luz;
+     a midia vem IMPRESSA numa folha de papel fotografico (tinta "absorvida": multiply) que desliza
+     para a mesa; uma segunda impressao (outra midia ou outro recorte) fica por baixo. Ao lado, o
+     texto de apoio e escrito palavra a palavra, com um traco de marca-texto na cor de acento. -->
+<link rel="stylesheet" href="../comum/takes-c.css">
+<style>
+  #mesa { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 70% at 34% 42%, var(--tc-bg-claro) 0%, var(--tc-bg) 58%, var(--tc-bg-escuro) 100%); }
+  #cena { position: absolute; inset: 0; transform-origin: 38% 50%; }
+  .folha { position: absolute; background: var(--tc-papel); transform-origin: 50% 50%;
+           box-shadow: 0 34px 60px rgba(0,0,0,.45), 0 6px 14px rgba(0,0,0,.35); }
+  .folha::before { content: ''; position: absolute; inset: 0; background-image: var(--tc-grao-papel); opacity: .8; }
+  .folha::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%, rgba(0,0,0,0) 70%, rgba(0,0,0,.09) 100%); }
+  .folha .tc-mid { background: #d9d6cf; }
+  .folha .tc-mid img { mix-blend-mode: multiply; filter: contrast(.94) saturate(.88); }
+  .folha .tc-mid::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+  .leg { position: absolute; font-family: var(--tc-fx); color: #26241f; white-space: nowrap; overflow: hidden; }
+  .num { position: absolute; font-family: var(--tc-fr); color: rgba(38,36,31,.55); letter-spacing: .18em; font-size: 20px; }
+  .regua { position: absolute; height: 1px; background: rgba(38,36,31,.35); }
+  #marca { position: absolute; height: 22px; background: var(--tc-ac); opacity: .45; transform-origin: 0 50%; border-radius: 3px; }
+  #col { position: absolute; display: flex; flex-direction: column; justify-content: center; }
+  #kick { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
+  #kick i { display: block; width: 46px; height: 3px; background: var(--tc-ac); transform-origin: 0 50%; }
+  #tit { font-family: var(--tc-ft); color: var(--tc-tx); line-height: 1.08; font-weight: normal; }
+  #fio { height: 1px; background: var(--tc-linha); margin: 30px 0 28px; transform-origin: 0 50%; }
+  #txt { font-family: var(--tc-fx); color: var(--tc-tx2); line-height: 1.38; }
+</style>
+</head>
+<body>
+<div id="mesa"></div>
+<div id="cena">
+  <div id="f2" class="folha"></div>
+  <div id="f1" class="folha"></div>
+</div>
+<div id="col">
+  <div id="kick"><i></i><span id="rot" class="tc-rot"></span></div>
+  <div id="tit"></div>
+  <div id="fio"></div>
+  <div id="txt"></div>
+</div>
+<script src="../comum/takes-c.js"></script>
+<script>
+(() => {
+  const Z = window.TC, $ = (s) => document.querySelector(s);
+  const cena = $('#cena'), f1 = $('#f1'), f2 = $('#f2'), col = $('#col'), kick = $('#kick'), tit = $('#tit'),
+        fio = $('#fio'), txt = $('#txt');
+  let DUR = 4500, m1, m2, marca, temCol = false, temTxt = false, temTit = false, movs = ['zin', 'pane'],
+      r1 = -2.4, r2 = 4.2, T_TXT = 900, D_TXT = 1400;
+
+  // monta a folha: impressao + legenda impressa + numero
+  function folha(el, W, H, slot, legenda, numero, comMarca) {
+    el.style.width = W + 'px'; el.style.height = H + 'px';
+    const m = 38, hImg = Math.round(H - m - 104);
+    const box = Z.criarMidia(el, slot);
+    Object.assign(box.style, { left: m + 'px', top: m + 'px', width: (W - 2 * m) + 'px', height: hImg + 'px' });
+    const reg = document.createElement('div'); reg.className = 'regua';
+    Object.assign(reg.style, { left: m + 'px', top: (m + hImg + 26) + 'px', width: (W - 2 * m) + 'px' });
+    el.appendChild(reg);
+    if (legenda) {
+      const lg = document.createElement('div'); lg.className = 'leg';
+      Object.assign(lg.style, { left: m + 'px', top: (m + hImg + 40) + 'px', width: (W - 2 * m - 90) + 'px', height: '48px' });
+      lg.textContent = legenda;
+      el.appendChild(lg);
+      Z.caber(lg, 34, 20, 48, W - 2 * m - 90);
+      if (lg.scrollWidth > lg.clientWidth + 1) Z.caberTexto(lg, legenda, 20, 20, 48);
+      if (comMarca) {
+        const mk = document.createElement('div'); mk.id = 'marca';
+        const sp = document.createElement('span'); sp.textContent = lg.textContent; lg.textContent = ''; lg.appendChild(sp);
+        const wTxt = Math.min(sp.getBoundingClientRect().width, W - 2 * m - 90);
+        Object.assign(mk.style, { left: (m - 6) + 'px', top: (m + hImg + 40 + parseFloat(lg.style.fontSize) * 0.62) + 'px',
+                                  width: (wTxt + 12) + 'px', height: Math.round(parseFloat(lg.style.fontSize) * 0.5) + 'px' });
+        el.insertBefore(mk, lg);
+        marca = mk;
+      }
+    }
+    const nm = document.createElement('div'); nm.className = 'num';
+    Object.assign(nm.style, { right: m + 'px', top: (m + hImg + 50) + 'px' });
+    nm.textContent = numero;
+    el.appendChild(nm);
+    return box;
+  }
+
+  window.montar = function (d) {
+    d = d || {};
+    Z.tema(d);
+    const r = document.documentElement.style;
+    r.setProperty('--tc-grao-papel', Z.grao(0.05, true));
+    DUR = d.dur_ms || 4500;
+    let titulo = Z.txt(d.titulo || d.nome), texto = Z.txt(d.texto);
+    if (!titulo && texto && texto.split(' ').length <= 6) { titulo = texto; texto = ''; }   // frase curta vira titulo
+    temTit = !!titulo; temTxt = !!texto && texto.toLowerCase() !== titulo.toLowerCase();
+    temCol = temTit || temTxt;
+    const semente = Z.midias(d).join('|') + texto;
+    const s = Z.slots(d, 2);
+    const k0 = Math.floor(Z.rnd(semente, 1) * 4);
+    movs = [Z.MOVS[k0], Z.MOVS[(k0 + 1) % 4]];
+    r1 = -1.6 - Z.rnd(semente, 2) * 1.6; r2 = 3.2 + Z.rnd(semente, 3) * 2;
+    // geometria: com coluna de texto a folha fica a esquerda; sem texto, centralizada e maior
+    const W1 = temCol ? 1010 : 1240, H1 = temCol ? 770 : 900;
+    const x1 = temCol ? 150 : (1920 - W1) / 2 - 40, y1 = (1080 - H1) / 2 + 6;
+    f1.style.left = x1 + 'px'; f1.style.top = y1 + 'px';
+    m1 = folha(f1, W1, H1, s[0], titulo, '01', temTit);
+    const W2 = Math.round(W1 * 0.8), H2 = Math.round(H1 * 0.8);
+    f2.style.left = (x1 + W1 - W2 + (temCol ? 60 : 140)) + 'px'; f2.style.top = (y1 - 60) + 'px';
+    m2 = folha(f2, W2, H2, s[1], '', '02', false);
+    // coluna de texto
+    col.style.display = temCol ? '' : 'none';
+    if (temCol) {
+      const X = 1260, L = 1780 - X;
+      Object.assign(col.style, { left: X + 'px', top: '150px', width: L + 'px', height: '780px' });
+      $('#rot').textContent = Z.rot(d, 'destaque') || Z.rot(d, 'arquivo');
+      tit.style.width = txt.style.width = L + 'px';
+      tit.style.display = temTit ? '' : 'none';
+      txt.style.display = temTxt ? '' : 'none';
+      fio.style.display = temTit && temTxt ? '' : 'none';
+      if (temTit) Z.caberTexto(tit, titulo, temTxt ? 76 : 96, 40, temTxt ? 270 : 520);
+      if (temTxt) {
+        const livre = 700 - (temTit ? tit.scrollHeight + 60 : 0) - 60;
+        Z.caberTexto(txt, texto, 42, 24, Math.max(160, livre));
+        Z.palavras(txt);
+      }
+      D_TXT = Math.max(700, Math.min(DUR * 0.4, (txt._ws || []).length * 110));
+      T_TXT = Math.min(1100, DUR * 0.24);
+    }
+    window.eventos = [{ evento: 'take.entra', ms: 0 }, { evento: 'papel.desliza', ms: 60 },
+                      { evento: 'papel.desliza', ms: 320 }, { evento: 'papel.desliza', ms: Math.round(DUR - 420) }];
+  };
+
+  window.quadro = function (t) {
+    const k = t / DUR;
+    const sai = Z.eio(Z.seg(t, DUR - 420, 420));
+    // camera: aproximacao lenta sobre a mesa
+    cena.style.transform = `scale(${Z.f(1 + 0.035 * Z.sine(k), 4)}) translate(${Z.f(-8 * k, 2)}px, ${Z.f(-4 * k, 2)}px)`;
+    // folha de tras (entra primeiro, vindo do alto a direita)
+    const a2 = Z.eo(Z.seg(t, 60, 760));
+    f2.style.transform = `translate(${Z.f((1 - a2) * 520 + sai * 420, 1)}px, ${Z.f((1 - a2) * -760 - sai * 60, 1)}px) rotate(${Z.f(r2 + (1 - a2) * 14 + sai * 5, 3)}deg)`;
+    f2.style.opacity = Z.f(Math.min(1, a2 * 4) * (1 - sai), 3);
+    // folha principal (desliza de baixo a esquerda, assenta com leve deriva)
+    const a1 = Z.eo5(Z.seg(t, 320, 820));
+    const deriva = Z.sine(Z.seg(t, 1100, DUR - 1500));
+    f1.style.transform = `translate(${Z.f((1 - a1) * -620 + deriva * 10 - sai * 520, 1)}px, ${Z.f((1 - a1) * 860 + deriva * -6 + sai * 90, 1)}px) rotate(${Z.f(r1 + (1 - a1) * -16 + deriva * 0.5 - sai * 6, 3)}deg)`;
+    f1.style.opacity = Z.f(Math.min(1, a1 * 4) * (1 - sai), 3);
+    // Ken Burns dentro das impressoes (nada parado)
+    Z.kb(m1, k, movs[0], 0.9);
+    Z.kb(m2, k, movs[1], 0.9);
+    if (marca) marca.style.transform = `scaleX(${Z.f(Z.eio(Z.seg(t, 1250, 520)), 4)})`;
+    // coluna de texto
+    if (temCol) {
+      const c = Z.eo(Z.seg(t, 650, 600));
+      col.style.opacity = Z.f(1 - sai, 3);
+      kick.style.opacity = Z.f(c, 3);
+      kick.firstElementChild.style.transform = `scaleX(${Z.f(c, 3)})`;
+      const ct = Z.eo(Z.seg(t, 760, 620));
+      tit.style.opacity = Z.f(ct, 3);
+      tit.style.transform = `translateY(${Z.f((1 - ct) * 26, 2)}px)`;
+      fio.style.transform = `scaleX(${Z.f(Z.eio(Z.seg(t, 900, 700)), 4)})`;
+      if (temTxt) Z.revelar(txt, t, T_TXT, D_TXT, 300);
+      col.style.transform = `translateX(${Z.f(sai * 60, 1)}px)`;
+    }
+  };
+})();
+</script>
+</body>
+</html>

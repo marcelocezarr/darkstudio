@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / rank (rankings): número da posição enorme "bate" na tela; o nome do item é revelado
+     numa faixa preta que varre a partir do número. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #grupo { position: absolute; left: 192px; top: 330px; height: 560px; display: flex; align-items: center; will-change: transform; }
+  #numw { position: relative; flex: none; display: flex; align-items: flex-start; }
+  #cerq { font-family: var(--f-titulo); color: var(--acento); font-size: 150px; line-height: 1; margin-top: 70px;
+          text-shadow: 0 8px 30px rgba(0,0,0,.55); will-change: transform, opacity; }
+  #num { font-family: var(--f-titulo); color: var(--acento); font-size: 500px; line-height: .92; letter-spacing: -.02em;
+         text-shadow: 0 .02em 0 rgba(0,0,0,.35), 0 .04em .12em rgba(0,0,0,.55); will-change: transform, opacity;
+         transform-origin: 50% 60%; }
+  #lado { position: relative; margin-left: 34px; display: flex; flex-direction: column; align-items: flex-start; }
+  #rot { background: var(--acento); color: var(--tinta); font-family: var(--f-rotulo); font-weight: 700; font-size: 34px;
+         letter-spacing: .16em; padding: 6px 18px 4px; margin-bottom: 14px; white-space: nowrap; }
+  #rot:empty { display: none; }
+  #faixa { background: var(--tinta); padding: 18px 40px 22px 32px; box-sizing: border-box; }
+  #txt { font-family: var(--f-titulo); color: var(--texto); line-height: 1.02; text-transform: uppercase; }
+  #txt .ln { overflow: hidden; }
+  #txt .li { display: inline-block; white-space: nowrap; will-change: transform; }
+  #faixa.vazia { display: none; }
+</style>
+</head>
+<body>
+<div id="grupo">
+  <div id="numw"><div id="cerq"></div><div id="num"></div></div>
+  <div id="lado"><div id="rot"></div><div id="faixa"><div id="txt"></div></div></div>
+</div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 4000, linhas = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 4000;
+    const pos = parseInt(d.posicao != null ? d.posicao : d.numero, 10) || 1;
+    $('num').textContent = String(pos);
+    $('cerq').textContent = '#';
+    $('rot').textContent = K.rot(d, 'top', '');
+    $('num').style.fontSize = (pos >= 10 ? 420 : 500) + 'px';
+    const txt = $('txt');
+    const texto = K.maiusc(String(d.texto || '').trim(), d.idioma);
+    const numW = $('numw').getBoundingClientRect().width;
+    const maxW = Math.floor(Math.max(600, 1920 - 192 - 192 - numW - 34 - 72));
+    if (!texto) { $('faixa').classList.add('vazia'); linhas = []; }
+    else {
+      txt.style.width = maxW + 'px';
+      txt.textContent = texto;
+      let fs = K.ajustar(txt, maxW, 300, 130, 56);
+      linhas = K.linhas(txt, texto);
+      while (fs > 56 && (linhas.length > 3 || linhas.some((l) => l.scrollWidth > maxW))) {
+        fs -= 4; txt.style.fontSize = fs + 'px'; linhas = K.linhas(txt, texto);
+      }
+      txt.style.width = 'auto';
+    }
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'rank.revela', ms: 200 }];
+  };
+
+  window.quadro = function (t) {
+    // numero: slam (escala 2.6 -> 1) com tremor
+    const kn = K.prog(t, 0, 220);
+    const esc = K.lerp(2.6, 1, K.outExpo(kn));
+    const [tx, ty] = K.tremor(t, 200, 12, 4);
+    $('num').style.opacity = String(Math.min(1, kn * 4));
+    $('num').style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${esc.toFixed(4)})`;
+    const kc = K.outExpo(K.prog(t, 160, 260));
+    $('cerq').style.opacity = String(kc);
+    $('cerq').style.transform = `translateX(${((1 - kc) * 60).toFixed(1)}px)`;
+    // faixa preta varre a partir do numero; texto sobe por mascara
+    const kf = K.outExpo(K.prog(t, 260, 380));
+    $('faixa').style.clipPath = K.cortina(kf);
+    $('rot').style.clipPath = K.cortina(K.outExpo(K.prog(t, 420, 320)));
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, 380 + i * 80, 420));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    // saida: tudo desliza para a esquerda e some por cortina
+    const ks = K.inExpo(K.prog(t, DUR - 320, 300));
+    const g = $('grupo');
+    g.style.transform = `translateX(${(-ks * 120).toFixed(1)}px)`;
+    g.style.opacity = String(1 - K.clamp((ks - 0.6) / 0.4, 0, 1));
+    $('lado').style.clipPath = ks > 0 ? K.cortina(1 - ks) : 'none';
+  };
+})();
+</script>
+</body>
+</html>

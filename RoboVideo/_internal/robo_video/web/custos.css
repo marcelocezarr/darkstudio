@@ -1,0 +1,264 @@
+/* Bloco de resumo do mes no topo da tela Custos. Usa as variaveis de tema
+   ja definidas em estilo.css (tema escuro, acento vermelho, cantos 10px). */
+
+.resumo-custos-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.resumo-custos-cabecalho h1 { margin: 0 0 4px; }
+
+.seletor-mes-custos {
+  position: relative;
+}
+
+.botao-seletor-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-cartao);
+  border: 1px solid var(--borda-forte);
+  color: var(--texto);
+  border-radius: var(--raio);
+  padding: 9px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.botao-seletor-mes:hover { border-color: var(--acento); }
+.botao-seletor-mes svg { color: var(--acento); flex-shrink: 0; }
+
+.periodo-atual-nota {
+  color: var(--texto-fraco);
+  font-size: 0.8rem;
+  text-align: right;
+  margin-top: 6px;
+}
+
+.lista-meses-custos {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  background: var(--bg-elevado);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  min-width: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.lista-meses-custos button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--texto);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.lista-meses-custos button:hover { background: var(--bg-cartao); }
+.lista-meses-custos button.ativo { background: var(--acento-fraco); color: var(--acento-forte); font-weight: 600; }
+
+/* -- faixa de 3 cartoes conectados ------------------------------------- */
+.faixa-composicao-custos {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.cartao-composicao {
+  flex: 1 1 220px;
+  background: var(--bg-cartao);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 18px 20px;
+  min-width: 200px;
+}
+
+.cartao-composicao .rotulo-composicao {
+  color: var(--texto-fraco);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.cartao-composicao .valor-composicao {
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--texto);
+  line-height: 1.15;
+}
+
+.cartao-composicao .legenda-composicao {
+  color: var(--texto-fraco);
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.cartao-composicao.total {
+  background: linear-gradient(135deg, var(--acento) 0%, #8a1416 100%);
+  border-color: transparent;
+  color: white;
+}
+.cartao-composicao.total .rotulo-composicao,
+.cartao-composicao.total .legenda-composicao { color: rgba(255, 255, 255, 0.82); }
+.cartao-composicao.total .valor-composicao { color: white; }
+
+.simbolo-conector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevado);
+  border: 1px solid var(--borda-forte);
+  color: var(--texto-fraco);
+  font-size: 1.1rem;
+  font-weight: 600;
+  align-self: center;
+}
+
+/* -- composicao (barra horizontal) ------------------------------------- */
+.bloco-composicao-origem {
+  background: var(--bg-cartao);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.bloco-composicao-origem .cabecalho-composicao {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.bloco-composicao-origem h3 { margin: 0; }
+
+.nota-composicao-status {
+  color: var(--texto-fraco);
+  font-size: 0.8rem;
+}
+
+.barra-composicao {
+  display: flex;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-elevado);
+}
+
+.barra-composicao .seg-planos { background: var(--azul); }
+.barra-composicao .seg-apis { background: var(--acento); }
+
+.legenda-barra-composicao {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+}
+
+.legenda-barra-composicao .item-legenda { display: flex; align-items: center; gap: 6px; }
+.legenda-barra-composicao .ponto { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.legenda-barra-composicao .ponto.planos { background: var(--azul); }
+.legenda-barra-composicao .ponto.apis { background: var(--acento); }
+
+/* -- linha de custo por minuto ------------------------------------------ */
+.linha-custo-por-minuto {
+  color: var(--texto-fraco);
+  font-size: 0.86rem;
+  margin: 0 0 18px;
+}
+.linha-custo-por-minuto strong { color: var(--texto); font-weight: 600; }
+
+/* -- caixa de aviso (incompleto) ----------------------------------------- */
+.caixa-aviso-incompleto {
+  display: flex;
+  gap: 12px;
+  background: var(--amarelo-fraco);
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  border-radius: var(--raio);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  color: #f5cd6b;
+}
+.caixa-aviso-incompleto svg { flex-shrink: 0; margin-top: 2px; }
+.caixa-aviso-incompleto .titulo-aviso { font-weight: 700; margin-bottom: 4px; color: #f5cd6b; }
+.caixa-aviso-incompleto ul { margin: 0; padding-left: 18px; }
+.caixa-aviso-incompleto li { margin: 2px 0; }
+
+/* -- link "Gerenciar planos" --------------------------------------------- */
+.link-gerenciar-planos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--texto-fraco);
+  font-size: 0.84rem;
+  cursor: pointer;
+  padding: 0 0 20px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link-gerenciar-planos:hover { color: var(--texto); }
+
+/* -- modal de planos ------------------------------------------------------ */
+.lista-planos-modal { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; max-height: 45vh; overflow-y: auto; }
+
+.linha-plano {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-elevado);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.linha-plano .info-plano { flex: 1; min-width: 0; }
+.linha-plano .nome-plano { font-weight: 600; color: var(--texto); }
+.linha-plano .det-plano { color: var(--texto-fraco); font-size: 0.8rem; }
+.linha-plano .valor-plano { font-weight: 600; color: var(--texto); white-space: nowrap; }
+
+.form-plano-novo {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 0.9fr auto;
+  gap: 8px;
+  align-items: end;
+  border-top: 1px solid var(--borda);
+  padding-top: 14px;
+}
+.form-plano-novo .campo { margin: 0; }
+.form-plano-novo .campo label { font-size: 0.76rem; }
+
+/* -- responsivo: cartoes empilham no celular ----------------------------- */
+@media (max-width: 720px) {
+  .faixa-composicao-custos { flex-direction: column; }
+  .simbolo-conector { align-self: center; transform: rotate(90deg); }
+  .resumo-custos-cabecalho { flex-direction: column; }
+  .periodo-atual-nota { text-align: left; }
+  .form-plano-novo { grid-template-columns: 1fr; }
+}

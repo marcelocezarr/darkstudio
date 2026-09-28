@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Kinético (validado) / rede (foto_destaque: fotos): grade escura sobre o footage; foto central com
+     moldura limão + rótulo, e até 4 fotos-satélite (moldura clara) ligadas por fios limão, surgindo uma
+     a uma (cima, direita, baixo, esquerda). Rótulos: caixa escura com texto limão em versal. -->
+<link rel="stylesheet" href="../comum/kv.css">
+<style>
+  #grade { position: absolute; inset: 0; }
+  .no { position: absolute; transform-origin: 50% 50%; will-change: transform, opacity; }
+  .foto { position: absolute; overflow: hidden; background: #111; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .foto.sat { border: 2px solid rgba(255,255,255,.85); }
+  .foto.cen { border: 5px solid var(--acento); }
+  .rot { position: absolute; background: rgba(10,10,10,.93); color: var(--acento); font-family: var(--f-texto);
+         font-weight: 900; font-size: 29px; line-height: 34px; letter-spacing: .05em; text-transform: uppercase;
+         text-align: center; padding: 6px 16px 7px; white-space: normal; }
+  .rot:empty { display: none; }
+  .fio { position: absolute; background: var(--acento); }
+</style>
+</head>
+<body>
+<div id="grade"></div>
+<div id="cena"></div>
+<script src="../comum/kv.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const CX = 965;
+  // geometria medida na referência (1920x1080)
+  const CEN = { x: 800, y: 386, w: 330, h: 294 };
+  const SAT = {
+    cima:     { x: 860, y: 70,  w: 210, h: 186, rotW: 272, fio: [CX - 1, 352, 3, 34] },
+    direita:  { x: 1228, y: 436, w: 210, h: 186, rotW: 272, fio: [1130, 532, 98, 3] },
+    baixo:    { x: 860, y: 804, w: 210, h: 186, rotW: 272, fio: [CX - 1, 738, 3, 66] },
+    esquerda: { x: 488, y: 436, w: 210, h: 186, rotW: 272, fio: [698, 532, 102, 3] },
+  };
+  const ORDEM = ['cima', 'direita', 'baixo', 'esquerda'];
+  let d = {}, DUR = 5500, nos = [], fios = [];
+
+  function no(cls, geo, url, texto, rotW) {
+    const n = document.createElement('div'); n.className = 'no';
+    n.style.left = '0px'; n.style.top = '0px'; n.style.width = '1920px'; n.style.height = '1080px';
+    n.style.transformOrigin = `${geo.x + geo.w / 2}px ${geo.y + geo.h / 2}px`;
+    const f = document.createElement('div'); f.className = 'foto ' + cls;
+    Object.assign(f.style, { left: geo.x + 'px', top: geo.y + 'px', width: geo.w + 'px', height: geo.h + 'px' });
+    const im = document.createElement('img'); im.src = url; f.appendChild(im); n.appendChild(f);
+    const r = document.createElement('div'); r.className = 'rot'; r.textContent = texto;
+    n.appendChild(r);
+    $('cena').appendChild(n);
+    // rótulo centralizado sob a foto
+    r.style.maxWidth = rotW + 'px';
+    const w = r.offsetWidth;
+    r.style.left = Math.round(geo.x + geo.w / 2 - w / 2) + 'px';
+    r.style.top = (geo.y + geo.h + 8) + 'px';
+    return n;
+  }
+
+  // divide a legenda em n trechos curtos (máx. 5 palavras) — rótulos dos satélites
+  function trechos(txt, n) {
+    const ws = K.palavrasDe(txt);
+    if (!ws.length || !n) return new Array(n).fill('');
+    // frases separadas por pontuação têm preferência
+    const frases = String(txt).split(/[,.;:!?—–]+/).map((f) => K.palavrasDe(f)).filter((f) => f.length);
+    if (frases.length >= n) return frases.slice(0, n).map((f) => f.slice(0, 5).join(' '));
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const a = Math.floor(ws.length * i / n), b = Math.floor(ws.length * (i + 1) / n);
+      out.push(ws.slice(a, Math.max(a + 1, Math.min(b, a + 5))).join(' '));
+    }
+    return out;
+  }
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 5500;
+    K.grade($('grade'), 96, 'rgba(0,0,0,.34)', 2, 0, 22);
+    const urls = (Array.isArray(d.midias) && d.midias.length ? d.midias : [d.midia_url]).filter(Boolean).slice(0, 5);
+    const sats = urls.slice(1);
+    const rot = trechos(d.legenda || '', sats.length);
+    // tempos: centro, depois um satélite a cada ~0,45 s (comprime em peças curtas)
+    const esc = K.clamp((DUR - 1600) / 2600, 0.45, 1);
+    nos = [{ el: no('cen', CEN, urls[0], K.maiusc(d.texto || '', d.idioma), 440), t: 250 * esc }];
+    fios = [];
+    sats.forEach((u, i) => {
+      const lado = ORDEM[i], g = SAT[lado];
+      const t0 = (650 + 500 * i) * esc;
+      nos.push({ el: no('sat', g, u, K.maiusc(rot[i], d.idioma), g.rotW), t: t0 });
+      const f = document.createElement('div'); f.className = 'fio';
+      const [x, y, w, h] = g.fio;
+      Object.assign(f.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+      $('cena').insertBefore(f, $('cena').firstChild);
+      fios.push({ el: f, t: t0 - 80, lado });
+    });
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(nos.map((n) => ({ evento: 'lista.item', ms: Math.round(n.t) })));
+  };
+
+  window.quadro = function (t) {
+    const s = K.saida(t, DUR, 260);
+    $('grade').style.opacity = String(Math.min(K.prog(t, 0, 160), s));
+    nos.forEach((n) => {
+      const k = K.prog(t, n.t, 170);
+      const e = K.outBack(k, 2.2);
+      n.el.style.opacity = String(Math.min(K.prog(t, n.t, 70), s));
+      n.el.style.transform = `scale(${(0.82 + 0.18 * e).toFixed(4)})`;
+    });
+    fios.forEach((f) => {
+      const k = K.outExpo(K.prog(t, f.t, 180));
+      const lado = f.lado === 'cima' ? 'baixo' : f.lado === 'baixo' ? 'cima' : f.lado === 'esquerda' ? 'dir' : 'esq';
+      f.el.style.clipPath = K.cortina(k, lado);
+      f.el.style.opacity = String(s);
+    });
+  };
+})();
+</script>
+</body>
+</html>

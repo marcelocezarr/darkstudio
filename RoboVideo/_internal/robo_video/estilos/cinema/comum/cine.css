@@ -1,0 +1,14 @@
+/* Estilo Cinema -- base comum das pecas (1920x1080, fundo transparente). */
+/* Georgia so tem algarismos antigos (old-style): os digitos vem da Cambria (alinhados) */
+@font-face { font-family: 'Cine Digitos'; src: local('Cambria'), local('Palatino Linotype'); unicode-range: U+0030-0039; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+body { text-wrap: balance; color: var(--texto); font-family: var(--fonte-texto); -webkit-font-smoothing: antialiased;
+       text-rendering: geometricPrecision; font-kerning: normal; }
+.abs { position: absolute; }
+/* rotulo em versalete: maiusculas pequenas com tracking amplo */
+.versal { font-family: var(--fonte-rotulo); text-transform: uppercase; letter-spacing: .34em; color: var(--acento);
+          font-size: 26px; line-height: 1; white-space: nowrap; }
+.sombra { text-shadow: 0 2px 18px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.6); }
+.fio { height: 1px; background: var(--acento); transform-origin: left center; }
+.fio.centro { transform-origin: center center; }

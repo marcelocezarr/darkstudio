@@ -1,0 +1,56 @@
+/* Dossie (validado) -- base comum das pecas. Recriado a partir dos quadros de referencia:
+   papel creme quadriculado, fotos P&B, etiquetas datilografadas, fio vermelho, mapa em traco claro. */
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+:root {
+  --papel: #e6ddcc; --grade: #c8bea9; --grade-luz: #f1eadc; --cartao: #e6dfcd; --etiqueta: #ece5d6;
+  --tinta: #251d12; --vermelho: #bb2123; --creme: #e8e1d0; --tag: rgba(34, 35, 38, .92);
+  --f-titulo: Bahnschrift, 'Arial Narrow', 'Franklin Gothic Medium', sans-serif;
+  --f-maquina: 'Courier New', Courier, monospace;
+}
+.abs { position: absolute; }
+.oculto { visibility: hidden; }
+
+/* escurecimento do footage (peca principal: alfa preto por cima do clipe) */
+#escuro { position: absolute; inset: 0; background: #000; opacity: 0; }
+
+/* papel creme quadriculado (tela cheia) */
+.papel-grade {
+  position: absolute; inset: 0; background-color: var(--papel);
+  background-image:
+    linear-gradient(to right, var(--grade) 0 3px, var(--grade-luz) 3px 5px, transparent 5px),
+    linear-gradient(to bottom, var(--grade) 0 3px, var(--grade-luz) 3px 5px, transparent 5px),
+    radial-gradient(ellipse at 50% 45%, rgba(255, 255, 250, .18), rgba(120, 100, 70, .10) 100%);
+  background-size: 96px 96px, 96px 96px, 100% 100%;
+  background-position: 0 22px, 0 22px, 0 0;
+}
+
+/* tipografia */
+.maquina { font-family: var(--f-maquina); font-weight: 700; text-transform: uppercase; }
+.condensada { font-family: var(--f-titulo); font-weight: 700; font-stretch: 75%; text-transform: uppercase;
+              line-height: .95; letter-spacing: .005em; }
+
+/* etiqueta escura datilografada (canto superior esquerdo: "TRADE PRESS", "FORECOURT") */
+.tag { position: absolute; left: 128px; top: 76px; background: var(--tag); color: #d9d6ce; padding: 10px 18px 9px;
+       font-family: var(--f-maquina); font-weight: 700; font-size: 29px; letter-spacing: .1em; text-transform: uppercase; -webkit-text-stroke: .5px currentColor;
+       white-space: nowrap; line-height: 1.12; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+
+/* polaroide / cartao de foto */
+.pola { position: absolute; background: var(--cartao);
+        background-image: linear-gradient(170deg, rgba(255, 255, 255, .22), rgba(150, 130, 95, .12));
+        box-shadow: 0 2px 3px rgba(0, 0, 0, .30), 0 10px 26px rgba(0, 0, 0, .38); }
+.pola .foto { position: absolute; overflow: hidden; background: #4a4a4a; }
+.pola .foto img, .foto-pb img { width: 100%; height: 100%; object-fit: cover; display: block;
+                                filter: grayscale(1) contrast(1.06) brightness(1.02); }
+.pola .leg { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center;
+             text-align: center; font-family: var(--f-maquina); font-weight: 700; text-transform: uppercase;
+             color: var(--tinta); line-height: 1.18; padding: 0 8px; letter-spacing: -.05em; -webkit-text-stroke: .15px currentColor; }
+
+/* fio vermelho */
+svg.fios { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+svg.fios path, svg.fios line { stroke: var(--vermelho); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .9; }
+
+.cursor { display: inline-block; width: 0; position: relative; }
+.cursor::after { content: ''; position: absolute; left: 3px; top: .1em; width: .5em; height: .95em; background: currentColor; opacity: .55; }
+.pola .foto::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 40px rgba(0, 0, 0, .2); }
+.pola .foto img { filter: grayscale(1) contrast(.97); }

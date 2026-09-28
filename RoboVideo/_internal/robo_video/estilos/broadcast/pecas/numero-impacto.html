@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Broadcast / numero-impacto (fatos: numero, moeda, ano). Cartao de dado a direita:
+     tag DADOS, numero grande (prefixo/sufixo em ciano), regra e legenda. -->
+<link rel="stylesheet" href="../comum/bc.css">
+<style>
+  #card { position: absolute; right: 192px; top: 190px; width: max-content; min-width: 560px; max-width: 820px; }
+  #tagw { margin-left: 34px; margin-bottom: -1px; }
+  #painel { padding: 30px 48px 36px 64px; }
+  #numw { overflow: hidden; }
+  #num { display: flex; align-items: baseline; flex-wrap: nowrap; gap: 0 10px; white-space: nowrap;
+         font-weight: 700; font-size: 168px; line-height: 1.02; }
+  #num .pre, #num .suf { color: var(--acento); font-size: .56em; font-weight: 600; }
+  #num .suf.longo { font-size: .36em; letter-spacing: .02em; }
+  #brilho { position: absolute; top: 0; bottom: 0; width: 140px; left: 0;
+            background: linear-gradient(90deg, rgba(34,196,238,0), rgba(255,255,255,.22), rgba(34,196,238,0));
+            pointer-events: none; }
+  #regra { height: 6px; width: 200px; background: var(--acento); margin: 20px 0 22px; transform-origin: left; }
+  #leg { font-family: var(--fx); font-weight: 600; font-size: 40px; line-height: 1.18; color: var(--texto2);
+         max-width: 640px; }
+  #painel { position: relative; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="tagw"><div id="tag" class="tag"></div></div>
+  <div id="pw"><div id="painel" class="painel-a corte-e sombra">
+    <div id="numw"><div id="num" class="num-tab"></div></div>
+    <div id="regra"></div>
+    <div id="leg"></div>
+    <div id="brilho"></div>
+  </div></div>
+</div>
+<script src="../comum/bc.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DUR = 3600, temLeg = false, T_IMP = 520;
+
+  window.montar = function (d) {
+    d = d || {};
+    BC.tema(d);
+    DUR = d.dur_ms || 3600;
+    $('tag').textContent = BC.rot(d, 'dados') || BC.rot(d, 'numero');
+    const v = Number(d.numero) || 0;
+    const { pre, suf } = BC.partes(d);
+    const num = $('num');
+    num.innerHTML = '';
+    const add = (cls, s) => { const e = document.createElement('span'); e.className = cls; e.textContent = s; num.appendChild(e); return e; };
+    if (pre) add('pre', pre);
+    add('val', BC.fmt(d, v));
+    const sufT = suf.trim();
+    if (sufT) { const e = add('suf', sufT); if (sufT.length > 3) e.classList.add('longo'); }
+    num.style.gap = sufT && sufT.length <= 1 ? '0 4px' : '0 14px';
+    BC.caber(num, 168, 80, 640, 0);
+    const leg = BC.txt(d.legenda);
+    temLeg = !!leg;
+    $('leg').style.display = temLeg ? '' : 'none';
+    $('regra').style.marginBottom = temLeg ? '22px' : '0';
+    if (temLeg) BC.caberTexto($('leg'), leg, 40, 30, 640, 3 * 40 * 1.18 + 2);
+    T_IMP = Math.min(520, DUR * 0.25);
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'numero.impacto', ms: Math.round(T_IMP) }];
+  };
+
+  window.quadro = function (t) {
+    const S = DUR - t;
+    BC.wipe($('tagw'), BC.eo(BC.lin(t, 0, 280)), BC.ei(BC.lin(-S, -260, -60)), 20);
+    BC.wipe($('pw'), BC.eo(BC.lin(t, 60, 440)), BC.ei(BC.lin(-S, -360, -20)));
+    const kn = BC.expo(BC.lin(t, 220, T_IMP + 120));
+    $('num').style.transform = `translateY(${((1 - kn) * 170).toFixed(2)}px)`;
+    const pulso = 1 + 0.045 * Math.exp(-Math.max(0, t - T_IMP) / 110) * (t >= T_IMP ? 1 : 0);
+    $('numw').style.transform = `scale(${pulso.toFixed(4)})`;
+    $('numw').style.transformOrigin = 'left bottom';
+    $('regra').style.transform = `scaleX(${BC.eo(BC.lin(t, T_IMP, T_IMP + 420)).toFixed(4)})`;
+    const kl = BC.eo(BC.lin(t, T_IMP + 120, T_IMP + 520));
+    $('leg').style.opacity = String(kl);
+    $('leg').style.transform = `translateX(${((1 - kl) * -24).toFixed(2)}px)`;
+    const kb = BC.lin(t, T_IMP, T_IMP + 560);
+    $('brilho').style.opacity = kb > 0 && kb < 1 ? '1' : '0';
+    $('brilho').style.transform = `translateX(${(-160 + kb * 1000).toFixed(1)}px) skewX(-18deg)`;
+  };
+})();
+</script>
+</body>
+</html>

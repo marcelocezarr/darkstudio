@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Classico (validado) / karaoke (frase): frase em bold branco-creme com sombra no terco inferior;
+     cada palavra acende quando e dita (antes: translucida), a palavra-destaque fica pessego. -->
+<link rel="stylesheet" href="../comum/cls.css">
+<style>
+  #caixa { position: absolute; left: 0; right: 0; bottom: 250px; display: flex; justify-content: center; }
+  #frase { text-align: center; line-height: 1.12; font-size: 70px; opacity: 0; }
+  #frase span { opacity: .32; }
+  #frase span.dest { color: var(--acento); }
+</style>
+</head>
+<body>
+<div id="caixa"><div id="frase" class="bold sombra"></div></div>
+<script src="../comum/cls.js"></script>
+<script>
+(() => {
+  const C = window.CLS, frase = document.querySelector('#frase');
+  let DUR = 3600, spans = [], tempos = [];
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3600;
+    let pal = Array.isArray(d.palavras) ? d.palavras.filter((p) => C.txt(p && p.texto)) : [];
+    if (!pal.length) {
+      const ws = C.txt(d.texto).split(' ').filter(Boolean);
+      const passo = (DUR * 0.6) / Math.max(1, ws.length);
+      pal = ws.map((w, i) => ({ texto: w, ms: Math.round(i * passo) }));
+    }
+    const dest = Number.isInteger(d.destaque) ? d.destaque : -1;
+    frase.innerHTML = pal.map((p, i) => `<span${i === dest ? ' class="dest"' : ''}>${C.esc(C.txt(p.texto))}</span>`).join(' ');
+    spans = Array.from(frase.querySelectorAll('span'));
+    tempos = pal.map((p) => Math.max(0, Number(p.ms) || 0));
+    C.caber(frase, 1400, 170, 70, 40);
+    window.eventos = [];
+  };
+  window.quadro = function (t) {
+    frase.style.opacity = String(C.envelope(t, DUR, 250, 350));
+    spans.forEach((s, i) => { s.style.opacity = String(0.32 + 0.68 * C.sai(C.fase(t, tempos[i] - 60, 180))); });
+  };
+})();
+</script>
+</body>
+</html>

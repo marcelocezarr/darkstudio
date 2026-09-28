@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / foto-destaque (foto_destaque, camada FUNDO): a imagem chega fatiada em 4 tiras que
+     entram alternando de cima/baixo e se encaixam; zoom lento; nome do item bate numa faixa preta. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--fundo, #0a0a0a); }
+  .tira { position: absolute; top: 0; height: 1080px; overflow: hidden; will-change: transform; }
+  .tira img { position: absolute; top: 0; width: 1920px; height: 1080px; object-fit: cover; will-change: transform; }
+  #sombra { position: absolute; left: 0; right: 0; bottom: 0; height: 520px;
+            background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); pointer-events: none; }
+  #risco { position: absolute; left: 0; top: 150px; width: 1920px; height: 20px; background: var(--acento);
+           transform-origin: left; will-change: transform; }
+  #rotulo { position: absolute; left: 192px; bottom: 150px; display: flex; flex-direction: column; align-items: flex-start; }
+  #tag { background: var(--acento); color: var(--tinta); font-family: var(--f-rotulo); font-weight: 700; font-size: 32px;
+         letter-spacing: .18em; padding: 6px 18px 3px; white-space: nowrap; }
+  #tag:empty { display: none; }
+  #faixa { background: var(--tinta); padding: 14px 44px 20px 28px; }
+  #nome { font-family: var(--f-titulo); color: var(--texto); line-height: 1.02; text-transform: uppercase; }
+  #nome .ln { overflow: hidden; }
+  #nome .li { display: inline-block; white-space: nowrap; will-change: transform; }
+</style>
+</head>
+<body>
+<div id="tiras"></div>
+<div id="sombra"></div>
+<div id="risco"></div>
+<div id="rotulo"><div id="tag"></div><div id="faixa"><div id="nome"></div></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 5000, tiras = [], linhas = [];
+  const N = 4, TNOME = 620;
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 5000;
+    const url = d.midia_url || (Array.isArray(d.midias) && d.midias[0]) || '';
+    const cont = $('tiras'); cont.innerHTML = '';
+    tiras = [];
+    const larg = 1920 / N;
+    for (let i = 0; i < N; i++) {
+      const t = document.createElement('div'); t.className = 'tira';
+      t.style.left = (i * larg) + 'px'; t.style.width = (larg + 1) + 'px';
+      if (url) {
+        const img = document.createElement('img'); img.src = url; img.alt = '';
+        img.style.left = (-i * larg) + 'px';
+        t.appendChild(img);
+      }
+      cont.appendChild(t); tiras.push(t);
+    }
+    $('tag').textContent = K.maiusc(K.rot(d, 'destaque', ''), d.idioma);
+    const nome = $('nome');
+    const texto = K.maiusc(String(d.texto || d.nome || '').trim(), d.idioma);
+    nome.style.width = '1300px';
+    nome.textContent = texto;
+    let fs = K.ajustar(nome, 1300, 260, 150, 56);
+    linhas = K.linhas(nome, texto);
+    while (fs > 56 && (linhas.length > 2 || linhas.some((l) => l.scrollWidth > 1300))) {
+      fs -= 4; nome.style.fontSize = fs + 'px'; linhas = K.linhas(nome, texto);
+    }
+    nome.style.width = 'auto';
+    if (!texto) $('rotulo').style.display = 'none';
+    window.eventos = [{ evento: 'foto.entra', ms: 0 }, { evento: 'palavra.slam', ms: TNOME + 60 }];
+  };
+
+  window.quadro = function (t) {
+    const zoom = 1.12 - 0.12 * K.outQuint(K.prog(t, 0, DUR));   // aproximacao lenta
+    tiras.forEach((el, i) => {
+      const k = K.outExpo(K.prog(t, i * 70, 520));
+      const dir = i % 2 ? 1 : -1;
+      el.style.transform = `translateY(${(dir * (1 - k) * 105).toFixed(2)}%)`;
+      const img = el.firstElementChild;
+      if (img) {
+        // cada tira compoe a mesma imagem: escala em torno do centro da TELA
+        img.style.transformOrigin = "960px 540px";
+        img.style.transform = `scale(${zoom.toFixed(4)})`;
+      }
+    });
+    // risco de acento cruza a tela quando as tiras se encaixam
+    const kr1 = K.outExpo(K.prog(t, 360, 180)), kr2 = K.inOutQuint(K.prog(t, 480, 260));
+    const r = $('risco');
+    r.style.opacity = t >= 360 && kr2 < 1 ? '1' : '0';
+    r.style.transformOrigin = kr2 > 0 ? 'right' : 'left';
+    r.style.transform = `scaleX(${(kr2 > 0 ? 1 - kr2 : kr1).toFixed(4)}) `;
+    // nome
+    const kf = K.outExpo(K.prog(t, TNOME - 120, 380));
+    const ks = K.inExpo(K.prog(t, DUR - 320, 280));
+    $('faixa').style.clipPath = K.cortina(ks > 0 ? 1 - ks : kf);
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, TNOME + i * 80, 420));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    $('tag').style.clipPath = K.cortina(ks > 0 ? 1 - ks : K.outExpo(K.prog(t, TNOME + 120, 320)));
+    $('sombra').style.opacity = String(K.prog(t, 300, 400) * (1 - ks));
+  };
+})();
+</script>
+</body>
+</html>

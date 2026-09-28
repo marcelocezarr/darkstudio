@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / citacao (citacoes): painel preto varre, aspas de acento batem, as palavras acendem
+     no tempo da fala; o autor entra numa etiqueta de acento. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #painel { position: absolute; left: 192px; top: 50%; max-width: 1340px; box-sizing: border-box;
+            padding: 92px 80px 64px 96px; background: var(--tinta); transform: translateY(-50%);
+            box-shadow: 0 24px 70px rgba(0,0,0,.45); will-change: transform, clip-path; }
+  #barra { position: absolute; left: 0; top: 0; bottom: 0; width: 18px; background: var(--acento); transform-origin: top; }
+  #aspas { position: absolute; left: 60px; top: -118px; font-family: var(--f-titulo); font-size: 330px; line-height: 1;
+           color: var(--acento); text-shadow: 0 10px 30px rgba(0,0,0,.5); will-change: transform; }
+  #txt { font-family: var(--f-texto); font-weight: 700; color: var(--texto); line-height: 1.18; width: 1144px; }
+  #txt .w { will-change: opacity; }
+  #autor { display: inline-block; margin-top: 34px; background: var(--acento); color: var(--tinta);
+           font-family: var(--f-rotulo); font-weight: 700; font-size: 36px; letter-spacing: .12em; text-transform: uppercase;
+           padding: 7px 20px 4px; white-space: nowrap; }
+  #autor:empty { display: none; }
+</style>
+</head>
+<body>
+<div id="painel"><div id="barra"></div><div id="aspas"></div><div id="txt"></div><div id="autor"></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 6000, ws = [], ent = [];
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 6000;
+    // aspas tipograficas do idioma
+    const abre = { de: '„', pl: '„', fr: '«', it: '«', es: '«' }[d.idioma] || '“';
+    $('aspas').textContent = abre;
+    const texto = String(d.texto || '').trim().replace(/^["“”„«»']+|["“”„«»']+$/g, '');
+    const palavras = K.palavrasDe(texto);
+    const txt = $('txt');
+    txt.innerHTML = '';
+    ws = palavras.map((p, i) => {
+      const s = document.createElement('span'); s.className = 'w'; s.textContent = p;
+      txt.appendChild(s);
+      if (i < palavras.length - 1) txt.appendChild(document.createTextNode(' '));
+      return s;
+    });
+    K.ajustar(txt, 1144, 520, 100, 34);
+    // encolhe a caixa para a linha mais longa (painel justo ao texto)
+    const x0 = txt.getBoundingClientRect().left;
+    const larg = Math.max(0, ...ws.map((s) => s.getBoundingClientRect().right - x0));
+    txt.style.width = Math.ceil(larg + 2) + 'px';
+    $('autor').textContent = d.autor ? '— ' + String(d.autor).trim() : '';
+    // palavras acendem quando sao ditas (sem sincronia: rapido, para leitura)
+    const temFala = Array.isArray(d.palavras) && d.palavras.length > 1;
+    ent = temFala ? K.alinhar(palavras, d.palavras, DUR, 200)
+                  : palavras.map((_, i) => 350 + i * Math.min(90, (DUR * 0.4) / Math.max(1, palavras.length)));
+    // se a fala nao couber, comprime para acabar antes da saida
+    const lim = DUR - 1300;
+    const fim = ent.length ? ent[ent.length - 1] : 0;
+    if (fim > lim && fim > 0) ent = ent.map((v) => v * lim / fim);
+    ent = ent.map((v) => Math.max(v, 300 + 0));
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'palavra.slam', ms: 260 }];
+  };
+
+  window.quadro = function (t) {
+    const kp = K.outExpo(K.prog(t, 0, 380));
+    const ks = K.inExpo(K.prog(t, DUR - 320, 300));
+    const p = $('painel');
+    const kc = ks > 0 ? 1 - ks : kp;
+    p.style.clipPath = kc >= 1 ? 'none' : `inset(-260px ${((1 - kc) * 100).toFixed(2)}% -80px 0)`;
+    p.style.transform = `translate(${((1 - kp) * -60 - ks * 80).toFixed(1)}px, -50%)`;
+    $('barra').style.transform = `scaleY(${K.outExpo(K.prog(t, 120, 380)).toFixed(4)})`;
+    const ka = K.prog(t, 200, 220);
+    const ea = ka <= 0 ? 0 : K.lerp(2.4, 1, K.outExpo(ka));
+    const [tx, ty] = K.tremor(t, 260, 8, 6);
+    $('aspas').style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${ea.toFixed(4)})`;
+    ws.forEach((s, i) => {
+      const k = K.prog(t, ent[i] - 30, 120);
+      s.style.opacity = (0.16 + 0.84 * k).toFixed(3);
+    });
+    const tAut = ent.length ? Math.min(ent[ent.length - 1] + 250, DUR - 900) : 600;
+    $('autor').style.clipPath = K.cortina(K.outExpo(K.prog(t, tAut, 360)));
+  };
+})();
+</script>
+</body>
+</html>

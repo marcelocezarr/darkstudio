@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema / numero-impacto (fatos: numero, percentual, moeda, ano): contador fino e elegante.
+     Numero serifado dourado (algarismos alinhados), fio que se desenha, legenda em italico. -->
+<link rel="stylesheet" href="../comum/cine.css">
+<style>
+  #veu { position: absolute; inset: 0; opacity: 0;
+         background: radial-gradient(ellipse 60% 70% at 18% 72%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 45%, rgba(0,0,0,0) 80%); }
+  #bloco { position: absolute; left: 200px; bottom: 200px; }
+  #num { font-family: var(--fonte-numero); font-weight: normal; color: var(--acento-claro); font-size: 150px;
+         line-height: .95; white-space: nowrap; font-variant-numeric: lining-nums tabular-nums;
+         letter-spacing: .015em; opacity: 0; }
+  #num .af { font-size: .46em; letter-spacing: .04em; color: var(--acento); vertical-align: .62em; margin: 0 .08em; }
+  #num .af.un { vertical-align: baseline; font-family: var(--fonte-titulo); font-style: italic; font-size: .34em; letter-spacing: .02em; margin-left: .3em; color: var(--texto); }
+  #fio { margin: 26px 0 22px; width: 100%; opacity: .9; }
+  #leg { font-family: var(--fonte-titulo); font-style: italic; color: var(--texto); line-height: 1.22;
+         opacity: 0; }
+</style>
+</head>
+<body>
+<div id="veu"></div>
+<div id="bloco">
+  <div id="num" class="sombra"></div>
+  <div id="fio" class="fio"></div>
+  <div id="leg" class="sombra"></div>
+</div>
+<script src="../comum/cine.js"></script>
+<script>
+(() => {
+  const C = window.CINE, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), num = $('#num'), fio = $('#fio'), leg = $('#leg'), bloco = $('#bloco');
+  let d = {}, DUR = 3200, CONTA = 1500, T0 = 350, alvo = 0, base = 0;
+
+  function formatar(v) {
+    const dec = Math.max(0, Math.min(3, Number(d.decimais) || 0));
+    let s;
+    if (d.ano) s = String(Math.round(v));
+    else {
+      let [int, fr] = Math.abs(v).toFixed(dec).split('.');
+      int = int.replace(/\B(?=(\d{3})+(?!\d))/g, d.separador_milhar == null ? '.' : d.separador_milhar);
+      s = (v < 0 ? '-' : '') + (fr ? int + (d.separador_decimal || ',') + fr : int);
+    }
+    return s;
+  }
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  function pintar(v) {
+    const pre = C.txt(d.prefixo), suf = String(d.sufixo || '');
+    // prefixo/sufixo curtos (moeda, %) ficam menores e dourados; unidade longa vai inteira depois
+    const sufCurto = suf.trim().length <= 3 ? suf.trim() : '';
+    const sufLongo = sufCurto ? '' : suf;
+    num.innerHTML = (pre ? `<span class="af">${esc(pre)}</span>` : '') + esc(formatar(v)) +
+      (sufCurto ? `<span class="af">${esc(sufCurto)}</span>` : '') +
+      (sufLongo ? `<span class="af un">${esc(sufLongo.trim())}</span>` : '');
+  }
+
+  window.montar = function (dados) {
+    d = dados || {};
+    C.tema(d);
+    DUR = d.dur_ms || 3200;
+    T0 = Math.min(350, DUR * 0.1);
+    CONTA = Math.min(1600, DUR * 0.45);
+    alvo = Number(d.numero) || 0;
+    base = d.ano ? Math.round(alvo - Math.min(60, Math.max(12, Math.abs(alvo) * 0.03))) : 0;
+    // mede o valor final e ajusta o tamanho para caber (unidades longas)
+    pintar(alvo);
+    let s = 150;
+    num.style.fontSize = s + 'px';
+    while (s > 70 && num.getBoundingClientRect().width > 1180) { s -= 4; num.style.fontSize = s + 'px'; }
+    num.style.minWidth = num.getBoundingClientRect().width + 'px';
+    fio.style.width = Math.max(260, Math.min(num.getBoundingClientRect().width, 720)) + 'px';
+    const legenda = C.txt(d.legenda);
+    leg.textContent = legenda;
+    leg.style.display = legenda ? '' : 'none';
+    if (legenda) C.caber(leg, 900, 120, 44, 30);
+    const evs = [];
+    for (let k = 0; k < 3; k++) evs.push({ evento: 'tique', ms: Math.round(T0 + CONTA * (0.12 + 0.3 * k)) });
+    evs.push({ evento: 'numero.impacto', ms: Math.round(T0 + CONTA) });
+    window.eventos = evs;
+  };
+
+  window.quadro = function (t) {
+    const env = C.envelope(t, DUR, 600, 600);
+    veu.style.opacity = String(env);
+    const kn = C.sai(C.fase(t, 0, 700));
+    num.style.opacity = String(Math.min(kn, env));
+    bloco.style.transform = `translateY(${((1 - kn) * 12).toFixed(2)}px)`;
+    const k = 1 - Math.pow(1 - C.fase(t, T0, CONTA), 4);         // ease-out quart: desacelera no fim
+    pintar(d.ano ? Math.round(C.lerp(base, alvo, k)) : alvo * k);
+    const kf = C.io(C.fase(t, T0 + CONTA * 0.55, 800));
+    fio.style.transform = `scaleX(${kf.toFixed(4)})`;
+    fio.style.opacity = String(0.9 * env);
+    const kl = C.sai(C.fase(t, T0 + CONTA * 0.7, 700));
+    leg.style.opacity = String(Math.min(kl, env));
+  };
+})();
+</script>
+</body>
+</html>

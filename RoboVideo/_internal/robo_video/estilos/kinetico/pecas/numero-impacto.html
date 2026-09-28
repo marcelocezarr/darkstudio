@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / numero-impacto (fatos: numero, percentual, moeda, ano): bloco de acento varre,
+     o número conta dentro dele e "bate" no valor final; a legenda desliza numa faixa preta. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  #grupo { position: absolute; left: 192px; bottom: 150px; display: flex; flex-direction: column; align-items: flex-start;
+           will-change: transform; }
+  #bloco { position: relative; background: var(--acento); padding: 6px 40px 0 34px; display: flex; align-items: baseline;
+           gap: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+  #num { font-family: var(--f-titulo); color: var(--tinta); line-height: 1.02; white-space: nowrap;
+         font-variant-numeric: tabular-nums; transform-origin: left 70%; will-change: transform; }
+  #uni { font-family: var(--f-titulo); color: var(--tinta); white-space: nowrap; line-height: 1; }
+  #leg { background: var(--tinta); color: var(--texto); font-family: var(--f-texto); font-weight: 700;
+         text-transform: uppercase; letter-spacing: .03em; font-size: 46px; line-height: 1.12;
+         padding: 12px 30px 14px 34px; max-width: 1150px; box-sizing: border-box; }
+  #leg:empty { display: none; }
+</style>
+</head>
+<body>
+<div id="grupo"><div id="bloco"><div id="num"></div><div id="uni"></div></div><div id="leg"></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 3500, CONTA = 1200, alvo = 0, fmt = {}, uni = '';
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 3500;
+    CONTA = Math.min(1250, DUR * 0.42);
+    alvo = Number(d.numero) || 0;
+    // sufixo longo (" mil euros", " anos") vira unidade menor ao lado do numero
+    const suf = String(d.sufixo || '');
+    fmt = { ...d };
+    uni = '';
+    if (suf.trim().length > 3) { uni = suf.trim(); fmt.sufixo = ''; }
+    $('uni').textContent = K.maiusc(uni, d.idioma);
+    $('leg').textContent = d.legenda || '';
+    const num = $('num');
+    num.textContent = K.formatarNumero(fmt, alvo);
+    // tamanho do numero: cabe em 1150 px com a unidade
+    let fs = 210;
+    const medir = () => { num.style.fontSize = fs + 'px'; $('uni').style.fontSize = Math.round(fs * 0.42) + 'px';
+                          return $('bloco').scrollWidth; };
+    while (fs > 90 && medir() > 1150) fs -= 6;
+    num.style.minWidth = '0px';
+    num.style.minWidth = num.getBoundingClientRect().width + 'px';
+    // legenda: 1–2 linhas
+    const leg = $('leg');
+    if (leg.textContent) {
+      leg.style.maxWidth = Math.max(980, $('bloco').offsetWidth + 200) + 'px';
+      let fl = 46;
+      while (fl > 34 && leg.scrollHeight > fl * 1.12 * 2 + 30) { fl -= 2; leg.style.fontSize = fl + 'px'; }
+    }
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }, { evento: 'numero.impacto', ms: Math.round(150 + CONTA) }];
+  };
+
+  window.quadro = function (t) {
+    const kb = K.outExpo(K.prog(t, 0, 320));
+    $('bloco').style.clipPath = K.cortina(kb);
+    // contagem
+    const kc = K.outExpo(K.prog(t, 150, CONTA));
+    let v;
+    if (d.ano) v = Math.round(alvo - 40 * (1 - kc));
+    else v = alvo * kc;
+    $('num').textContent = K.formatarNumero(fmt, v);
+    const tImp = 150 + CONTA;
+    const pulso = t >= tImp ? 1 + 0.12 * Math.exp(-(t - tImp) / 110) : 1;
+    $('num').style.transform = `scale(${pulso.toFixed(4)})`;
+    $('uni').style.opacity = String(K.prog(t, tImp - 100, 150));
+    // legenda
+    const kl = K.outExpo(K.prog(t, 260, 420));
+    $('leg').style.clipPath = K.cortina(kl);
+    $('leg').style.transform = `translateX(${((1 - kl) * -40).toFixed(1)}px)`;
+    // tremor no impacto + saida (varre para a esquerda)
+    const [tx, ty] = K.tremor(t, tImp, 7, 3);
+    const ks = K.inExpo(K.prog(t, DUR - 300, 280));
+    const g = $('grupo');
+    g.style.transform = `translate(${(tx - ks * 80).toFixed(1)}px, ${ty.toFixed(1)}px)`;
+    g.style.clipPath = ks > 0 ? K.cortina(1 - ks) : 'none';
+  };
+})();
+</script>
+</body>
+</html>

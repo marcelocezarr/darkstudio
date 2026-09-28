@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Kinético / carrossel (foto_destaque: fotos, camada FUNDO): colagem rápida de 2–4 imagens.
+     Cada painel entra por cortina (direções alternadas) no ritmo; o nome bate numa faixa preta. -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--fundo, #0a0a0a); }
+  .painel { position: absolute; overflow: hidden; background: #151515; will-change: clip-path; }
+  .painel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+  .painel .flash { position: absolute; inset: 0; background: var(--acento); will-change: transform; }
+  #sombra { position: absolute; left: 0; right: 0; bottom: 0; height: 460px;
+            background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); }
+  #rotulo { position: absolute; left: 192px; bottom: 150px; display: flex; flex-direction: column; align-items: flex-start; }
+  #faixa { background: var(--tinta); padding: 14px 44px 20px 28px; }
+  #nome { font-family: var(--f-titulo); color: var(--texto); line-height: 1.02; text-transform: uppercase; }
+  #nome .ln { overflow: hidden; }
+  #nome .li { display: inline-block; white-space: nowrap; will-change: transform; }
+</style>
+</head>
+<body>
+<div id="paineis"></div>
+<div id="sombra"></div>
+<div id="rotulo"><div id="faixa"><div id="nome"></div></div></div>
+<script src="../comum/kin.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let d = {}, DUR = 5500, paineis = [], linhas = [], tempos = [], TNOME = 0;
+  const GAP = 12;
+  const LADOS = ['esq', 'baixo', 'dir', 'cima'];
+
+  function layout(n) {
+    // retangulos [x, y, w, h] em tela cheia com respiro de GAP px
+    const W = 1920, H = 1080, g = GAP;
+    if (n <= 1) return [[0, 0, W, H]];
+    if (n === 2) return [[0, 0, W / 2 - g / 2, H], [W / 2 + g / 2, 0, W / 2 - g / 2, H]];
+    if (n === 3) return [[0, 0, W * 0.5 - g / 2, H], [W * 0.5 + g / 2, 0, W * 0.5 - g / 2, H / 2 - g / 2],
+                         [W * 0.5 + g / 2, H / 2 + g / 2, W * 0.5 - g / 2, H / 2 - g / 2]];
+    return [[0, 0, W / 2 - g / 2, H / 2 - g / 2], [W / 2 + g / 2, 0, W / 2 - g / 2, H / 2 - g / 2],
+            [0, H / 2 + g / 2, W / 2 - g / 2, H / 2 - g / 2], [W / 2 + g / 2, H / 2 + g / 2, W / 2 - g / 2, H / 2 - g / 2]];
+  }
+
+  window.montar = function (dados) {
+    d = K.iniciar(dados);
+    DUR = d.dur_ms || 5500;
+    let urls = (Array.isArray(d.midias) ? d.midias : []).filter(Boolean);
+    if (!urls.length && d.midia_url) urls = [d.midia_url];
+    urls = urls.slice(0, 4);
+    const cont = $('paineis'); cont.innerHTML = '';
+    const rects = layout(urls.length);
+    // ritmo: um painel a cada ~280 ms (cabe em 40% da duracao)
+    const passo = Math.min(300, (DUR * 0.4) / Math.max(1, urls.length));
+    tempos = urls.map((_, i) => i * passo);
+    paineis = urls.map((u, i) => {
+      const p = document.createElement('div'); p.className = 'painel';
+      const [x, y, w, h] = rects[i];
+      Object.assign(p.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+      const img = document.createElement('img'); img.src = u; img.alt = ''; p.appendChild(img);
+      const f = document.createElement('div'); f.className = 'flash'; p.appendChild(f);
+      cont.appendChild(p);
+      return { p, img, f, lado: LADOS[i % 4] };
+    });
+    TNOME = (tempos.length ? tempos[tempos.length - 1] : 0) + 380;
+    const nome = $('nome');
+    const texto = K.maiusc(String(d.texto || d.nome || '').trim(), d.idioma);
+    nome.style.width = '1300px';
+    nome.textContent = texto;
+    let fs = K.ajustar(nome, 1300, 250, 140, 56);
+    linhas = K.linhas(nome, texto);
+    while (fs > 56 && (linhas.length > 2 || linhas.some((l) => l.scrollWidth > 1300))) {
+      fs -= 4; nome.style.fontSize = fs + 'px'; linhas = K.linhas(nome, texto);
+    }
+    nome.style.width = 'auto';
+    if (!texto) $('rotulo').style.display = 'none';
+    window.eventos = tempos.map((ms) => ({ evento: 'foto.entra', ms: Math.round(ms) }))
+      .concat([{ evento: 'palavra.slam', ms: Math.round(TNOME + 60) }]);
+  };
+
+  window.quadro = function (t) {
+    paineis.forEach((o, i) => {
+      const t0 = tempos[i];
+      // cortina de acento cobre o painel e se retrai revelando a foto
+      const kc = K.outExpo(K.prog(t, t0, 200));
+      o.p.style.clipPath = kc >= 1 ? 'none' : K.cortina(kc, o.lado);
+      const kf = K.inOutQuint(K.prog(t, t0 + 140, 220));
+      o.f.style.opacity = kf >= 1 ? '0' : '1';
+      const eixo = (o.lado === 'esq' || o.lado === 'dir') ? 'X' : 'Y';
+      const sinal = (o.lado === 'esq' || o.lado === 'cima') ? 1 : -1;
+      o.f.style.transform = `translate${eixo}(${(sinal * kf * 101).toFixed(2)}%)`;
+      // foto: entra ampliada e assenta; depois deriva devagar
+      const ke = K.outExpo(K.prog(t, t0 + 100, 700));
+      const esc = K.lerp(1.35, 1.06, ke) - 0.05 * K.prog(t, t0, DUR);
+      o.img.style.transform = `scale(${esc.toFixed(4)})`;
+    });
+    const ks = K.inExpo(K.prog(t, DUR - 320, 280));
+    const kf = K.outExpo(K.prog(t, TNOME - 120, 380));
+    $('faixa').style.clipPath = K.cortina(ks > 0 ? 1 - ks : kf);
+    linhas.forEach((li, i) => {
+      const k = K.outExpo(K.prog(t, TNOME + i * 80, 420));
+      li.style.transform = `translateY(${((1 - k) * 110).toFixed(2)}%)`;
+    });
+    $('sombra').style.opacity = String(K.prog(t, TNOME - 200, 400) * (1 - ks));
+  };
+})();
+</script>
+</body>
+</html>

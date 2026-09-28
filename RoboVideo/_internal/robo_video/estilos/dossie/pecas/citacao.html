@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Dossie: citacao (citacoes). Folha de depoimento presa com clipe: aspas vermelhas, a fala
+     datilografada e a assinatura sublinhada a caneta. -->
+<link rel="stylesheet" href="_comum.css">
+<style>
+  #folha { left: 200px; top: 170px; width: 1180px; padding: 48px 70px 50px 150px; opacity: 0; transform-origin: 0 0; }
+  #rot { font-size: 28px; margin-bottom: 22px; white-space: nowrap; }
+  #aspas { position: absolute; left: 44px; top: 70px; font-family: var(--f-serif); font-size: 210px; line-height: 1; color: var(--vermelho); }
+  #txt { font-size: 50px; line-height: 1.28; width: 960px; color: var(--tinta); }
+  #autor { margin-top: 30px; text-align: right; font-size: 54px; color: var(--tinta); width: 960px; }
+  #autor span { position: relative; }
+  svg.caneta { left: 0; top: 0; }
+  svg.caneta path { stroke-width: 6; }
+  #clipe { position: absolute; left: 60px; top: -40px; width: 50px; height: 140px; overflow: visible; }
+  #clipe path { fill: none; stroke: #8f949a; stroke-width: 6.5; stroke-linecap: round; }
+</style>
+</head>
+<body>
+<div id="folha" class="papel">
+  <div id="rot" class="rotulo"></div>
+  <div id="aspas"></div>
+  <div id="txt" class="maquina"></div>
+  <div id="autor" class="titulo"><span id="aut"></span></div>
+  <svg class="caneta" id="svg" width="10" height="10"><path id="sub"/></svg>
+  <svg id="clipe" viewBox="0 0 50 140"><path d="M34 20 V112 a14 14 0 0 1 -28 0 V16 a9 9 0 0 1 18 0 V100"/></svg>
+</div>
+<script src="_comum.js"></script>
+<script>
+(() => {
+  const Z = window.DZ;
+  const folha = document.getElementById('folha'), txt = document.getElementById('txt'), sub = document.getElementById('sub');
+  const aut = document.getElementById('aut');
+  let DUR = 4500, T_DIG = 380, D_DIG = 1500, temAut = false;
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    Z.aplicarEstilo(d);
+    DUR = d.dur_ms || 4500;
+    document.getElementById('rot').textContent = Z.rot(d, 'dossie_depoimento') || Z.rot(d, 'citacao');
+    document.getElementById('aspas').textContent = '“';
+    const texto = Z.txt(d.texto).replace(/^["“”„«»']+|["“”„«»']+$/g, '');
+    txt.textContent = texto;
+    Z.caber(txt, 50, 30, 470);
+    Z.prepararDatilo(txt, texto);
+    const autor = Z.txt(d.autor);
+    temAut = !!autor;
+    if (temAut) aut.textContent = '— ' + autor; else document.getElementById('autor').style.display = 'none';
+    const fb = folha.getBoundingClientRect();
+    const svg = document.getElementById('svg');
+    svg.setAttribute('width', fb.width); svg.setAttribute('height', fb.height);
+    if (temAut) {
+      const b = aut.getBoundingClientRect();
+      sub.setAttribute('d', Z.sublinhadoMao(b.left - fb.left, b.right - fb.left + 8, b.bottom - fb.top + 4, autor));
+    }
+    D_DIG = Math.max(500, Math.min(texto.length * 28, DUR * 0.45));
+    window.eventos = [{ evento: 'papel.desliza', ms: 0 }, { evento: 'maquina.digita', ms: T_DIG }];
+  };
+
+  window.quadro = function (t) {
+    const ent = Z.seg(t, 0, 420), sai = Z.seg(t, DUR - 340, 340);
+    const e = Z.eo(ent), s = Z.eio(sai);
+    folha.style.opacity = String(Math.min(1, ent * 2.5) * (1 - sai));
+    folha.style.transform = `translate(${(1 - e) * -140 - s * 120}px, ${(1 - e) * 60}px) rotate(${-1 + (1 - e) * -3}deg)`;
+    Z.datilo(txt, Z.seg(t, T_DIG, D_DIG));
+    const ta = T_DIG + D_DIG + 120;
+    aut.style.opacity = String(Z.seg(t, ta, 260));
+    if (temAut) Z.tracar(sub, Z.eio(Z.seg(t, ta + 200, 380)));
+  };
+})();
+</script>
+</body>
+</html>

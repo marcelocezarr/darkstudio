@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<!-- Cinema (validado) / ficha (listas: ficha, lista). Deduzido: veu mais forte a esquerda (como o
+     do mapa), rotulo sans dourado espacado + titulo serifado + fio; linhas com rotulo pequeno em sans
+     e valor em serifa, separadas por filetes finos, que entram quando cada item e dito. -->
+<link rel="stylesheet" href="../comum/cv.css">
+<style>
+  #veu { background: none; }
+  #veuCv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #bloco { position: absolute; left: 192px; top: 0; width: 900px; }
+  #rot { color: var(--acento); font-size: 28px; letter-spacing: .3em; opacity: 0; }
+  #tit { margin-top: 18px; font-family: var(--fonte-titulo); font-weight: 600; color: var(--texto); font-size: 76px;
+         line-height: 1.05; opacity: 0; }
+  #fio { margin-top: 26px; height: 2px; width: 100%; transform: scaleX(0); }
+  .item { position: relative; display: flex; align-items: baseline; gap: 36px; padding: 22px 0 20px; opacity: 0; }
+  .item::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: rgba(244,239,228,.16); }
+  .item .r { flex: 0 0 250px; color: var(--acento); font-size: 24px; letter-spacing: .26em; white-space: normal; line-height: 1.3; }
+  .item .v { font-family: var(--fonte-titulo); font-weight: 500; color: var(--texto); font-size: 50px; line-height: 1.1; }
+  .item.sem-r .r { display: none; }
+</style>
+</head>
+<body>
+<div class="veu" id="veu"><canvas id="veuCv" width="48" height="27"></canvas></div>
+<div id="bloco">
+  <div id="rot" class="rotulo"></div>
+  <div id="tit"></div>
+  <div id="fio" class="fio"></div>
+  <div id="itens"></div>
+</div>
+<script src="../comum/cv.js"></script>
+<script>
+(() => {
+  const C = window.CV, $ = (s) => document.querySelector(s);
+  const veu = $('#veu'), rot = $('#rot'), tit = $('#tit'), fio = $('#fio');
+  let DUR = 6000, linhas = [], ts = [];
+
+  function pintarVeu() {
+    const cv = $('#veuCv'), g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const pts = [[0, .8], [.3, .74], [.5, .55], [.65, .3], [.8, .14], [1, .08]];
+    const a = (u) => { for (let i = 1; i < pts.length; i++) if (u <= pts[i][0]) {
+      const [u0, v0] = pts[i - 1], [u1, v1] = pts[i]; return v0 + (v1 - v0) * (u - u0) / (u1 - u0); } return .08; };
+    for (let x = 0; x < W; x++) { g.fillStyle = `rgba(8,10,14,${a(x / (W - 1)).toFixed(3)})`; g.fillRect(x, 0, 1, H); }
+  }
+
+  window.montar = function (dados) {
+    const d = dados || {};
+    C.tema(d);
+    pintarVeu();
+    DUR = d.dur_ms || 6000;
+    let campos = Array.isArray(d.campos) && d.campos.length ? d.campos
+      : (d.itens || []).map((s) => ({ rotulo: '', valor: s }));
+    campos = campos.slice(0, 5);
+    const ehFicha = Array.isArray(d.campos) && d.campos.length > 0;
+    const r = ehFicha ? C.rot(d, 'cinema_ficha') : '';
+    rot.textContent = r;
+    rot.style.display = r ? '' : 'none';
+    const titulo = C.txt(d.titulo || d.nome);
+    tit.textContent = titulo;
+    tit.style.display = titulo ? '' : 'none';
+    fio.style.display = titulo || r ? '' : 'none';
+    if (titulo) C.caber(tit, 900, 76 * 1.05 * 2 + 2, 76, 44);
+    const box = $('#itens');
+    linhas = campos.map((c) => {
+      const el = document.createElement('div');
+      el.className = 'item' + (C.txt(c.rotulo) ? '' : ' sem-r');
+      el.innerHTML = '<div class="r rotulo"></div><div class="v"></div>';
+      el.querySelector('.r').textContent = C.txt(c.rotulo);
+      el.querySelector('.v').textContent = C.txt(c.valor);
+      box.appendChild(el);
+      return el;
+    });
+    linhas.forEach((el) => C.caber(el.querySelector('.v'), el.classList.contains('sem-r') ? 900 : 610, 50 * 1.1 * 2 + 2, 50, 30));
+    const bloco = $('#bloco'), h = bloco.getBoundingClientRect().height;
+    bloco.style.top = Math.max(96, 540 - h / 2) + 'px';
+    const ims = Array.isArray(d.itens_ms) ? d.itens_ms : [];
+    let ult = 700;
+    ts = linhas.map((_, i) => {
+      const v = Number(ims[i]);
+      ult = Number.isFinite(v) ? Math.max(ult, 700 + v) : ult + (i ? 450 : 0);
+      return Math.min(ult, DUR * 0.7);
+    });
+    window.eventos = [{ evento: 'cena.abre', ms: 0 }].concat(ts.map((ms) => ({ evento: 'lista.item', ms })));
+  };
+
+  window.quadro = function (t) {
+    const sai = C.suave(C.fase(DUR - t, 0, Math.min(700, DUR * 0.18)));
+    veu.style.opacity = String(Math.min(C.suave(C.fase(t, 0, 600)), sai));
+    C.revela(rot, Math.min(C.sai(C.fase(t, 150, 700)), sai), 8, 4);
+    C.revela(tit, Math.min(C.sai(C.fase(t, 300, 750)), sai), 12, 6);
+    fio.style.transform = `scaleX(${C.io(C.fase(t, 550, 900)).toFixed(4)})`;
+    fio.style.opacity = String(sai);
+    linhas.forEach((el, i) => C.revela(el, Math.min(C.sai(C.fase(t, ts[i], 600)), sai), 12, 5));
+  };
+})();
+</script>
+</body>
+</html>
